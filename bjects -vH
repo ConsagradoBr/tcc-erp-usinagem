@@ -1,0 +1,5 @@
+[33m76c963c[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mconsagrado[m[33m, [m[1;31morigin/consagrado[m[33m)[m chore: remove node_modules and virtualenv folders from tracking
+[33m5994be3[m chore: add .gitignore to ignore venv and node_modules
+[33m677510b[m Merge branch 'consagrado' of https://github.com/ConsagradoBr/TCC-do-JoB into consagrado
+[33mda27b0e[m Primeiro commit - ERP Usinagem completo
+[33m8d16cf6[m tcc 24/11

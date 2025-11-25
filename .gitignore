@@ -1,0 +1,35 @@
+# Node
+node_modules/
+dist/
+build/
+.env
+.DS_Store
+npm-debug.log
+yarn-error.log
+
+# Vite/React
+.vite/
+.vitepress/
+.idea/
+.vscode/
+
+# Python
+.venv/
+venv/
+backend/venv/
+__pycache__/
+*.pyc
+instance/
+*.sqlite3
+
+# Logs
+*.log
+
+# OS
+Thumbs.db
+
+# IDE / Editor
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
