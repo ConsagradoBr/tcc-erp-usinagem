@@ -186,6 +186,142 @@ Os arquivos serão gerados em: dist/
 - PostgreSQL gerenciado e gratuito  
 - Excelente para TCC e demos  
 
+erDiagram
+    USERS {
+        uuid id PK
+        varchar username
+        varchar email
+        varchar password_hash
+        boolean is_admin
+        timestamptz created_at
+    }
+
+    CLIENTES {
+        serial id PK
+        varchar nome
+        varchar documento
+        varchar telefone
+        varchar email
+        varchar endereco
+        timestamptz created_at
+    }
+
+    FORNECEDORES {
+        serial id PK
+        varchar id_erp
+        varchar nome
+        varchar documento
+        varchar telefone
+        varchar email
+        varchar endereco
+    }
+
+    MAQUINAS {
+        serial id PK
+        varchar nome
+        varchar codigo
+        text descricao
+    }
+
+    PRODUTOS {
+        serial id PK
+        varchar sku
+        varchar nome
+        text descricao
+        numeric preco_unit
+        integer estoque_minimo
+        integer quantidade
+    }
+
+    ORDEM_SERVICO {
+        serial id PK
+        varchar codigo
+        integer cliente_id FK
+        uuid responsavel_id FK
+        numeric valor_total
+        varchar status
+        date data_abertura
+        date data_entrega_estimada
+    }
+
+    OS_ITENS {
+        serial id PK
+        integer ordem_id FK
+        integer produto_id FK
+        integer quantidade
+        numeric preco_unit
+        text observacoes
+    }
+
+    ESTOQUE_MOVIMENTOS {
+        serial id PK
+        integer produto_id FK
+        varchar tipo
+        integer quantidade
+        varchar referencia_tipo
+        integer referencia_id
+        timestamptz created_at
+    }
+
+    NOTAS_FISCAIS_FILES {
+        serial id PK
+        varchar modelo       -- 'NFe' / 'NFCe' / 'outro'
+        varchar chave_acesso
+        varchar numero
+        date data_emissao
+        varchar arquivo_path -- storage URL (opcional)
+        text conteudo_raw    -- JSON/XML bruto (se optar por armazenar no DB)
+        numeric valor_total
+        integer fornecedor_id FK
+        integer cliente_id FK
+        timestamptz created_at
+    }
+
+    NOTAS_FISCAIS {
+        serial id PK
+        integer nota_file_id FK
+        integer ordem_id FK NULL
+        varchar tipo_operacao -- 'compra' | 'venda' | 'entrada' | 'saida'
+        numeric valor_total
+        date data_emissao
+    }
+
+    NF_ITENS {
+        serial id PK
+        integer nota_id FK
+        integer produto_id FK NULL
+        varchar descricao
+        numeric qtd
+        numeric preco_unit
+        numeric valor_total
+    }
+
+    FINANCEIRO_LANCAMENTOS {
+        serial id PK
+        varchar tipo
+        numeric valor
+        date data_vencimento
+        boolean pago
+        integer ordem_id FK NULL
+        integer nota_id FK NULL
+        integer cliente_id FK NULL
+        integer fornecedor_id FK NULL
+        created_at timestamptz
+    }
+
+    USERS ||--o{ ORDEM_SERVICO : "abre"
+    CLIENTES ||--o{ ORDEM_SERVICO : "contrata"
+    CLIENTES ||--o{ NOTAS_FISCAIS_FILES : "recebe"
+    FORNECEDORES ||--o{ NOTAS_FISCAIS_FILES : "emite"
+    NOTAS_FISCAIS_FILES ||--o{ NOTAS_FISCAIS : "origina"
+    NOTAS_FISCAIS ||--o{ NF_ITENS : "possui"
+    ORD... ||--o{ OS_ITENS : "possui"
+    PRODUTOS ||--o{ OS_ITENS : "compõe"
+    PRODUTOS ||--o{ NF_ITENS : "compõe"
+    PRODUTOS ||--o{ ESTOQUE_MOVIMENTOS : "registra"
+    NOTAS_FISCAIS ||--o{ FINANCEIRO_LANCAMENTOS : "gera"
+    FINANCEIRO_LANCAMENTOS ||--o{ CLIENTES : "relaciona"
+
 ---
 
 # 📘 **Requisitos para Apresentação (TCC)**
