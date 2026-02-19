@@ -1,11 +1,11 @@
 import {
-  FinanceiroIcon,
-  CalendarioIcon,
-  CalendarioAlt,
-  FiltroIcon,
-  FiltroAlt,
-  PagamentoVermelho,
-  Dolar,
+  IconFinance,
+  IconCalendar,
+  IconCalendarAlt,
+  IconFilter,
+  IconFilterAlt,
+  IconPaymentRed,
+  IconDollar,
 } from "../assets/assets-map";
 
 export default function Financeiro() {
@@ -18,12 +18,12 @@ export default function Financeiro() {
         <div className="flex items-center gap-4 mb-6">
 
           <div className="flex items-center gap-2">
-            <img src={CalendarioIcon} className="w-6" />
+            <img src={IconCalendar} className="w-6" />
             <span>Filtrar por data</span>
           </div>
 
           <div className="flex items-center gap-2">
-            <img src={FiltroIcon} className="w-6" />
+            <img src={IconFilter} className="w-6" />
             <span>Avançado</span>
           </div>
 
@@ -43,7 +43,7 @@ export default function Financeiro() {
               <td className="p-2">Pagamento de cliente</td>
               <td className="p-2 text-green-600 font-bold">R$ 1.200</td>
               <td className="p-2">
-                <img src={Dolar} className="w-6" />
+                <img src={IconDollar} className="w-6" />
               </td>
             </tr>
 
@@ -51,7 +51,7 @@ export default function Financeiro() {
               <td className="p-2">Pagar fornecedor</td>
               <td className="p-2 text-red-600 font-bold">R$ -800</td>
               <td className="p-2">
-                <img src={PagamentoVermelho} className="w-6" />
+                <img src={IconPaymentRed} className="w-6" />
               </td>
             </tr>
           </tbody>

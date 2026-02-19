@@ -1,22 +1,18 @@
-import { MenuIcon, Poder, Logo } from "../assets/assets-map";
-import { useState } from "react";
+import React from "react";
+import { IconMenu, IconPower, LogoMain } from "../assets/assets-map";
 
 export default function Header({ onMenuToggle }) {
   return (
     <header className="w-full h-16 bg-white flex items-center justify-between px-6 border-b shadow-sm">
-
-      {/* Botão de menu */}
       <button
         onClick={onMenuToggle}
         className="p-2 rounded-lg hover:bg-gray-100 transition"
       >
-        <img src={MenuIcon} alt="Menu" className="w-7" />
+        <img src={IconMenu} alt="Menu" className="w-7" />
       </button>
 
-      {/* Logo */}
-      <img src={Logo} alt="Logo" className="w-32" />
+      <img src={LogoMain} alt="Logo" className="w-32" />
 
-      {/* Botão logout */}
       <button
         onClick={() => {
           localStorage.removeItem("token");
@@ -24,7 +20,7 @@ export default function Header({ onMenuToggle }) {
         }}
         className="p-2 rounded-lg hover:bg-gray-100 transition"
       >
-        <img src={Poder} alt="Logout" className="w-6" />
+        <img src={IconPower} alt="Logout" className="w-6" />
       </button>
     </header>
   );

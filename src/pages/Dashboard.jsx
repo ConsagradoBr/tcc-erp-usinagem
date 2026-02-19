@@ -1,10 +1,8 @@
 import {
-  Dashboard,
-  Clientes,
-  Financeiro,
-  OrdemServico,
-  Dolar,
-  DolarAlt,
+
+  IconServiceOrder,
+  IconDollar,
+  IconClients,
 } from "../assets/assets-map";
 
 export default function Dashboard() {
@@ -18,7 +16,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
         <div className="bg-white shadow rounded-xl p-6 flex items-center gap-4">
-          <img src={Clientes} className="w-12" />
+          <img src={IconClients} className="w-12" />
           <div>
             <p className="text-gray-500 text-sm">Clientes</p>
             <p className="text-2xl font-bold">140</p>
@@ -26,7 +24,7 @@ export default function Dashboard() {
         </div>
 
         <div className="bg-white shadow rounded-xl p-6 flex items-center gap-4">
-          <img src={OrdemServico} className="w-12" />
+          <img src={IconServiceOrder} className="w-12" />
           <div>
             <p className="text-gray-500 text-sm">O.S. em andamento</p>
             <p className="text-2xl font-bold">32</p>
@@ -34,7 +32,7 @@ export default function Dashboard() {
         </div>
 
         <div className="bg-white shadow rounded-xl p-6 flex items-center gap-4">
-          <img src={Dolar} className="w-12" />
+          <img src={IconDollar} className="w-12" />
           <div>
             <p className="text-gray-500 text-sm">Receita mensal</p>
             <p className="text-2xl font-bold">R$ 28.900</p>
