@@ -32,6 +32,7 @@ export { default as IconPaymentRed } from "./pagamento-vermelho.png";
 export { default as IconPaymentGreen } from "./pagamento-verde.png";
 export { default as IconFinanceSmall } from "./fin.png";
 export { default as IconFinance } from "./financeiro.png";
+export { default as IconTrendingUp } from "./tendencia-de-alta.png";
 
 // --- SYSTEM UI ---
 export { default as IconDashboard } from "./dashboard.png";

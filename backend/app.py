@@ -1,5 +1,7 @@
 import os
-from flask import Flask, request, jsonify
+import traceback
+from urllib.parse import quote_plus
+from flask import Flask, Blueprint, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -23,21 +25,29 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 # VARIÁVEIS DE AMBIENTE
 # -------------------------------
 
-user = os.getenv("DB_USER")
-password = os.getenv("DB_PASS")
-host = os.getenv("DB_HOST", "localhost")
-port = os.getenv("DB_PORT", "5432")
-dbname = os.getenv("DB_NAME", "amp_usinagem")
+db_user = os.getenv("DB_USER")
+db_pass = os.getenv("DB_PASS")
+db_host = os.getenv("DB_HOST", "localhost")
+db_port = os.getenv("DB_PORT", "5432")
+db_name = os.getenv("DB_NAME", "postgres")
 
 # -------------------------------
-# BANCO DE DADOS POSTGRES
+# BANCO DE DADOS POSTGRES (Session Pooler - IPv4)
 # -------------------------------
 
 app.config["SQLALCHEMY_DATABASE_URI"] = (
-    f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{dbname}"
+    f"postgresql+psycopg2://{quote_plus(db_user)}:{quote_plus(db_pass)}@{db_host}:{db_port}/{db_name}"
+    f"?sslmode=require"
 )
-
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+    "pool_pre_ping": True,
+    "pool_recycle": 300,
+    "connect_args": {
+        "sslmode": "require",
+        "connect_timeout": 10,
+    }
+}
 
 # -------------------------------
 # JWT
@@ -79,10 +89,14 @@ with app.app_context():
         logging.error(f"❌ Erro ao criar tabelas: {e}")
 
 # -------------------------------
-# ROTA: CRIAR USUÁRIO
+# BLUEPRINT: /auth
+# (espelha as chamadas do AuthPage.jsx)
 # -------------------------------
 
-@app.route("/usuarios", methods=["POST"])
+auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
+
+# POST /auth/usuarios — Cadastro
+@auth_bp.route("/usuarios", methods=["POST"])
 def criar_usuario():
     try:
         data = request.get_json()
@@ -108,33 +122,30 @@ def criar_usuario():
         logging.error(f"❌ Erro ao criar usuário: {e}")
         return jsonify({"erro": "Erro interno ao criar usuário."}), 500
 
-# -------------------------------
-# ROTA: LOGIN
-# -------------------------------
-
-@app.route("/login", methods=["POST"])
+# POST /auth/login — Login
+@auth_bp.route("/login", methods=["POST"])
 def login():
     try:
         data = request.get_json()
         email = data.get("email", "").strip().lower()
         senha = data.get("senha", "").strip()
 
-        user = Usuario.query.filter_by(email=email).first()
+        usuario = Usuario.query.filter_by(email=email).first()
 
-        if not user or not user.check_password(senha):
+        if not usuario or not usuario.check_password(senha):
             return jsonify({"erro": "Credenciais inválidas."}), 401
 
         token = create_access_token(
-            identity={"id": user.id, "nome": user.nome, "email": user.email}
+            identity={"id": usuario.id, "nome": usuario.nome, "email": usuario.email}
         )
 
         return jsonify({
             "mensagem": "Login bem-sucedido!",
             "token": token,
             "user": {
-                "id": user.id,
-                "nome": user.nome,
-                "email": user.email
+                "id": usuario.id,
+                "nome": usuario.nome,
+                "email": usuario.email
             }
         }), 200
 
@@ -142,15 +153,31 @@ def login():
         logging.error(f"❌ Erro no login: {e}")
         return jsonify({"erro": "Erro interno no login."}), 500
 
-# -------------------------------
-# ROTA PROTEGIDA
-# -------------------------------
-
-@app.route("/perfil", methods=["GET"])
+# GET /auth/perfil — Rota protegida por JWT
+@auth_bp.route("/perfil", methods=["GET"])
 @jwt_required()
 def perfil():
     usuario = get_jwt_identity()
     return jsonify({"mensagem": "Bem-vindo(a)!", "usuario": usuario}), 200
+
+# -------------------------------
+# REGISTRO DO BLUEPRINT
+# -------------------------------
+
+app.register_blueprint(auth_bp)
+
+# -------------------------------
+# HANDLER DE ERROS GLOBAIS
+# -------------------------------
+
+@app.errorhandler(Exception)
+def handle_exception(e):
+    print("\n" + "="*80)
+    print("🚨 ERRO 500 DETECTADO NO BACKEND - TRACEBACK COMPLETO")
+    print("="*80)
+    print(traceback.format_exc())
+    print("="*80 + "\n")
+    return {"error": "Erro interno do servidor"}, 500
 
 # -------------------------------
 # INÍCIO DO SERVIDOR
