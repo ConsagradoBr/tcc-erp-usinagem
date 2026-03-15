@@ -1,203 +1,234 @@
-# ⚙️ AMP — ERP para Usinagem  
-Sistema ERP web completo desenvolvido como Trabalho de Conclusão de Curso (TCC), voltado para empresas de usinagem de pequeno e médio porte.  
-O sistema integra módulos essenciais como: **Ordens de Serviço, Clientes, Financeiro, Estoque, Notas Fiscais e Dashboard em tempo real**.
+# ⚙️ AMP — ERP para Usinagem Industrial
+
+Sistema ERP web completo desenvolvido como Trabalho de Conclusão de Curso (TCC), voltado para empresas de usinagem de pequeno e médio porte.
+
+> **Stack:** React 18 + Vite · Flask (Python 3) · PostgreSQL (Supabase) · JWT
 
 ---
 
-## 📌 **Visão Geral**
-O objetivo deste projeto é centralizar a operação de uma oficina de usinagem em um único sistema moderno, responsivo e acessível via navegador.  
-O ERP foi construído utilizando **React + Vite no frontend** e **Flask + SQLite/PostgreSQL no backend**, com autenticação via **JWT**.
+## 📌 Visão Geral
+
+O objetivo deste projeto é centralizar a operação de uma oficina de usinagem em um único sistema moderno, responsivo e acessível via navegador. O ERP integra autenticação segura, gestão de clientes, controle financeiro com importação de NF-e e boletos, e dashboard analítico com dados em tempo real.
 
 ---
 
-## 🚀 **Tecnologias Utilizadas**
+## 🚀 Tecnologias Utilizadas
 
-### **Frontend**
-- React 18  
-- Vite  
-- React Router DOM  
-- Tailwind CSS  
-- Axios  
-- Heroicons  
-- Context API (estado global)  
+### Frontend
+| Biblioteca | Versão | Uso |
+|---|---|---|
+| React | 18 | UI principal |
+| Vite | latest | Bundler / Dev server |
+| React Router DOM | v6 | Roteamento SPA |
+| Tailwind CSS | v3 | Estilização |
+| Axios | latest | Requisições HTTP |
+| Recharts | latest | Gráficos do dashboard |
+| react-hot-toast | latest | Notificações |
 
-### **Backend**
-- Python 3  
-- Flask  
-- Flask-JWT-Extended  
-- SQLAlchemy  
-- SQLite (ambiente local)  
-- PostgreSQL (produção)  
+### Backend
+| Biblioteca | Versão | Uso |
+|---|---|---|
+| Flask | 3.1.0 | Framework web |
+| Flask-SQLAlchemy | 3.1.1 | ORM PostgreSQL |
+| Flask-JWT-Extended | 4.7.0 | Autenticação JWT |
+| Flask-Cors | 5.0.0 | CORS |
+| psycopg2-binary | ≥2.9.11 | Driver PostgreSQL |
+| python-dotenv | 1.0.1 | Variáveis de ambiente |
+| pdfplumber | latest | Extração de texto em boletos PDF |
+| python-dateutil | latest | Cálculo de datas de parcelas |
 
-### **Outras tecnologias**
-- JWT Authentication  
-- Flexbox & Grid  
-- ESLint  
-- Scripts .BAT para execução rápida  
+### Infraestrutura
+- **Banco de dados:** PostgreSQL via [Supabase](https://supabase.com) (Session Pooler — IPv4)
+- **Deploy sugerido:** Vercel (frontend) · Railway ou Render (backend)
 
 ---
 
-## 📂 **Estrutura do Projeto**
+## 📂 Estrutura do Projeto
 
-amp-usinagem-project/
-│── backend/
-│ ├── app.py
-│ ├── requirements.txt
-│ ├── env.example
-│ ├── instance/
-│ │ └── usinagem.db (SQLite)
+```
+tcc-erp-usinagem/
+├── backend/
+│   ├── app.py              # API Flask — blueprints: /auth, /clientes, /financeiro
+│   ├── migrate.py          # Migration manual (adiciona colunas novas)
+│   ├── requirements.txt
+│   ├── .env                # Variáveis de ambiente (não commitado)
+│   └── venv/               # Ambiente virtual Python (não commitado)
 │
-│── public/
-│── src/
-│ ├── App.jsx
-│ ├── api.js
-│ ├── pages/
-│ ├── components/
-│ ├── assets/
+├── src/
+│   ├── assets/             # Ícones e imagens
+│   ├── components/         # Componentes reutilizáveis
+│   ├── layouts/            # Layouts de página
+│   ├── pages/
+│   │   ├── AuthPage.jsx    # Login / Cadastro
+│   │   ├── Dashboard.jsx   # Dashboard com dados reais
+│   │   ├── Clientes.jsx    # CRUD + importação NF-e XML/JSON
+│   │   └── Financeiro.jsx  # CRUD + parcelas + boleto PDF
+│   ├── api.js              # Instância Axios com token JWT
+│   └── App.jsx
 │
-│── index.html
-│── package.json
-│── .gitignore
-│── README.md
-
-
----
-
-# 🔐 **Variáveis de Ambiente**
-Crie o arquivo: backend/.env
-
-ou use o exemplo: backend/env.example
-
-
-Variáveis necessárias:
-
-FLASK_ENV=development
-SECRET_KEY=sua_chave_secreta
-JWT_SECRET_KEY=chave_jwt_aqui
-
-DATABASE_URL=postgresql://usuario:senha@host:porta/banco
-
+├── dist/                   # Build de produção (gerado pelo Vite)
+├── index.html
+├── package.json
+├── tailwind.config.cjs
+├── vite.config.js
+├── .gitignore
+└── README.md
+```
 
 ---
 
-# 🖥️ **Como Rodar o Projeto**
+## 🔐 Variáveis de Ambiente
 
-## 📌 Backend (Flask)
+Crie o arquivo `backend/.env` com base no `backend/.env.example`:
 
-### 1. Criar ambiente virtual
-  cd backend
-  python -m venv .venv
+```env
+# Supabase Session Pooler (IPv4 — porta 5432)
+DB_USER=postgres.xxxxxxxxxxxx
+DB_PASS=SuaSenhaAqui
+DB_HOST=aws-1-sa-east-1.pooler.supabase.com
+DB_PORT=5432
+DB_NAME=postgres
 
-### 2. Ativar ambiente  
-**Windows:**
-  .venv\Scripts\activate
+# Segurança
+JWT_SECRET_KEY=chave_jwt_segura_aqui
+SECRET_KEY=chave_secreta_aqui
+```
 
-### 3. Instalar dependências
-  pip install -r requirements.txt
-
-### 4. Rodar a API
-  flask run
-
-
-A API será iniciada em: http://127.0.0.1:5000
-
+> ⚠️ **Nunca commite o `.env`** — ele já está no `.gitignore`.
 
 ---
 
-## 🌐 Frontend (React + Vite)
+## 🖥️ Como Rodar o Projeto (do zero)
 
-### 1. Instalar dependências
-Na raiz do projeto:
-  
-  npm install
+### Pré-requisitos
+- [Git](https://git-scm.com/)
+- [Python 3.10+](https://www.python.org/)
+- [Node.js 18+](https://nodejs.org/)
+- Conta no [Supabase](https://supabase.com) com projeto criado
 
-### 2. Rodar em modo desenvolvimento
+---
+
+### 1. Clonar o repositório
+
+```bash
+git clone https://github.com/ConsagradoBr/tcc-erp-usinagem.git
+cd tcc-erp-usinagem
+```
+
+---
+
+### 2. Configurar o Backend
+
+```bash
+# Entrar na pasta do backend
+cd backend
+
+# Criar ambiente virtual
+python -m venv venv
+
+# Ativar ambiente virtual
+# Windows:
+venv\Scripts\activate
+# Linux/Mac:
+source venv/bin/activate
+
+# Instalar dependências
+pip install -r requirements.txt
+
+# Criar o arquivo .env com suas credenciais do Supabase
+# (copie o .env.example e preencha os valores)
+copy .env.example .env     # Windows
+cp .env.example .env       # Linux/Mac
+```
+
+Edite o `.env` com suas credenciais do Supabase e então rode:
+
+```bash
+# Iniciar o servidor backend
+python app.py
+```
+
+A API estará disponível em: `http://127.0.0.1:5000`
+
+> **Primeira execução:** as tabelas são criadas automaticamente via `db.create_all()`.  
+> Se o banco já existia e faltam colunas novas, rode `python migrate.py` uma única vez.
+
+---
+
+### 3. Configurar o Frontend
+
+Abra um **novo terminal** na raiz do projeto:
+
+```bash
+# Na raiz do projeto (não dentro de backend/)
+cd ..
+
+# Instalar dependências Node
+npm install
+
+# Iniciar servidor de desenvolvimento
 npm run dev
+```
 
-
-A aplicação abrirá em: http://localhost:5173
-
+A aplicação abrirá em: `http://localhost:5173`
 
 ---
 
-# 📊 **Funcionalidades Principais**
+### 4. Criar o primeiro usuário
+
+Com os dois servidores rodando, acesse `http://localhost:5173`, clique em **"Crie uma agora"** e registre seu usuário administrador.
+
+---
+
+## 📊 Módulos Implementados
 
 ### 🔐 Autenticação
-- Login seguro com JWT  
-- Proteção de rotas  
-- Sessão com expiração  
-
-### 🧾 Ordens de Serviço
-- Criar / editar / excluir OS  
-- Status: Aberto → Em Andamento → Concluído  
-- Vínculo com cliente  
-- Upload de Nota Fiscal (PDF)  
+- Login e cadastro com JWT
+- Token com expiração de 8 horas
+- Proteção de rotas no frontend e backend
 
 ### 👥 Clientes
-- Cadastro completo  
-- Histórico de serviços  
-- Busca avançada  
+- CRUD completo (criar, editar, excluir, buscar)
+- **Importação automática via NF-e** (`.xml` ou `.json`)
+  - Seleciona emitente ou destinatário como cliente
+  - Detecção automática de duplicatas por CNPJ/CPF
+- Exportar dados do cliente em `.json`
+- Máscaras automáticas de CPF/CNPJ e telefone
 
 ### 💰 Financeiro
-- Contas a pagar / receber  
-- Relatórios mensais  
-- Gráficos integrados  
-
-### 🛠️ Estoque
-- Ferramentas e insumos  
-- Controle de estoque mínimo  
-- Alertas automáticos  
-
-### 📥 Notas Fiscais
-- Upload  
-- Download  
-- Associação automática à OS  
+- Lançamentos de contas a pagar e a receber
+- **Parcelamento:** cria N parcelas mensais com vencimentos automáticos
+- Linha expansível na tabela para visualizar parcelas individuais
+- Marcar parcelas como pagas individualmente
+- Exclusão em grupo (remove todas as parcelas de um lançamento)
+- **Importação via boleto PDF** — extrai valor, vencimento, beneficiário e NF-e automaticamente
+- Juros automáticos calculados pelo backend (1% a.m. sobre dias em atraso)
+- Status calculado automaticamente: `pendente` / `atrasado` / `pago`
+- Filtros por tipo (receber/pagar) e status
+- Exportar lançamento em `.csv`
 
 ### 📊 Dashboard
-- Faturamento  
-- OS em aberto  
-- Alertas  
-- Indicadores  
+- Total de clientes (tempo real)
+- A Receber e A Pagar (tempo real via `/financeiro/resumo`)
+- Recebido no mês com % de crescimento vs mês anterior
+- Gráfico de barras: Receitas x Pagamentos dos últimos 6 meses
+- Alerta visual de lançamentos em atraso
 
 ---
 
-# 📦 **Build de Produção (Frontend)**
+## 🗄️ Diagrama ER
 
-  npm run build
-
-Os arquivos serão gerados em: dist/
-
-
----
-
-# ☁️ **Deploy (Sugerido)**
-
-## Frontend → **Vercel**
-- Subir somente pasta raiz do frontend  
-- Framework selecionado: `Vite`  
-- Deploy automático vinculado ao GitHub  
-
-## Backend → **Railway / Render**
-- Deploy Docker ou Python nativo  
-- Variáveis de ambiente configuradas  
-- Banco PostgreSQL recomendado  
-
-## Banco de Dados → **Neon / Supabase**
-- PostgreSQL gerenciado e gratuito  
-- Excelente para TCC e demos  
-
+```mermaid
 erDiagram
-    USERS {
-        uuid id PK
-        varchar username
+    USUARIOS {
+        int id PK
+        varchar nome
         varchar email
-        varchar password_hash
-        boolean is_admin
-        timestamptz created_at
+        varchar senha_hash
     }
 
     CLIENTES {
-        serial id PK
+        int id PK
         varchar nome
         varchar documento
         varchar telefone
@@ -206,158 +237,98 @@ erDiagram
         timestamptz created_at
     }
 
-    FORNECEDORES {
-        serial id PK
-        varchar id_erp
-        varchar nome
-        varchar documento
-        varchar telefone
-        varchar email
-        varchar endereco
-    }
-
-    MAQUINAS {
-        serial id PK
-        varchar nome
-        varchar codigo
-        text descricao
-    }
-
-    PRODUTOS {
-        serial id PK
-        varchar sku
-        varchar nome
-        text descricao
-        numeric preco_unit
-        integer estoque_minimo
-        integer quantidade
-    }
-
-    ORDEM_SERVICO {
-        serial id PK
-        varchar codigo
-        integer cliente_id FK
-        uuid responsavel_id FK
-        numeric valor_total
-        varchar status
-        date data_abertura
-        date data_entrega_estimada
-    }
-
-    OS_ITENS {
-        serial id PK
-        integer ordem_id FK
-        integer produto_id FK
-        integer quantidade
-        numeric preco_unit
-        text observacoes
-    }
-
-    ESTOQUE_MOVIMENTOS {
-        serial id PK
-        integer produto_id FK
+    LANCAMENTOS {
+        int id PK
         varchar tipo
-        integer quantidade
-        varchar referencia_tipo
-        integer referencia_id
-        timestamptz created_at
-    }
-
-    NOTAS_FISCAIS_FILES {
-        serial id PK
-        varchar modelo       -- 'NFe' / 'NFCe' / 'outro'
-        varchar chave_acesso
-        varchar numero
-        date data_emissao
-        varchar arquivo_path -- storage URL (opcional)
-        text conteudo_raw    -- JSON/XML bruto (se optar por armazenar no DB)
-        numeric valor_total
-        integer fornecedor_id FK
-        integer cliente_id FK
-        timestamptz created_at
-    }
-
-    NOTAS_FISCAIS {
-        serial id PK
-        integer nota_file_id FK
-        integer ordem_id FK NULL
-        varchar tipo_operacao -- 'compra' | 'venda' | 'entrada' | 'saida'
-        numeric valor_total
-        date data_emissao
-    }
-
-    NF_ITENS {
-        serial id PK
-        integer nota_id FK
-        integer produto_id FK NULL
+        int cliente_id FK
         varchar descricao
-        numeric qtd
-        numeric preco_unit
-        numeric valor_total
-    }
-
-    FINANCEIRO_LANCAMENTOS {
-        serial id PK
-        varchar tipo
+        varchar nfe
+        int prazo_dias
+        date vencimento
         numeric valor
-        date data_vencimento
-        boolean pago
-        integer ordem_id FK NULL
-        integer nota_id FK NULL
-        integer cliente_id FK NULL
-        integer fornecedor_id FK NULL
-        created_at timestamptz
+        date data_pagamento
+        varchar forma_pagamento
+        text observacao
+        int parcelas
+        int parcela_num
+        timestamptz created_at
     }
 
-    USERS ||--o{ ORDEM_SERVICO : "abre"
-    CLIENTES ||--o{ ORDEM_SERVICO : "contrata"
-    CLIENTES ||--o{ NOTAS_FISCAIS_FILES : "recebe"
-    FORNECEDORES ||--o{ NOTAS_FISCAIS_FILES : "emite"
-    NOTAS_FISCAIS_FILES ||--o{ NOTAS_FISCAIS : "origina"
-    NOTAS_FISCAIS ||--o{ NF_ITENS : "possui"
-    ORD... ||--o{ OS_ITENS : "possui"
-    PRODUTOS ||--o{ OS_ITENS : "compõe"
-    PRODUTOS ||--o{ NF_ITENS : "compõe"
-    PRODUTOS ||--o{ ESTOQUE_MOVIMENTOS : "registra"
-    NOTAS_FISCAIS ||--o{ FINANCEIRO_LANCAMENTOS : "gera"
-    FINANCEIRO_LANCAMENTOS ||--o{ CLIENTES : "relaciona"
+    CLIENTES ||--o{ LANCAMENTOS : "possui"
+```
 
 ---
 
-# 📘 **Requisitos para Apresentação (TCC)**
+## 🔌 Rotas da API
 
-A banca verificará:
-- Dashboard funcional  
-- Cadastro e manipulação de OS  
-- Upload e exibição de PDFs  
-- Dados reais no banco  
-- Código versionado no GitHub  
-- Documentação completa (Incluindo ER e fluxogramas)  
-- Responsividade  
+### Auth — `/auth`
+| Método | Rota | Descrição |
+|---|---|---|
+| POST | `/auth/usuarios` | Cadastrar usuário |
+| POST | `/auth/login` | Login (retorna JWT) |
+| GET | `/auth/perfil` | Perfil do usuário autenticado |
+
+### Clientes — `/clientes`
+| Método | Rota | Descrição |
+|---|---|---|
+| GET | `/clientes?q=termo` | Listar / buscar clientes |
+| POST | `/clientes` | Criar cliente |
+| PUT | `/clientes/<id>` | Editar cliente |
+| DELETE | `/clientes/<id>` | Excluir cliente |
+
+### Financeiro — `/financeiro`
+| Método | Rota | Descrição |
+|---|---|---|
+| GET | `/financeiro` | Listar lançamentos (filtros: tipo, status, q) |
+| GET | `/financeiro/resumo` | Totais para o Dashboard |
+| POST | `/financeiro` | Criar lançamento (suporta `parcelas: N`) |
+| PUT | `/financeiro/<id>` | Editar lançamento |
+| PATCH | `/financeiro/<id>/pagar` | Marcar como pago |
+| DELETE | `/financeiro/<id>?modo=unico\|grupo` | Excluir lançamento ou grupo de parcelas |
+| POST | `/financeiro/boleto` | Parsear boleto PDF (base64) |
 
 ---
 
-# 🧭 **Roadmap Futuro**
-- Controle de máquinas CNC  
-- Multiusuários com níveis de acesso  
-- Notificações em tempo real (WebSocket)  
-- Relatório OEE completo  
-- Integração com NF-e (SEFAZ)  
-- Aplicativo mobile (React Native)  
+## ☁️ Deploy
+
+### Frontend → Vercel
+```bash
+npm run build
+# Faça upload da pasta dist/ ou conecte o repositório GitHub no Vercel
+# Framework: Vite
+```
+
+### Backend → Railway / Render
+1. Conecte o repositório GitHub
+2. Defina as variáveis de ambiente (as mesmas do `.env`)
+3. Comando de start: `python app.py`
 
 ---
 
-# 👨‍💻 **Autores**
+## 🧭 Roadmap Futuro
+- [ ] Módulo de Ordens de Serviço (OS)
+- [ ] Módulo de Estoque
+- [ ] Multiusuários com níveis de acesso (admin / operador)
+- [ ] Notificações em tempo real (WebSocket)
+- [ ] Integração com NF-e (SEFAZ)
+- [ ] Relatório OEE para máquinas CNC
+- [ ] Aplicativo mobile (React Native)
+
+---
+
+## 👨‍💻 Autores
+
 **Quesede Constantino**  
-Desenvolvedor Fullstack | Projeto de TCC – ERP para Usinagem
+Desenvolvedor Fullstack — TCC: ERP para Usinagem Industrial
+
+**Lucas Davoli Vital**  
+Desenvolvedor — TCC: ERP para Usinagem Industrial
+
+**A definir**  
+— TCC: ERP para Usinagem Industrial
 
 ---
 
-# ⭐ **Se este projeto te ajudou, deixe uma estrela no repositório!**
+## 📄 Licença
 
-
-
-
-
-
-
+Projeto acadêmico desenvolvido para fins de TCC. Todos os direitos reservados.
