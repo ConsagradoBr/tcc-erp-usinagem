@@ -43,18 +43,20 @@ const TooltipReceita = ({ active, payload, label }) => {
   );
 };
 
-// ─── Status OS (ainda mockado até módulo OS estar pronto) ─────────────────────
-const osStatusData = [
-  { name: "Em andamento", value: 32, color: "#3B82F6" },
-  { name: "Concluídas",   value: 87, color: "#10B981" },
-  { name: "Atrasadas",    value: 12, color: "#EF4444" },
-];
+// ─── Cores e labels do gráfico OS ───────────────────────────────────────────
+const OS_CORES = {
+  solicitado:   { cor: "#F59E0B", label: "Solicitado"   },
+  em_andamento: { cor: "#3B82F6", label: "Em Andamento" },
+  revisao:      { cor: "#8B5CF6", label: "Em Revisão"   },
+  concluido:    { cor: "#10B981", label: "Concluído"    },
+};
 
 // ================================================================
 export default function Dashboard() {
   const [clientes,  setClientes]  = useState(null);
   const [resumo,    setResumo]    = useState(null);
   const [grafico,   setGrafico]   = useState(null);
+  const [osData,    setOsData]    = useState(null);
   const [erro,      setErro]      = useState(false);
 
   useEffect(() => {
@@ -64,15 +66,16 @@ export default function Dashboard() {
       api.get("/clientes"),
       api.get("/financeiro/resumo"),
       api.get("/financeiro"),
+      api.get("/ordens-servico/resumo"),
     ])
-      .then(([resC, resR, resF]) => {
+      .then(([resC, resR, resF, resOS]) => {
         // Clientes
         setClientes(resC.data.length);
 
         // Resumo financeiro
         setResumo(resR.data);
 
-        // Montar dados do gráfico: receitas e pagamentos por mês
+        // Gráfico de receitas
         const lancamentos = resF.data;
         const dados = meses.map(({ label, key }) => {
           const recebido = lancamentos
@@ -84,6 +87,16 @@ export default function Dashboard() {
           return { month: label, recebido: Math.round(recebido), pago: Math.round(pago) };
         });
         setGrafico(dados);
+
+        // Gráfico de OS por status
+        const resumoOS = resOS.data;
+        setOsData(
+          Object.entries(OS_CORES).map(([key, { cor, label }]) => ({
+            name:  label,
+            value: resumoOS[key] || 0,
+            color: cor,
+          }))
+        );
       })
       .catch(() => setErro(true));
   }, []);
@@ -238,23 +251,33 @@ export default function Dashboard() {
           <h3 className="text-xl font-semibold mb-2 text-gray-900 dark:text-white">
             Status das Ordens de Serviço
           </h3>
-          <p className="text-sm text-gray-400 mb-6">Módulo de OS em desenvolvimento</p>
-          <ResponsiveContainer width="100%" height={280}>
-            <PieChart>
-              <Pie data={osStatusData} cx="50%" cy="50%" innerRadius={80} outerRadius={120} dataKey="value">
-                {osStatusData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
-              </Pie>
-              <Tooltip formatter={(v, n) => [v, n]} />
-            </PieChart>
-          </ResponsiveContainer>
-          <div className="flex justify-center gap-8 mt-4">
-            {osStatusData.map(item => (
-              <div key={item.name} className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
-                <span className="text-sm text-gray-600 dark:text-gray-400">{item.name}</span>
+          <p className="text-sm text-gray-400 mb-6">Distribuição atual por etapa</p>
+
+          {osData === null ? (
+            <div className="h-80 flex items-center justify-center">
+              <div className="w-8 h-8 border-4 border-blue-200 border-t-blue-500 rounded-full animate-spin" />
+            </div>
+          ) : (
+            <>
+              <ResponsiveContainer width="100%" height={280}>
+                <PieChart>
+                  <Pie data={osData} cx="50%" cy="50%" innerRadius={80} outerRadius={120} dataKey="value" label={({ name, value }) => `${value}`}>
+                    {osData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                  </Pie>
+                  <Tooltip formatter={(v, n) => [`${v} OS`, n]} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="flex flex-wrap justify-center gap-4 mt-4">
+                {osData.map(item => (
+                  <div key={item.name} className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
+                    <span className="text-sm text-gray-600 dark:text-gray-400">{item.name}</span>
+                    <span className="text-sm font-bold text-gray-800 dark:text-white">{item.value}</span>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </>
+          )}
         </div>
       </div>
     </div>

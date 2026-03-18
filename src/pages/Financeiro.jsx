@@ -261,9 +261,10 @@ function ModalLancamento({ item, clientes, onClose, onSalvo }) {
     if (!form.vencimento || !form.valor || parcelas <= 1) return null;
     const valorParcela = (Number(form.valor) / parcelas).toFixed(2);
     const base = new Date(form.vencimento + "T12:00:00");
+    const prazo = Number(form.prazo_dias) || 30;
     return Array.from({ length: parcelas }, (_, i) => {
       const d = new Date(base);
-      d.setMonth(d.getMonth() + i);
+      d.setDate(d.getDate() + prazo * i);
       return { num: i + 1, venc: d.toLocaleDateString("pt-BR"), valor: valorParcela };
     });
   };

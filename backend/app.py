@@ -93,7 +93,7 @@ class Cliente(db.Model):
                 "created_at": self.created_at.isoformat() if self.created_at else None}
 
 
-TAXA_JUROS_MENSAL = 0.01  # 1% ao mês
+TAXA_JUROS_MENSAL = 0.05  # 5% ao mês
 
 class Lancamento(db.Model):
     __tablename__ = "lancamentos"
@@ -143,6 +143,41 @@ class Lancamento(db.Model):
             "parcelas": self.parcelas or 1,
             "parcela_num": self.parcela_num or 1,
             "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
+
+
+# ================================================================
+# MODELO: OrdemServico
+# ================================================================
+
+STATUS_OS_VALIDOS = ["solicitado", "em_andamento", "revisao", "concluido"]
+
+class OrdemServico(db.Model):
+    __tablename__ = "ordens_servico"
+    id          = db.Column(db.Integer,     primary_key=True)
+    numero      = db.Column(db.String(20),  nullable=False, unique=True)
+    cliente     = db.Column(db.String(150), nullable=False)
+    servico     = db.Column(db.String(255), nullable=False)
+    prioridade  = db.Column(db.String(10),  nullable=False, default="media")
+    prazo       = db.Column(db.String(10),  nullable=True)
+    responsavel = db.Column(db.String(100), nullable=True)
+    descricao   = db.Column(db.Text,        nullable=True)
+    status      = db.Column(db.String(20),  nullable=False, default="solicitado")
+    created_at  = db.Column(db.DateTime,    server_default=db.func.now())
+
+    def to_dict(self):
+        return {
+            "id":          self.id,
+            "os":          self.numero,
+            "numero":      self.numero,
+            "cliente":     self.cliente,
+            "servico":     self.servico,
+            "prioridade":  self.prioridade,
+            "prazo":       self.prazo,
+            "responsavel": self.responsavel,
+            "descricao":   self.descricao,
+            "status":      self.status,
+            "created_at":  self.created_at.isoformat() if self.created_at else None,
         }
 
 
@@ -347,17 +382,10 @@ def criar_lancamento():
         valor_parc  = round(valor_total / n_parcelas, 2)
         base_venc   = date.fromisoformat(venc_str)
         criados     = []
+        prazo_dias  = int(data.get("prazo_dias") or 30)
 
         for i in range(n_parcelas):
-            if i == 0:
-                venc_parc = base_venc
-            else:
-                try:
-                    from dateutil.relativedelta import relativedelta
-                    venc_parc = base_venc + relativedelta(months=i)
-                except ImportError:
-                    from datetime import timedelta as _td
-                    venc_parc = base_venc + _td(days=30*i)
+            venc_parc = base_venc + timedelta(days=prazo_dias * i)
 
             l = Lancamento(
                 tipo            = tipo,
@@ -390,6 +418,9 @@ def editar_lancamento(id):
     try:
         l    = Lancamento.query.get_or_404(id)
         data = request.get_json()
+
+        vencimento_mudou = "vencimento" in data and data["vencimento"] != l.vencimento.isoformat()
+
         if "tipo"            in data and data["tipo"] in ("receber","pagar"): l.tipo = data["tipo"]
         if "descricao"       in data: l.descricao       = data["descricao"].strip()
         if "cliente_id"      in data: l.cliente_id      = data["cliente_id"] or None
@@ -401,6 +432,27 @@ def editar_lancamento(id):
         if "observacao"      in data: l.observacao      = data["observacao"].strip() or None
         if "data_pagamento"  in data:
             l.data_pagamento = date.fromisoformat(data["data_pagamento"]) if data["data_pagamento"] else None
+
+        # Se mudou o vencimento e faz parte de um grupo de parcelas, recalcula as irmas
+        if vencimento_mudou and l.parcelas and l.parcelas > 1:
+            prazo_dias    = int(l.prazo_dias or 30)
+            nova_base     = l.vencimento
+            base_parcela1 = nova_base - timedelta(days=prazo_dias * (l.parcela_num - 1))
+
+            desc_base = re.sub(r"\s*\(\d+/\d+\)$", "", l.descricao).strip()
+            irmas = Lancamento.query.filter(
+                Lancamento.id         != l.id,
+                Lancamento.tipo       == l.tipo,
+                Lancamento.cliente_id == l.cliente_id,
+                Lancamento.parcelas   == l.parcelas,
+                Lancamento.descricao.like(f"{desc_base}%"),
+            ).all()
+
+            for irma in irmas:
+                if irma.data_pagamento:
+                    continue
+                irma.vencimento = base_parcela1 + timedelta(days=prazo_dias * (irma.parcela_num - 1))
+
         db.session.commit()
         return jsonify(l.to_dict()), 200
     except ValueError:
@@ -585,6 +637,134 @@ def parsear_boleto():
         return jsonify({"erro": f"Erro ao processar PDF: {str(e)}"}), 500
 
 app.register_blueprint(financeiro_bp)
+
+# ================================================================
+# BLUEPRINT: /ordens-servico
+# ================================================================
+
+os_bp = Blueprint("ordens_servico", __name__, url_prefix="/ordens-servico")
+
+def _proximo_numero():
+    ultima = OrdemServico.query.order_by(OrdemServico.id.desc()).first()
+    if not ultima:
+        return "OS-001"
+    try:
+        n = int(ultima.numero.split("-")[1]) + 1
+    except Exception:
+        n = OrdemServico.query.count() + 1
+    return f"OS-{str(n).zfill(3)}"
+
+@os_bp.route("", methods=["GET"])
+@jwt_required()
+def listar_os():
+    try:
+        status = request.args.get("status", "").strip()
+        q      = request.args.get("q", "").strip()
+        query  = OrdemServico.query
+        if status and status in STATUS_OS_VALIDOS:
+            query = query.filter(OrdemServico.status == status)
+        if q:
+            query = query.filter(db.or_(
+                OrdemServico.numero.ilike(f"%{q}%"),
+                OrdemServico.cliente.ilike(f"%{q}%"),
+                OrdemServico.servico.ilike(f"%{q}%"),
+            ))
+        return jsonify([o.to_dict() for o in query.order_by(OrdemServico.created_at.asc()).all()]), 200
+    except Exception as e:
+        logging.error(f"❌ {e}")
+        return jsonify({"erro": "Erro interno."}), 500
+
+@os_bp.route("/resumo", methods=["GET"])
+@jwt_required()
+def resumo_os():
+    try:
+        resultado = {}
+        for s in STATUS_OS_VALIDOS:
+            resultado[s] = OrdemServico.query.filter_by(status=s).count()
+        resultado["total"] = OrdemServico.query.count()
+        return jsonify(resultado), 200
+    except Exception as e:
+        logging.error(f"❌ {e}")
+        return jsonify({"erro": "Erro interno."}), 500
+
+@os_bp.route("", methods=["POST"])
+@jwt_required()
+def criar_os():
+    try:
+        data       = request.get_json()
+        cliente    = (data.get("cliente") or "").strip()
+        servico    = (data.get("servico") or "").strip()
+        if not cliente or not servico:
+            return jsonify({"erro": "Cliente e serviço são obrigatórios."}), 400
+        status = data.get("status", "solicitado")
+        if status not in STATUS_OS_VALIDOS:
+            status = "solicitado"
+        o = OrdemServico(
+            numero      = data.get("numero") or _proximo_numero(),
+            cliente     = cliente,
+            servico     = servico,
+            prioridade  = data.get("prioridade", "media"),
+            prazo       = data.get("prazo", "").strip() or None,
+            responsavel = (data.get("responsavel") or "").strip() or None,
+            descricao   = (data.get("descricao") or "").strip() or None,
+            status      = status,
+        )
+        db.session.add(o)
+        db.session.commit()
+        return jsonify(o.to_dict()), 201
+    except Exception as e:
+        logging.error(f"❌ {e}")
+        return jsonify({"erro": "Erro interno."}), 500
+
+@os_bp.route("/<int:id>", methods=["PUT"])
+@jwt_required()
+def editar_os(id):
+    try:
+        o    = OrdemServico.query.get_or_404(id)
+        data = request.get_json()
+        if "cliente"    in data: o.cliente    = data["cliente"].strip()
+        if "servico"    in data: o.servico    = data["servico"].strip()
+        if "prioridade" in data: o.prioridade = data["prioridade"]
+        if "prazo"      in data: o.prazo      = data["prazo"].strip() or None
+        if "responsavel"in data: o.responsavel= (data["responsavel"] or "").strip() or None
+        if "descricao"  in data: o.descricao  = (data["descricao"] or "").strip() or None
+        if "status"     in data and data["status"] in STATUS_OS_VALIDOS:
+            o.status = data["status"]
+        db.session.commit()
+        return jsonify(o.to_dict()), 200
+    except Exception as e:
+        logging.error(f"❌ {e}")
+        return jsonify({"erro": "Erro interno."}), 500
+
+@os_bp.route("/<int:id>/status", methods=["PATCH"])
+@jwt_required()
+def mover_os(id):
+    try:
+        o      = OrdemServico.query.get_or_404(id)
+        data   = request.get_json() or {}
+        status = data.get("status", "")
+        if status not in STATUS_OS_VALIDOS:
+            return jsonify({"erro": "Status inválido."}), 400
+        o.status = status
+        db.session.commit()
+        return jsonify(o.to_dict()), 200
+    except Exception as e:
+        logging.error(f"❌ {e}")
+        return jsonify({"erro": "Erro interno."}), 500
+
+@os_bp.route("/<int:id>", methods=["DELETE"])
+@jwt_required()
+def excluir_os(id):
+    try:
+        o = OrdemServico.query.get_or_404(id)
+        db.session.delete(o)
+        db.session.commit()
+        return jsonify({"mensagem": "OS excluída."}), 200
+    except Exception as e:
+        logging.error(f"❌ {e}")
+        return jsonify({"erro": "Erro interno."}), 500
+
+app.register_blueprint(os_bp)
 
 # ================================================================
 # HANDLER DE ERROS GLOBAIS
