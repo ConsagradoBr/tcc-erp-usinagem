@@ -321,7 +321,7 @@ npm run build
 **Quesede Constantino**  
 Desenvolvedor Fullstack — TCC: ERP para Usinagem Industrial
 
-**Lucas Davoli Vital**  
+**Lucas Vital Davoli**  
 Desenvolvedor — TCC: ERP para Usinagem Industrial
 
 **A definir**  
