@@ -33,3 +33,8 @@ Thumbs.db
 *.user
 *.userosscache
 *.sln.docstates
+
+.pytest_cache/
+.coverage
+htmlcov/
+backend/.env

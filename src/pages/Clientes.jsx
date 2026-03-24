@@ -219,7 +219,7 @@ function ModalCliente({ cliente, isImportado, onClose, onSalvo }) {
             <label className={lbl}>Nome <span className="text-red-500">*</span></label>
             <input value={form.nome} onChange={(e) => set("nome", e.target.value)} placeholder="Nome completo ou razão social" required className={inp} />
           </div>
-          <div className="flex gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="flex-1">
               <label className={lbl}>CPF / CNPJ</label>
               <input value={form.documento || ""} onChange={(e) => set("documento", mascaraDocumento(e.target.value))} placeholder="000.000.000-00" inputMode="numeric" className={inp} />
@@ -237,7 +237,7 @@ function ModalCliente({ cliente, isImportado, onClose, onSalvo }) {
             <label className={lbl}>Endereço</label>
             <input value={form.endereco || ""} onChange={(e) => set("endereco", e.target.value)} placeholder="Rua, número, bairro, cidade" className={inp} />
           </div>
-          <div className="flex gap-3 pt-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
             <button type="button" onClick={onClose} className="flex-1 border border-gray-300 text-gray-600 rounded-lg py-2 text-sm font-semibold hover:bg-gray-100 transition">
               Cancelar
             </button>
@@ -422,7 +422,7 @@ export default function Clientes() {
   const fecharModal = ()  => { setModalForm(false); setClienteEdit(null); setIsImportado(false); };
 
   return (
-    <div className="flex-1 bg-gray-50 min-h-screen p-6">
+    <div className="flex-1 min-w-0 bg-gray-50 min-h-screen p-3 sm:p-4 lg:p-6">
 
       {/* Notificação */}
       {notif && (
@@ -432,7 +432,7 @@ export default function Clientes() {
       )}
 
       {/* Cabeçalho */}
-      <div className="flex items-center justify-center gap-2 mb-6">
+      <div className="flex flex-col sm:flex-row items-center justify-center gap-2 mb-6 text-center sm:text-left">
         <svg xmlns="http://www.w3.org/2000/svg" className="w-7 h-7 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/>
         </svg>
@@ -451,7 +451,7 @@ export default function Clientes() {
           value={filtro}
           onChange={(e) => setFiltro(e.target.value)}
           placeholder="Buscar por nome, CPF ou e-mail..."
-          className="border border-gray-300 rounded px-3 py-1.5 text-sm w-60 focus:outline-none focus:ring-2 focus:ring-orange-400"
+          className="border border-gray-300 rounded px-3 py-1.5 text-sm w-full sm:w-72 md:w-60 focus:outline-none focus:ring-2 focus:ring-orange-400"
         />
 
         {/* Importar NF-e */}
@@ -476,8 +476,8 @@ export default function Clientes() {
       </div>
 
       {/* Tabela */}
-      <div className="rounded-lg overflow-hidden shadow border border-gray-200">
-        <table className="w-full text-sm">
+      <div className="rounded-lg overflow-x-auto shadow border border-gray-200 bg-white">
+        <table className="w-full min-w-[860px] text-sm">
           <thead>
             <tr className="bg-orange-500 text-white text-xs uppercase tracking-wider">
               <th className="px-3 py-3 text-left w-8">

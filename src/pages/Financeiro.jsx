@@ -183,7 +183,7 @@ function ModalBoleto({ clientes, onClose, onSalvo }) {
                   <input value={form.descricao} onChange={(e) => set("descricao", e.target.value)} required className={inp} />
                 </div>
 
-                <div className="flex gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="flex-1">
                     <label className={lbl}>Vencimento *</label>
                     <input type="date" value={form.vencimento} onChange={(e) => set("vencimento", e.target.value)} required className={inp} />
@@ -194,7 +194,7 @@ function ModalBoleto({ clientes, onClose, onSalvo }) {
                   </div>
                 </div>
 
-                <div className="flex gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="flex-1">
                     <label className={lbl}>NF-e</label>
                     <input value={form.nfe} onChange={(e) => set("nfe", e.target.value)} className={inp} />
@@ -351,8 +351,8 @@ function ModalLancamento({ item, clientes, onClose, onSalvo }) {
           </div>
 
           {/* Prazo + Vencimento */}
-          <div className="flex gap-3">
-            <div className="w-40">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="sm:w-40">
               <label className={lbl}>Prazo (dias)</label>
               <select value={form.prazo_dias} onChange={(e) => handlePrazo(e.target.value)} className={inp}>
                 <option value="">Escolher</option>
@@ -366,13 +366,13 @@ function ModalLancamento({ item, clientes, onClose, onSalvo }) {
           </div>
 
           {/* Valor + Parcelas */}
-          <div className="flex gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="flex-1">
               <label className={lbl}>Valor Total (R$) <span className="text-red-500">*</span></label>
               <input type="number" step="0.01" min="0.01" value={form.valor} onChange={(e) => set("valor", e.target.value)} placeholder="0,00" required className={inp} />
             </div>
             {!editando && (
-              <div className="w-32">
+              <div className="sm:w-32">
                 <label className={lbl}>Parcelas</label>
                 <select value={parcelas} onChange={(e) => setParcelas(Number(e.target.value))} className={inp}>
                   {[1,2,3,4,5,6,7,8,9,10,11,12].map(n => (
@@ -617,7 +617,7 @@ export default function Financeiro() {
   const abrirEdicao = (i) => { setItemEdit(i);    setModalForm(true); };
 
   return (
-    <div className="flex-1 bg-gray-50 min-h-screen p-6">
+    <div className="flex-1 min-w-0 bg-gray-50 min-h-screen p-3 sm:p-4 lg:p-6">
 
       {/* Notificação */}
       {notif && (
@@ -635,7 +635,7 @@ export default function Financeiro() {
       </div>
 
       {/* Cards de resumo */}
-      <div className="grid grid-cols-3 gap-4 mb-5">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">A Receber</p>
           <p className="text-2xl font-bold text-green-600 mt-1">{fmt(totalReceber)}</p>
@@ -659,7 +659,7 @@ export default function Financeiro() {
 
         <input type="text" value={filtro} onChange={(e) => setFiltro(e.target.value)}
           placeholder="Buscar por cliente, descrição ou NF-e..."
-          className="border border-gray-300 rounded px-3 py-1.5 text-sm w-64 focus:outline-none focus:ring-2 focus:ring-orange-400" />
+          className="border border-gray-300 rounded px-3 py-1.5 text-sm w-full sm:w-72 md:w-64 focus:outline-none focus:ring-2 focus:ring-orange-400" />
 
         <select value={filtroTipo} onChange={(e) => setFiltroTipo(e.target.value)}
           className="border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400">
@@ -677,21 +677,21 @@ export default function Financeiro() {
         </select>
 
         <button onClick={abrirNovo}
-          className="flex items-center gap-1 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold uppercase px-3 py-1.5 rounded transition ml-auto">
+          className="flex w-full sm:w-auto items-center justify-center gap-1 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold uppercase px-3 py-1.5 rounded transition sm:ml-auto">
           <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"/></svg>
           Novo Lançamento
         </button>
 
         <button onClick={() => setModalBoleto(true)}
-          className="flex items-center gap-1 bg-gray-700 hover:bg-gray-800 text-white text-xs font-bold uppercase px-3 py-1.5 rounded transition">
+          className="flex w-full sm:w-auto items-center justify-center gap-1 bg-gray-700 hover:bg-gray-800 text-white text-xs font-bold uppercase px-3 py-1.5 rounded transition">
           <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
           Importar Boleto
         </button>
       </div>
 
       {/* Tabela */}
-      <div className="rounded-lg overflow-hidden shadow border border-gray-200">
-        <table className="w-full text-sm">
+      <div className="rounded-lg overflow-x-auto shadow border border-gray-200 bg-white">
+        <table className="w-full min-w-[1120px] text-sm">
           <thead>
             <tr className="bg-orange-500 text-white text-xs uppercase tracking-wider">
               <th className="px-3 py-3 text-left w-8">
@@ -798,7 +798,7 @@ export default function Financeiro() {
                       <tr key={`exp-${item.id}`} className="bg-orange-50 border-t border-orange-100">
                         <td colSpan={10} className="px-6 py-3">
                           <p className="text-xs font-bold text-orange-600 uppercase tracking-wide mb-2">Parcelas</p>
-                          <table className="w-full text-xs">
+                          <div className="overflow-x-auto"><table className="w-full min-w-[720px] text-xs">
                             <thead>
                               <tr className="text-gray-500 uppercase tracking-wide border-b border-orange-200">
                                 <th className="py-1 text-left font-semibold">Parcela</th>
@@ -832,7 +832,7 @@ export default function Financeiro() {
                                 </tr>
                               ))}
                             </tbody>
-                          </table>
+                          </table></div>
                         </td>
                       </tr>
                     )}

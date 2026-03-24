@@ -1,322 +1,171 @@
-# ⚙️ AMP — ERP para Usinagem Industrial
+# AMP ERP para Usinagem Industrial
 
-Sistema ERP web completo desenvolvido como Trabalho de Conclusão de Curso (TCC), voltado para empresas de usinagem de pequeno e médio porte.
+Sistema ERP web/Desktop desenvolvido como TCC para empresas de usinagem de pequeno e médio porte.
 
-> **Stack:** React 18 + Vite · Flask (Python 3) · PostgreSQL (Supabase) · JWT
+Stack principal: React 18 + Vite, Flask, SQLAlchemy, JWT e PostgreSQL/Supabase.
 
----
+## Situação atual
 
-## 📌 Visão Geral
+O projeto está em fase de polimento de MVP e hoje já possui fluxo funcional para:
 
-O objetivo deste projeto é centralizar a operação de uma oficina de usinagem em um único sistema moderno, responsivo e acessível via navegador. O ERP integra autenticação segura, gestão de clientes, controle financeiro com importação de NF-e e boletos, e dashboard analítico com dados em tempo real.
+- autenticação com JWT
+- clientes
+- financeiro
+- ordens de serviço
+- orçamentos
+- dashboard com dados reais
+- empacotamento desktop com Flask + Waitress + build do Vite
 
----
+A antiga página de Notas Fiscais foi descontinuada e substituída pelo módulo de Orçamentos. A importação de NF-e continua existindo dentro do módulo de Clientes, e o campo NF-e continua sendo usado no Financeiro.
 
-## 🚀 Tecnologias Utilizadas
+## Estrutura
+
+```text
+backend/
+  app.py                API Flask com auth, clientes, financeiro, ordens de serviço e orçamentos
+  create_tables.py      criação manual de tabelas
+  migrate.py            migração manual antiga para parcelas
+  requirements.txt      dependências do backend e testes
+  tests/test_api.py     testes automatizados básicos
+src/
+  components/           sidebar, header e componentes reutilizáveis
+  layouts/              layout público e protegido
+  pages/                Auth, Dashboard, Clientes, Financeiro, OrdemServico, Orcamentos
+  api.js                cliente Axios com baseURL configurável por ambiente
+desktop_app.py         launcher desktop usando o frontend buildado
+.env.example            exemplo do frontend
+backend/.env.example    exemplo do backend
+```
+
+## Módulos implementados
+
+### Autenticação
+- cadastro e login com JWT
+- proteção de rotas no frontend
+- perfil autenticado em `/auth/perfil`
+
+### Clientes
+- CRUD completo
+- importação de NF-e XML e JSON
+- prevenção básica de duplicidade por documento
+- exportação de cliente em JSON
+
+### Financeiro
+- contas a pagar e a receber
+- parcelamento automático
+- cálculo de juros e status
+- baixa manual de pagamento
+- resumo para dashboard
+- importação de boleto PDF
+- exportação de lançamento em CSV
+
+### Ordens de serviço
+- CRUD completo
+- quadro em colunas por status
+- mudança rápida de status
+- resumo por etapa para o dashboard
+
+### Orçamentos
+- CRUD completo
+- vínculo com cliente
+- status de proposta: rascunho, enviado, aprovado, reprovado e cancelado
+- aprovação gera Ordem de Serviço automaticamente
+- aprovação gera lançamento em Contas a Receber automaticamente
+- reaprovação não duplica OS nem financeiro
+- edição de orçamento aprovado sincroniza OS e financeiro gerados automaticamente
+- resumo agregado com valor total e valor aprovado
+
+## Configuração de ambiente
 
 ### Frontend
-| Biblioteca | Versão | Uso |
-|---|---|---|
-| React | 18 | UI principal |
-| Vite | latest | Bundler / Dev server |
-| React Router DOM | v6 | Roteamento SPA |
-| Tailwind CSS | v3 | Estilização |
-| Axios | latest | Requisições HTTP |
-| Recharts | latest | Gráficos do dashboard |
-| react-hot-toast | latest | Notificações |
-
-### Backend
-| Biblioteca | Versão | Uso |
-|---|---|---|
-| Flask | 3.1.0 | Framework web |
-| Flask-SQLAlchemy | 3.1.1 | ORM PostgreSQL |
-| Flask-JWT-Extended | 4.7.0 | Autenticação JWT |
-| Flask-Cors | 5.0.0 | CORS |
-| psycopg2-binary | ≥2.9.11 | Driver PostgreSQL |
-| python-dotenv | 1.0.1 | Variáveis de ambiente |
-| pdfplumber | latest | Extração de texto em boletos PDF |
-| python-dateutil | latest | Cálculo de datas de parcelas |
-
-### Infraestrutura
-- **Banco de dados:** PostgreSQL via [Supabase](https://supabase.com) (Session Pooler — IPv4)
-- **Deploy sugerido:** Vercel (frontend) · Railway ou Render (backend)
-
----
-
-## 📂 Estrutura do Projeto
-
-```
-tcc-erp-usinagem/
-├── backend/
-│   ├── app.py              # API Flask — blueprints: /auth, /clientes, /financeiro
-│   ├── migrate.py          # Migration manual (adiciona colunas novas)
-│   ├── requirements.txt
-│   ├── .env                # Variáveis de ambiente (não commitado)
-│   └── venv/               # Ambiente virtual Python (não commitado)
-│
-├── src/
-│   ├── assets/             # Ícones e imagens
-│   ├── components/         # Componentes reutilizáveis
-│   ├── layouts/            # Layouts de página
-│   ├── pages/
-│   │   ├── AuthPage.jsx    # Login / Cadastro
-│   │   ├── Dashboard.jsx   # Dashboard com dados reais
-│   │   ├── Clientes.jsx    # CRUD + importação NF-e XML/JSON
-│   │   └── Financeiro.jsx  # CRUD + parcelas + boleto PDF
-│   ├── api.js              # Instância Axios com token JWT
-│   └── App.jsx
-│
-├── dist/                   # Build de produção (gerado pelo Vite)
-├── index.html
-├── package.json
-├── tailwind.config.cjs
-├── vite.config.js
-├── .gitignore
-└── README.md
-```
-
----
-
-## 🔐 Variáveis de Ambiente
-
-Crie o arquivo `backend/.env` com base no `backend/.env.example`:
+Crie `.env` na raiz com base em `.env.example`:
 
 ```env
-# Supabase Session Pooler (IPv4 — porta 5432)
-DB_USER=postgres.xxxxxxxxxxxx
-DB_PASS=SuaSenhaAqui
-DB_HOST=aws-1-sa-east-1.pooler.supabase.com
-DB_PORT=5432
-DB_NAME=postgres
-
-# Segurança
-JWT_SECRET_KEY=chave_jwt_segura_aqui
-SECRET_KEY=chave_secreta_aqui
+VITE_API_BASE_URL=http://127.0.0.1:5000
 ```
 
-> ⚠️ **Nunca commite o `.env`** — ele já está no `.gitignore`.
+### Backend
+Crie `backend/.env` com base em `backend/.env.example`.
 
----
+Opção recomendada para deploy e testes:
 
-## 🖥️ Como Rodar o Projeto (do zero)
-
-### Pré-requisitos
-- [Git](https://git-scm.com/)
-- [Python 3.10+](https://www.python.org/)
-- [Node.js 18+](https://nodejs.org/)
-- Conta no [Supabase](https://supabase.com) com projeto criado
-
----
-
-### 1. Clonar o repositório
-
-```bash
-git clone https://github.com/ConsagradoBr/tcc-erp-usinagem.git
-cd tcc-erp-usinagem
+```env
+DATABASE_URL=postgresql+psycopg2://usuario:senha@host:5432/postgres?sslmode=require
+JWT_SECRET_KEY=uma_chave_segura_com_32_ou_mais_caracteres
+SECRET_KEY=outra_chave_segura_com_32_ou_mais_caracteres
+FLASK_HOST=0.0.0.0
+FLASK_PORT=5000
+FLASK_DEBUG=true
 ```
 
----
+Também é possível usar `DB_USER`, `DB_PASS`, `DB_HOST`, `DB_PORT` e `DB_NAME` separadamente.
 
-### 2. Configurar o Backend
+Se nenhuma configuração de banco for informada, o backend cai para SQLite local em desenvolvimento.
 
+## Como rodar
+
+### Backend
 ```bash
-# Entrar na pasta do backend
 cd backend
-
-# Criar ambiente virtual
 python -m venv venv
-
-# Ativar ambiente virtual
-# Windows:
 venv\Scripts\activate
-# Linux/Mac:
-source venv/bin/activate
-
-# Instalar dependências
 pip install -r requirements.txt
-
-# Criar o arquivo .env com suas credenciais do Supabase
-# (copie o .env.example e preencha os valores)
-copy .env.example .env     # Windows
-cp .env.example .env       # Linux/Mac
-```
-
-Edite o `.env` com suas credenciais do Supabase e então rode:
-
-```bash
-# Iniciar o servidor backend
 python app.py
 ```
 
-A API estará disponível em: `http://127.0.0.1:5000`
-
-> **Primeira execução:** as tabelas são criadas automaticamente via `db.create_all()`.  
-> Se o banco já existia e faltam colunas novas, rode `python migrate.py` uma única vez.
-
----
-
-### 3. Configurar o Frontend
-
-Abra um **novo terminal** na raiz do projeto:
-
+### Frontend
 ```bash
-# Na raiz do projeto (não dentro de backend/)
-cd ..
-
-# Instalar dependências Node
 npm install
-
-# Iniciar servidor de desenvolvimento
 npm run dev
 ```
 
-A aplicação abrirá em: `http://localhost:5173`
+Frontend padrão: `http://localhost:5173`
+Backend padrão: `http://127.0.0.1:5000`
 
----
+## Testes
 
-### 4. Criar o primeiro usuário
+Foi adicionada uma suíte inicial de testes para os fluxos principais do backend.
 
-Com os dois servidores rodando, acesse `http://localhost:5173`, clique em **"Crie uma agora"** e registre seu usuário administrador.
-
----
-
-## 📊 Módulos Implementados
-
-### 🔐 Autenticação
-- Login e cadastro com JWT
-- Token com expiração de 8 horas
-- Proteção de rotas no frontend e backend
-
-### 👥 Clientes
-- CRUD completo (criar, editar, excluir, buscar)
-- **Importação automática via NF-e** (`.xml` ou `.json`)
-  - Seleciona emitente ou destinatário como cliente
-  - Detecção automática de duplicatas por CNPJ/CPF
-- Exportar dados do cliente em `.json`
-- Máscaras automáticas de CPF/CNPJ e telefone
-
-### 💰 Financeiro
-- Lançamentos de contas a pagar e a receber
-- **Parcelamento:** cria N parcelas mensais com vencimentos automáticos
-- Linha expansível na tabela para visualizar parcelas individuais
-- Marcar parcelas como pagas individualmente
-- Exclusão em grupo (remove todas as parcelas de um lançamento)
-- **Importação via boleto PDF** — extrai valor, vencimento, beneficiário e NF-e automaticamente
-- Juros automáticos calculados pelo backend (1% a.m. sobre dias em atraso)
-- Status calculado automaticamente: `pendente` / `atrasado` / `pago`
-- Filtros por tipo (receber/pagar) e status
-- Exportar lançamento em `.csv`
-
-### 📊 Dashboard
-- Total de clientes (tempo real)
-- A Receber e A Pagar (tempo real via `/financeiro/resumo`)
-- Recebido no mês com % de crescimento vs mês anterior
-- Gráfico de barras: Receitas x Pagamentos dos últimos 6 meses
-- Alerta visual de lançamentos em atraso
-
----
-
-## 🗄️ Diagrama ER
-
-```mermaid
-erDiagram
-    USUARIOS {
-        int id PK
-        varchar nome
-        varchar email
-        varchar senha_hash
-    }
-
-    CLIENTES {
-        int id PK
-        varchar nome
-        varchar documento
-        varchar telefone
-        varchar email
-        varchar endereco
-        timestamptz created_at
-    }
-
-    LANCAMENTOS {
-        int id PK
-        varchar tipo
-        int cliente_id FK
-        varchar descricao
-        varchar nfe
-        int prazo_dias
-        date vencimento
-        numeric valor
-        date data_pagamento
-        varchar forma_pagamento
-        text observacao
-        int parcelas
-        int parcela_num
-        timestamptz created_at
-    }
-
-    CLIENTES ||--o{ LANCAMENTOS : "possui"
+```bash
+python -m pytest backend/tests -q
 ```
 
----
+Cobertura atual da suíte:
+- autenticação e perfil
+- criação de cliente
+- aprovação e reaprovação de orçamento
+- sincronização de orçamento aprovado com OS e financeiro
+- financeiro parcelado
+- criação manual de ordem de serviço
 
-## 🔌 Rotas da API
+## Deploy
 
-### Auth — `/auth`
-| Método | Rota | Descrição |
-|---|---|---|
-| POST | `/auth/usuarios` | Cadastrar usuário |
-| POST | `/auth/login` | Login (retorna JWT) |
-| GET | `/auth/perfil` | Perfil do usuário autenticado |
+### Frontend
+Use `VITE_API_BASE_URL` apontando para a URL pública do backend e rode:
 
-### Clientes — `/clientes`
-| Método | Rota | Descrição |
-|---|---|---|
-| GET | `/clientes?q=termo` | Listar / buscar clientes |
-| POST | `/clientes` | Criar cliente |
-| PUT | `/clientes/<id>` | Editar cliente |
-| DELETE | `/clientes/<id>` | Excluir cliente |
-
-### Financeiro — `/financeiro`
-| Método | Rota | Descrição |
-|---|---|---|
-| GET | `/financeiro` | Listar lançamentos (filtros: tipo, status, q) |
-| GET | `/financeiro/resumo` | Totais para o Dashboard |
-| POST | `/financeiro` | Criar lançamento (suporta `parcelas: N`) |
-| PUT | `/financeiro/<id>` | Editar lançamento |
-| PATCH | `/financeiro/<id>/pagar` | Marcar como pago |
-| DELETE | `/financeiro/<id>?modo=unico\|grupo` | Excluir lançamento ou grupo de parcelas |
-| POST | `/financeiro/boleto` | Parsear boleto PDF (base64) |
-
----
-
-## ☁️ Deploy
-
-### Frontend → Vercel
 ```bash
 npm run build
-# Faça upload da pasta dist/ ou conecte o repositório GitHub no Vercel
-# Framework: Vite
 ```
 
-### Backend → Railway / Render
-1. Conecte o repositório GitHub
-2. Defina as variáveis de ambiente (as mesmas do `.env`)
-3. Comando de start: `python app.py`
+### Backend
+Defina `DATABASE_URL`, `JWT_SECRET_KEY`, `SECRET_KEY` e `PORT` no provedor de deploy.
 
----
+O backend agora aceita:
+- `DATABASE_URL` para ambientes como Railway, Render e containers
+- `PORT` e `FLASK_HOST` para execução configurável
+- fallback local em SQLite para desenvolvimento rápido
 
-## 🧭 Roadmap Futuro
-- [ ] Módulo de Ordens de Serviço (OS)
-- [ ] Módulo de Estoque
-- [ ] Multiusuários com níveis de acesso (admin / operador)
-- [ ] Notificações em tempo real (WebSocket)
-- [ ] Integração com NF-e (SEFAZ)
-- [ ] Relatório OEE para máquinas CNC
-- [ ] Aplicativo mobile (React Native)
+## Desktop
 
----
+O arquivo `desktop_app.py` serve o frontend buildado junto com a API Flask no mesmo processo para distribuição desktop local.
 
-## 👨‍💻 Autores
+## Próximas prioridades sugeridas
+
+- quebrar `backend/app.py` em módulos menores por domínio
+- adicionar paginação e validações mais rígidas no backend
+- reduzir o tamanho do bundle frontend com code splitting
+- ampliar testes para financeiro parcelado e ordens de serviço
+- adicionar observabilidade e logs estruturados para deploy
 
 **Quesede Constantino**  
 Desenvolvedor Fullstack — TCC: ERP para Usinagem Industrial

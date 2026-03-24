@@ -171,7 +171,7 @@ export default function OrdemServico() {
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className="flex-1 min-h-screen p-6 overflow-x-auto" style={{ background: "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)" }}>
+    <div className="flex-1 min-w-0 min-h-screen p-3 sm:p-4 lg:p-6 overflow-x-hidden" style={{ background: "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)" }}>
 
       {/* Notificação */}
       {notificacao && (
@@ -182,7 +182,7 @@ export default function OrdemServico() {
       )}
 
       {/* Cabeçalho */}
-      <div className="flex flex-col items-center mb-8">
+      <div className="flex flex-col items-center mb-8 text-center">
         <div className="flex items-center gap-3 mb-1">
           <div className="w-10 h-10 rounded-xl bg-orange-500 flex items-center justify-center shadow-lg">
             <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -196,17 +196,17 @@ export default function OrdemServico() {
 
       {/* Barra de controles */}
       <div className="flex items-center gap-3 mb-6 flex-wrap">
-        <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2 shadow-sm flex-1 max-w-xs">
+        <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2 shadow-sm w-full sm:flex-1 sm:max-w-xs">
           <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
           <input type="text" value={filtro} onChange={(e) => setFiltro(e.target.value)} placeholder="Buscar OS, cliente ou serviço..." className="text-sm bg-transparent outline-none w-full text-gray-700 placeholder-gray-400" />
           {filtro && <button onClick={() => setFiltro("")} className="text-gray-300 hover:text-red-400 transition text-xs">✕</button>}
         </div>
-        <button onClick={() => abrirCriar("solicitado")} className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 active:scale-95 text-white text-sm font-bold px-4 py-2 rounded-xl shadow-md transition-all">
+        <button onClick={() => abrirCriar("solicitado")} className="flex w-full sm:w-auto items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 active:scale-95 text-white text-sm font-bold px-4 py-2 rounded-xl shadow-md transition-all">
           <span className="text-lg leading-none">+</span> Nova OS
         </button>
-        <button onClick={carregar} disabled={carregando} className="flex items-center gap-2 border border-gray-200 text-gray-500 hover:bg-gray-100 text-sm font-semibold px-3 py-2 rounded-xl transition">
+        <button onClick={carregar} disabled={carregando} className="flex w-full sm:w-auto items-center justify-center gap-2 border border-gray-200 text-gray-500 hover:bg-gray-100 text-sm font-semibold px-3 py-2 rounded-xl transition">
           <svg xmlns="http://www.w3.org/2000/svg" className={`w-4 h-4 ${carregando ? "animate-spin" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
           Atualizar
         </button>
@@ -221,13 +221,13 @@ export default function OrdemServico() {
 
       {/* Board Kanban */}
       {!carregando && (
-        <div className="flex gap-5 items-start">
+        <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-4 gap-5 items-start">
           {colunasFiltradas.map((coluna) => (
             <div key={coluna.id}
               onDragOver={(e) => onDragOver(e, coluna.id)}
               onDrop={() => onDrop(coluna.id)}
               onDragLeave={onDragLeave}
-              className={`flex flex-col w-72 rounded-2xl transition-all duration-200 ${colunaDragOver === coluna.id ? "ring-2 ring-orange-400 ring-offset-2 scale-[1.01]" : ""}`}>
+              className={`flex min-w-0 flex-col rounded-2xl transition-all duration-200 ${colunaDragOver === coluna.id ? "ring-2 ring-orange-400 ring-offset-2 scale-[1.01]" : ""}`}>
 
               {/* Cabeçalho da coluna */}
               <div className={`flex items-center justify-between px-4 py-3.5 rounded-t-2xl bg-gradient-to-r ${coluna.cor} shadow-md`}>
@@ -386,7 +386,7 @@ export default function OrdemServico() {
                     <input type="text" value={cardAtual.servico} onChange={(e) => setCardAtual({ ...cardAtual, servico: e.target.value })} placeholder="Ex: Fresamento CNC, Torneamento..." className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300" />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1.5">Responsável</label>
                       <input type="text" value={cardAtual.responsavel || ""} onChange={(e) => setCardAtual({ ...cardAtual, responsavel: e.target.value })} placeholder="Nome do técnico" className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300" />

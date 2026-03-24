@@ -42,4 +42,4 @@ export { default as IconPower } from "./poder.png";
 export { default as IconMenu } from "./menu.png";
 export { default as IconSun } from "./sol.png";
 export { default as IconMoon } from "./lua-minguante.png";
-export { default as IconInvoices } from "./nfs.png";
+export { default as IconInvoices } from "./nfs.png";export { default as IconQuotes } from "./nfs.png";
