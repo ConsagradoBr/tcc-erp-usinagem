@@ -22,6 +22,12 @@ __pycache__/
 instance/
 *.sqlite3
 
+# Desktop release artifacts
+release/
+*.zip
+*.exe
+!src/assets/*.ico
+
 # Logs
 *.log
 

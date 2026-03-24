@@ -159,6 +159,20 @@ O backend agora aceita:
 
 O arquivo `desktop_app.py` serve o frontend buildado junto com a API Flask no mesmo processo para distribuição desktop local.
 
+## Releases Desktop
+
+Os binarios de distribuicao nao devem mais ser versionados no Git. O codigo-fonte permanece no repositório, e o `.exe`/`.zip` devem ser publicados em **GitHub Releases**.
+
+Fluxo recomendado para novas versoes:
+
+1. gerar o build web com `npm run build`
+2. gerar o executavel desktop com o PyInstaller
+3. preparar a pasta e o `.zip` com:
+   `powershell -ExecutionPolicy Bypass -File scripts/Prepare-GitHubRelease.ps1 -Version v1.0.0`
+4. criar uma tag como `v1.0.0`
+5. abrir a pagina de **GitHub Releases** do projeto e anexar o `.zip` e, se desejar, o `.exe`
+
+Esse criterio deixa o historico do Git leve e concentra os artefatos de distribuicao no lugar certo.
 ## Próximas prioridades sugeridas
 
 - quebrar `backend/app.py` em módulos menores por domínio
@@ -181,3 +195,4 @@ Desenvolvedor — TCC: ERP para Usinagem Industrial
 ## 📄 Licença
 
 Projeto acadêmico desenvolvido para fins de TCC. Todos os direitos reservados.
+
