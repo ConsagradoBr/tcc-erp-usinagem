@@ -82,12 +82,21 @@ $uploadBase = "https://uploads.github.com/repos/$Repo/releases/$($release.id)/as
 foreach ($asset in @($exePath, $zipPath)) {
     $assetName = [IO.Path]::GetFileName($asset)
     $uploadUri = "${uploadBase}?name=$([Uri]::EscapeDataString($assetName))"
-    Invoke-WebRequest `
-        -Method Post `
-        -Uri $uploadUri `
-        -Headers $headers `
-        -ContentType "application/octet-stream" `
-        -InFile $asset | Out-Null
+    $curlArgs = @(
+        "-sS",
+        "-X", "POST",
+        "-H", "Authorization: Basic $basic",
+        "-H", "Accept: application/vnd.github+json",
+        "-H", "User-Agent: Codex",
+        "-H", "X-GitHub-Api-Version: 2022-11-28",
+        "-H", "Content-Type: application/octet-stream",
+        "--data-binary", "@$asset",
+        $uploadUri
+    )
+    & curl.exe @curlArgs | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        throw "Falha ao enviar asset $assetName para o GitHub Releases."
+    }
 }
 
 $publishPayload = @{
