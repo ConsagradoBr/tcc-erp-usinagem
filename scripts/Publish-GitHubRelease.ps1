@@ -81,7 +81,7 @@ $release = Invoke-RestMethod `
 $uploadBase = "https://uploads.github.com/repos/$Repo/releases/$($release.id)/assets"
 foreach ($asset in @($exePath, $zipPath)) {
     $assetName = [IO.Path]::GetFileName($asset)
-    $uploadUri = "$uploadBase?name=$([Uri]::EscapeDataString($assetName))"
+    $uploadUri = "${uploadBase}?name=$([Uri]::EscapeDataString($assetName))"
     Invoke-WebRequest `
         -Method Post `
         -Uri $uploadUri `
