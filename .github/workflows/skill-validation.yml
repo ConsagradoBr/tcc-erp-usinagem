@@ -1,0 +1,36 @@
+name: Skill validation
+on:
+  push:
+    paths:
+      - '.github/skills/**'
+  pull_request:
+    paths:
+      - '.github/skills/**'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check SKILL.md front matter
+        run: |
+          set -euo pipefail
+          shopt -s nullglob || true
+          files=(.github/skills/*/SKILL.md)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "No SKILL.md files found"
+            exit 0
+          fi
+          for f in "${files[@]}"; do
+            echo "Validating $f"
+            if ! sed -n '1,10p' "$f" | grep -q '^---'; then
+              echo "Missing front matter in $f"
+              sed -n '1,20p' "$f"
+              exit 1
+            fi
+            if ! grep -q '^name:' "$f"; then echo "Missing name in $f"; exit 1; fi
+            if ! grep -q '^description:' "$f"; then echo "Missing description in $f"; exit 1; fi
+          done
+      - name: Show SKILL.md for debug
+        run: |
+          for f in .github/skills/*/SKILL.md; do echo '---'; echo "File: $f"; sed -n '1,80p' "$f"; done

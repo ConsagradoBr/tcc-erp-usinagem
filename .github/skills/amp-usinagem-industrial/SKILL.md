@@ -1,7 +1,15 @@
 ---
 name: amp-usinagem-industrial
+version: 1.0.0
+author: 'Equipe TCC - AMP Usinagem'
 description: 'Regras e padrões específicos do TCC ERP Usinagem Industrial (AMP Usinagem). Sempre siga esta skill quando trabalhar no projeto tcc-erp-usinagem.'
+tags: ["tcc","erp","usinagem","amp"]
 ---
+
+# Skill: AMP Usinagem Industrial
+
+Resumo
+- Esta skill contém regras, padrões, convenções e exemplos para trabalhar com o repositório tcc-erp-usinagem. Deve ser consultada e aplicada em PRs, issues e durante desenvolvimento.
 
 ## Quando usar esta skill
 Use esta skill em **todas** as tarefas relacionadas a este repositório: criação de componentes, endpoints, testes, refatorações, correções de bugs, adição de funcionalidades, reviews de código, etc.
@@ -56,15 +64,16 @@ Use esta skill em **todas** as tarefas relacionadas a este repositório: criaç�
 - Sempre rode `npm run build` antes de testar o desktop
 - Mantenha o código limpo e com comentários educativos quando possível
 
-## Prioridades do Projeto TCC
-1. Funcionalidade correta
-2. Seguir a arquitetura existente (factory + blueprints)
-3. Código limpo e legível
-4. Testes passando
-5. Boa experiência com Tailwind (UI limpa e responsiva)
+## Exemplos de uso
+- Ao criar um endpoint de clientes, siga os blueprints e nomeie o arquivo como `backend/clients/routes.py` (ou `clientes` em pt).
+- Para mudanças de DB, crie uma migration compatível e documente passos no PR.
+
+## Checklist de PRs (aplicar em cada PR deste repositório)
+- [ ] Segue estrutura de pastas e padrões descritos
+- [ ] Testes novos/atualizados adicionados e passando
+- [ ] Variáveis de ambiente necessárias documentadas
+- [ ] Não há secrets em código
 
 ---
 
-**Esta skill tem prioridade máxima** sobre as demais skills genéricas quando o contexto for este repositório.
-
-Sempre que o usuário pedir algo relacionado a este projeto, aplique estas regras automaticamente.
+Esta skill tem prioridade máxima sobre as demais skills genéricas quando o contexto for este repositório.
