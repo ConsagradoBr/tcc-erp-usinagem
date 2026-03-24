@@ -41,5 +41,6 @@ if (Test-Path $zipPath) {
 Compress-Archive -Path (Join-Path $releaseDir "*") -DestinationPath $zipPath -Force
 
 Write-Host "Release pronta: $releaseDir"
+Write-Host "Executavel versionado: $versionedExePath"
 Write-Host "Pacote zip: $zipPath"
 Write-Host "Publique esses arquivos na tela de GitHub Releases junto com a tag $Version"

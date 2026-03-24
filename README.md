@@ -184,6 +184,12 @@ Esse script gera:
 - a pasta versionada com `LEIA-ME.txt`
 - o `.zip` pronto para publicar no GitHub Releases
 
+Para publicar a release completa no GitHub de forma automatizada:
+
+```bash
+powershell -ExecutionPolicy Bypass -File scripts/Publish-GitHubRelease.ps1 -Version v2026.03.24.000000
+```
+
 ## Releases Desktop
 
 Os binarios de distribuicao nao devem mais ser versionados no Git. O codigo-fonte permanece no repositório, e o `.exe`/`.zip` devem ser publicados em **GitHub Releases**.
@@ -194,8 +200,8 @@ Fluxo recomendado para novas versoes:
 2. gerar o executavel desktop com `npm run build:desktop`
 3. preparar a pasta e o `.zip` com:
    `powershell -ExecutionPolicy Bypass -File scripts/Prepare-GitHubRelease.ps1 -Version v2026.03.24.000000`
-4. criar uma tag correspondente
-5. abrir a pagina de **GitHub Releases** do projeto e anexar o `.zip` e, se desejar, o `.exe`
+4. publicar a release com:
+   `powershell -ExecutionPolicy Bypass -File scripts/Publish-GitHubRelease.ps1 -Version v2026.03.24.000000`
 
 Esse criterio deixa o historico do Git leve e concentra os artefatos de distribuicao no lugar certo.
 ## Próximas prioridades sugeridas
