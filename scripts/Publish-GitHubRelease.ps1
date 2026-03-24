@@ -35,8 +35,8 @@ $releaseNotes = @"
 - $([IO.Path]::GetFileName($zipPath))
 "@
 
-git rev-parse --verify $Version *> $null
-if ($LASTEXITCODE -ne 0) {
+$existingTag = git tag --list $Version
+if (-not $existingTag) {
     git tag -a $Version -m "Release $Version"
 }
 
