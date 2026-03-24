@@ -3,7 +3,7 @@ import logging
 from flask import Blueprint, jsonify, request
 
 from backend.extensions import db
-from backend.models import OrdemServico, STATUS_OS_VALIDOS
+from backend.models import STATUS_OS_VALIDOS, OrdemServico
 from backend.security import require_permissions
 from backend.services import proximo_numero_os
 
@@ -20,8 +20,22 @@ def listar_os():
         if status and status in STATUS_OS_VALIDOS:
             query = query.filter(OrdemServico.status == status)
         if q:
-            query = query.filter(db.or_(OrdemServico.numero.ilike(f"%{q}%"), OrdemServico.cliente.ilike(f"%{q}%"), OrdemServico.servico.ilike(f"%{q}%")))
-        return jsonify([ordem.to_dict() for ordem in query.order_by(OrdemServico.created_at.asc()).all()]), 200
+            query = query.filter(
+                db.or_(
+                    OrdemServico.numero.ilike(f"%{q}%"),
+                    OrdemServico.cliente.ilike(f"%{q}%"),
+                    OrdemServico.servico.ilike(f"%{q}%"),
+                )
+            )
+        return (
+            jsonify(
+                [
+                    ordem.to_dict()
+                    for ordem in query.order_by(OrdemServico.created_at.asc()).all()
+                ]
+            ),
+            200,
+        )
     except Exception as exc:
         logging.error(f"❌ {exc}")
         return jsonify({"erro": "Erro interno."}), 500
@@ -31,7 +45,10 @@ def listar_os():
 @require_permissions("ordens_servico")
 def resumo_os():
     try:
-        resultado = {status: OrdemServico.query.filter_by(status=status).count() for status in STATUS_OS_VALIDOS}
+        resultado = {
+            status: OrdemServico.query.filter_by(status=status).count()
+            for status in STATUS_OS_VALIDOS
+        }
         resultado["total"] = OrdemServico.query.count()
         return jsonify(resultado), 200
     except Exception as exc:
@@ -51,7 +68,16 @@ def criar_os():
         status = data.get("status", "solicitado")
         if status not in STATUS_OS_VALIDOS:
             status = "solicitado"
-        ordem = OrdemServico(numero=data.get("numero") or proximo_numero_os(), cliente=cliente, servico=servico, prioridade=data.get("prioridade", "media"), prazo=(data.get("prazo") or "").strip() or None, responsavel=(data.get("responsavel") or "").strip() or None, descricao=(data.get("descricao") or "").strip() or None, status=status)
+        ordem = OrdemServico(
+            numero=data.get("numero") or proximo_numero_os(),
+            cliente=cliente,
+            servico=servico,
+            prioridade=data.get("prioridade", "media"),
+            prazo=(data.get("prazo") or "").strip() or None,
+            responsavel=(data.get("responsavel") or "").strip() or None,
+            descricao=(data.get("descricao") or "").strip() or None,
+            status=status,
+        )
         db.session.add(ordem)
         db.session.commit()
         return jsonify(ordem.to_dict()), 201
@@ -115,4 +141,3 @@ def excluir_os(id):
     except Exception as exc:
         logging.error(f"❌ {exc}")
         return jsonify({"erro": "Erro interno."}), 500
-

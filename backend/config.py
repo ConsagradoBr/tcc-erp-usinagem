@@ -11,7 +11,9 @@ from flask_cors import CORS
 
 def get_runtime_data_dir():
     if getattr(sys, "frozen", False):
-        base_dir = Path(os.getenv("LOCALAPPDATA") or Path.home()) / "AMP Usinagem Industrial"
+        base_dir = (
+            Path(os.getenv("LOCALAPPDATA") or Path.home()) / "AMP Usinagem Industrial"
+        )
     else:
         base_dir = Path(__file__).resolve().parent
     base_dir.mkdir(parents=True, exist_ok=True)
@@ -38,7 +40,9 @@ def build_database_uri():
         )
 
     default_sqlite_path = get_runtime_data_dir() / "app.sqlite3"
-    logging.warning("DATABASE_URL/credenciais nao informadas; usando SQLite local para desenvolvimento.")
+    logging.warning(
+        "DATABASE_URL/credenciais nao informadas; usando SQLite local para desenvolvimento."
+    )
     return f"sqlite:///{default_sqlite_path.as_posix()}"
 
 
@@ -54,8 +58,16 @@ def build_engine_options(database_uri):
 
 def configure_app(app):
     load_dotenv()
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
-    CORS(app, origins="*", allow_headers=["Content-Type", "Authorization"], methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"], supports_credentials=False)
+    logging.basicConfig(
+        level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s"
+    )
+    CORS(
+        app,
+        origins="*",
+        allow_headers=["Content-Type", "Authorization"],
+        methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+        supports_credentials=False,
+    )
 
     database_uri = build_database_uri()
     app.config["SQLALCHEMY_DATABASE_URI"] = database_uri

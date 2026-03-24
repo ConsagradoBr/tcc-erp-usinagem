@@ -31,12 +31,16 @@ def marcador_orcamento(numero):
 
 
 def buscar_os_por_orcamento(numero_orcamento):
-    return OrdemServico.query.filter(OrdemServico.descricao.ilike(f"%{marcador_orcamento(numero_orcamento)}%")).first()
+    return OrdemServico.query.filter(
+        OrdemServico.descricao.ilike(f"%{marcador_orcamento(numero_orcamento)}%")
+    ).first()
 
 
 def buscar_lancamento_por_orcamento(numero_orcamento):
     marcador = marcador_orcamento(numero_orcamento)
-    return Lancamento.query.filter(Lancamento.tipo == "receber", Lancamento.descricao.ilike(f"%{marcador}%")).first()
+    return Lancamento.query.filter(
+        Lancamento.tipo == "receber", Lancamento.descricao.ilike(f"%{marcador}%")
+    ).first()
 
 
 def _descricao_orcamento(orcamento):
@@ -66,7 +70,9 @@ def garantir_os_para_orcamento(orcamento):
     if existente:
         existente.cliente = cliente.nome
         existente.servico = orcamento.titulo
-        existente.prazo = orcamento.validade.strftime("%d/%m/%Y") if orcamento.validade else None
+        existente.prazo = (
+            orcamento.validade.strftime("%d/%m/%Y") if orcamento.validade else None
+        )
         existente.descricao = _descricao_orcamento(orcamento)
         return existente, False
 
@@ -119,7 +125,13 @@ def garantir_lancamento_para_orcamento(orcamento):
     return lancamento, True
 
 
-def serializar_orcamento_integrado(orcamento, ordem_servico=None, ordem_servico_criada=False, lancamento=None, lancamento_criado=False):
+def serializar_orcamento_integrado(
+    orcamento,
+    ordem_servico=None,
+    ordem_servico_criada=False,
+    lancamento=None,
+    lancamento_criado=False,
+):
     payload = orcamento.to_dict()
     if ordem_servico:
         payload["ordem_servico"] = ordem_servico.to_dict()

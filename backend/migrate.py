@@ -2,6 +2,7 @@
 Migration: adiciona colunas parcelas e parcela_num na tabela lancamentos
 Execute uma vez: python migrate.py
 """
+
 from app import app, db
 
 SQL = """

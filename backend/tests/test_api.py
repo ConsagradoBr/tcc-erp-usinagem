@@ -28,7 +28,9 @@ def client():
 
 
 def criar_admin_inicial(client, nome="Teste", email="teste@amp.com", senha="123456"):
-    response = client.post("/auth/usuarios", json={"nome": nome, "email": email, "senha": senha})
+    response = client.post(
+        "/auth/usuarios", json={"nome": nome, "email": email, "senha": senha}
+    )
     assert response.status_code == 201
     return response.get_json()["user"]
 
@@ -46,7 +48,11 @@ def auth_headers(client):
 
 
 def criar_cliente(client, headers, nome="Metal Forte"):
-    response = client.post("/clientes", headers=headers, json={"nome": nome, "email": f"{nome.lower().replace(' ', '')}@amp.com"})
+    response = client.post(
+        "/clientes",
+        headers=headers,
+        json={"nome": nome, "email": f"{nome.lower().replace(' ', '')}@amp.com"},
+    )
     assert response.status_code == 201
     return response.get_json()["id"]
 
@@ -83,13 +89,22 @@ def test_bootstrap_cria_primeiro_admin(client):
 def test_cadastro_publico_fica_bloqueado_apos_primeiro_usuario(client):
     headers = auth_headers(client)
 
-    bloqueado = client.post("/auth/usuarios", json={"nome": "Intruso", "email": "intruso@amp.com", "senha": "123456"})
+    bloqueado = client.post(
+        "/auth/usuarios",
+        json={"nome": "Intruso", "email": "intruso@amp.com", "senha": "123456"},
+    )
     assert bloqueado.status_code == 401
 
     criado = client.post(
         "/auth/usuarios",
         headers=headers,
-        json={"nome": "Financeiro", "email": "fin@amp.com", "senha": "123456", "perfil": "financeiro", "ativo": True},
+        json={
+            "nome": "Financeiro",
+            "email": "fin@amp.com",
+            "senha": "123456",
+            "perfil": "financeiro",
+            "ativo": True,
+        },
     )
     assert criado.status_code == 201
     assert criado.get_json()["user"]["perfil"] == "financeiro"
@@ -100,7 +115,13 @@ def test_admin_cria_usuario_e_financeiro_tem_acesso_parcial(client):
     client.post(
         "/auth/usuarios",
         headers=headers,
-        json={"nome": "Financeiro", "email": "fin@amp.com", "senha": "123456", "perfil": "financeiro", "ativo": True},
+        json={
+            "nome": "Financeiro",
+            "email": "fin@amp.com",
+            "senha": "123456",
+            "perfil": "financeiro",
+            "ativo": True,
+        },
     )
 
     fin_login = login(client, email="fin@amp.com")
@@ -149,7 +170,9 @@ def test_clientes_e_orcamentos_flow(client):
     assert resumo.get_json()["enviado"] == 1
 
     item_id = listar.get_json()[0]["id"]
-    patch = client.patch(f"/orcamentos/{item_id}/status", headers=headers, json={"status": "aprovado"})
+    patch = client.patch(
+        f"/orcamentos/{item_id}/status", headers=headers, json={"status": "aprovado"}
+    )
     assert patch.status_code == 200
     payload = patch.get_json()
     assert payload["status"] == "aprovado"
@@ -177,9 +200,13 @@ def test_reaprovar_orcamento_nao_duplica_os_ou_financeiro(client):
     orc = criar_orcamento(client, headers, cliente_id)
     item_id = orc["id"]
 
-    primeira = client.patch(f"/orcamentos/{item_id}/status", headers=headers, json={"status": "aprovado"})
+    primeira = client.patch(
+        f"/orcamentos/{item_id}/status", headers=headers, json={"status": "aprovado"}
+    )
     assert primeira.status_code == 200
-    segunda = client.patch(f"/orcamentos/{item_id}/status", headers=headers, json={"status": "aprovado"})
+    segunda = client.patch(
+        f"/orcamentos/{item_id}/status", headers=headers, json={"status": "aprovado"}
+    )
     assert segunda.status_code == 200
     assert segunda.get_json()["ordem_servico_criada"] is False
     assert segunda.get_json()["lancamento_financeiro_criado"] is False

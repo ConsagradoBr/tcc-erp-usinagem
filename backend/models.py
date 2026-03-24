@@ -36,7 +36,15 @@ class Cliente(db.Model):
     created_at = db.Column(db.DateTime, server_default=db.func.now())
 
     def to_dict(self):
-        return {"id": self.id, "nome": self.nome, "documento": self.documento, "telefone": self.telefone, "email": self.email, "endereco": self.endereco, "created_at": self.created_at.isoformat() if self.created_at else None}
+        return {
+            "id": self.id,
+            "nome": self.nome,
+            "documento": self.documento,
+            "telefone": self.telefone,
+            "email": self.email,
+            "endereco": self.endereco,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
 
 
 class Lancamento(db.Model):
@@ -74,7 +82,28 @@ class Lancamento(db.Model):
     def to_dict(self):
         juros = self.calcular_juros()
         valor = float(self.valor)
-        return {"id": self.id, "tipo": self.tipo, "cliente_id": self.cliente_id, "cliente_nome": self.cliente.nome if self.cliente else None, "descricao": self.descricao, "nfe": self.nfe, "prazo_dias": self.prazo_dias, "vencimento": self.vencimento.isoformat(), "valor": valor, "juros": juros, "valor_total": round(valor + juros, 2), "status": self.calcular_status(), "data_pagamento": self.data_pagamento.isoformat() if self.data_pagamento else None, "forma_pagamento": self.forma_pagamento, "observacao": self.observacao, "parcelas": self.parcelas or 1, "parcela_num": self.parcela_num or 1, "created_at": self.created_at.isoformat() if self.created_at else None}
+        return {
+            "id": self.id,
+            "tipo": self.tipo,
+            "cliente_id": self.cliente_id,
+            "cliente_nome": self.cliente.nome if self.cliente else None,
+            "descricao": self.descricao,
+            "nfe": self.nfe,
+            "prazo_dias": self.prazo_dias,
+            "vencimento": self.vencimento.isoformat(),
+            "valor": valor,
+            "juros": juros,
+            "valor_total": round(valor + juros, 2),
+            "status": self.calcular_status(),
+            "data_pagamento": (
+                self.data_pagamento.isoformat() if self.data_pagamento else None
+            ),
+            "forma_pagamento": self.forma_pagamento,
+            "observacao": self.observacao,
+            "parcelas": self.parcelas or 1,
+            "parcela_num": self.parcela_num or 1,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
 
 
 class OrdemServico(db.Model):
@@ -91,7 +120,19 @@ class OrdemServico(db.Model):
     created_at = db.Column(db.DateTime, server_default=db.func.now())
 
     def to_dict(self):
-        return {"id": self.id, "os": self.numero, "numero": self.numero, "cliente": self.cliente, "servico": self.servico, "prioridade": self.prioridade, "prazo": self.prazo, "responsavel": self.responsavel, "descricao": self.descricao, "status": self.status, "created_at": self.created_at.isoformat() if self.created_at else None}
+        return {
+            "id": self.id,
+            "os": self.numero,
+            "numero": self.numero,
+            "cliente": self.cliente,
+            "servico": self.servico,
+            "prioridade": self.prioridade,
+            "prazo": self.prazo,
+            "responsavel": self.responsavel,
+            "descricao": self.descricao,
+            "status": self.status,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
 
 
 class Orcamento(db.Model):
@@ -110,4 +151,16 @@ class Orcamento(db.Model):
     cliente = db.relationship("Cliente", backref="orcamentos", lazy=True)
 
     def to_dict(self):
-        return {"id": self.id, "numero": self.numero, "cliente_id": self.cliente_id, "cliente_nome": self.cliente.nome if self.cliente else None, "titulo": self.titulo, "descricao": self.descricao, "valor": float(self.valor), "validade": self.validade.isoformat() if self.validade else None, "status": self.status, "observacao": self.observacao, "created_at": self.created_at.isoformat() if self.created_at else None}
+        return {
+            "id": self.id,
+            "numero": self.numero,
+            "cliente_id": self.cliente_id,
+            "cliente_nome": self.cliente.nome if self.cliente else None,
+            "titulo": self.titulo,
+            "descricao": self.descricao,
+            "valor": float(self.valor),
+            "validade": self.validade.isoformat() if self.validade else None,
+            "status": self.status,
+            "observacao": self.observacao,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }

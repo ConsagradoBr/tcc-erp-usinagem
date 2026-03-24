@@ -6,7 +6,8 @@ module.exports = {
   },
   extends: [
     'eslint:recommended',
-    'plugin:react/recommended'
+    'plugin:react/recommended',
+    'plugin:jsx-a11y/recommended'
   ],
   parserOptions: {
     ecmaVersion: 12,
@@ -18,6 +19,10 @@ module.exports = {
     }
   },
   rules: {
-    'no-console': 'warn'
+    'no-console': 'warn',
+    // New JSX transform: React in scope is not required
+    'react/react-in-jsx-scope': 'off',
+    // Project does not use prop-types consistently; disable for now
+    'react/prop-types': 'off'
   }
 };

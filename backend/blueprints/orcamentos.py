@@ -1,13 +1,16 @@
-import logging
 from datetime import date
 
 from flask import Blueprint, jsonify, request
 
-from backend.api_utils import error_response, get_or_404, internal_error, json_body
+from backend.api_utils import (error_response, get_or_404, internal_error,
+                               json_body)
 from backend.extensions import db
-from backend.models import Cliente, Orcamento, STATUS_ORCAMENTO_VALIDOS
+from backend.models import STATUS_ORCAMENTO_VALIDOS, Cliente, Orcamento
 from backend.security import require_permissions
-from backend.services import garantir_lancamento_para_orcamento, garantir_os_para_orcamento, proximo_numero_orcamento, serializar_orcamento_integrado
+from backend.services import (garantir_lancamento_para_orcamento,
+                              garantir_os_para_orcamento,
+                              proximo_numero_orcamento,
+                              serializar_orcamento_integrado)
 
 orc_bp = Blueprint("orcamentos", __name__, url_prefix="/orcamentos")
 
@@ -22,8 +25,22 @@ def listar_orcamentos():
         if status and status in STATUS_ORCAMENTO_VALIDOS:
             query = query.filter(Orcamento.status == status)
         if q:
-            query = query.filter(db.or_(Orcamento.numero.ilike(f"%{q}%"), Orcamento.titulo.ilike(f"%{q}%"), Cliente.nome.ilike(f"%{q}%")))
-        return jsonify([orcamento.to_dict() for orcamento in query.order_by(Orcamento.created_at.desc()).all()]), 200
+            query = query.filter(
+                db.or_(
+                    Orcamento.numero.ilike(f"%{q}%"),
+                    Orcamento.titulo.ilike(f"%{q}%"),
+                    Cliente.nome.ilike(f"%{q}%"),
+                )
+            )
+        return (
+            jsonify(
+                [
+                    orcamento.to_dict()
+                    for orcamento in query.order_by(Orcamento.created_at.desc()).all()
+                ]
+            ),
+            200,
+        )
     except Exception as exc:
         return internal_error(exc)
 
@@ -33,10 +50,22 @@ def listar_orcamentos():
 def resumo_orcamentos():
     try:
         todos = Orcamento.query.all()
-        resultado = {status: Orcamento.query.filter_by(status=status).count() for status in STATUS_ORCAMENTO_VALIDOS}
+        resultado = {
+            status: Orcamento.query.filter_by(status=status).count()
+            for status in STATUS_ORCAMENTO_VALIDOS
+        }
         resultado["total"] = len(todos)
-        resultado["valor_total"] = round(sum(float(orcamento.valor) for orcamento in todos), 2)
-        resultado["valor_aprovado"] = round(sum(float(orcamento.valor) for orcamento in todos if orcamento.status == "aprovado"), 2)
+        resultado["valor_total"] = round(
+            sum(float(orcamento.valor) for orcamento in todos), 2
+        )
+        resultado["valor_aprovado"] = round(
+            sum(
+                float(orcamento.valor)
+                for orcamento in todos
+                if orcamento.status == "aprovado"
+            ),
+            2,
+        )
         return jsonify(resultado), 200
     except Exception as exc:
         return internal_error(exc)
@@ -61,12 +90,34 @@ def criar_orcamento():
         status = data.get("status", "rascunho")
         if status not in STATUS_ORCAMENTO_VALIDOS:
             status = "rascunho"
-        orcamento = Orcamento(numero=data.get("numero") or proximo_numero_orcamento(), cliente_id=cliente_id, titulo=titulo, descricao=(data.get("descricao") or "").strip() or None, valor=valor, validade=date.fromisoformat(data["validade"]) if data.get("validade") else None, status=status, observacao=(data.get("observacao") or "").strip() or None)
+        orcamento = Orcamento(
+            numero=data.get("numero") or proximo_numero_orcamento(),
+            cliente_id=cliente_id,
+            titulo=titulo,
+            descricao=(data.get("descricao") or "").strip() or None,
+            valor=valor,
+            validade=(
+                date.fromisoformat(data["validade"]) if data.get("validade") else None
+            ),
+            status=status,
+            observacao=(data.get("observacao") or "").strip() or None,
+        )
         db.session.add(orcamento)
         ordem_servico, ordem_servico_criada = garantir_os_para_orcamento(orcamento)
         lancamento, lancamento_criado = garantir_lancamento_para_orcamento(orcamento)
         db.session.commit()
-        return jsonify(serializar_orcamento_integrado(orcamento, ordem_servico, ordem_servico_criada, lancamento, lancamento_criado)), 201
+        return (
+            jsonify(
+                serializar_orcamento_integrado(
+                    orcamento,
+                    ordem_servico,
+                    ordem_servico_criada,
+                    lancamento,
+                    lancamento_criado,
+                )
+            ),
+            201,
+        )
     except ValueError:
         return error_response("Dados inválidos para orçamento.")
     except Exception as exc:
@@ -101,7 +152,9 @@ def editar_orcamento(id):
                 return error_response("Valor deve ser maior que zero.")
             orcamento.valor = valor
         if "validade" in data:
-            orcamento.validade = date.fromisoformat(data["validade"]) if data["validade"] else None
+            orcamento.validade = (
+                date.fromisoformat(data["validade"]) if data["validade"] else None
+            )
         if "status" in data and data["status"] in STATUS_ORCAMENTO_VALIDOS:
             orcamento.status = data["status"]
         if "observacao" in data:
@@ -109,7 +162,18 @@ def editar_orcamento(id):
         ordem_servico, ordem_servico_criada = garantir_os_para_orcamento(orcamento)
         lancamento, lancamento_criado = garantir_lancamento_para_orcamento(orcamento)
         db.session.commit()
-        return jsonify(serializar_orcamento_integrado(orcamento, ordem_servico, ordem_servico_criada, lancamento, lancamento_criado)), 200
+        return (
+            jsonify(
+                serializar_orcamento_integrado(
+                    orcamento,
+                    ordem_servico,
+                    ordem_servico_criada,
+                    lancamento,
+                    lancamento_criado,
+                )
+            ),
+            200,
+        )
     except ValueError:
         return error_response("Dados inválidos para orçamento.")
     except Exception as exc:
@@ -131,7 +195,18 @@ def alterar_status_orcamento(id):
         ordem_servico, ordem_servico_criada = garantir_os_para_orcamento(orcamento)
         lancamento, lancamento_criado = garantir_lancamento_para_orcamento(orcamento)
         db.session.commit()
-        return jsonify(serializar_orcamento_integrado(orcamento, ordem_servico, ordem_servico_criada, lancamento, lancamento_criado)), 200
+        return (
+            jsonify(
+                serializar_orcamento_integrado(
+                    orcamento,
+                    ordem_servico,
+                    ordem_servico_criada,
+                    lancamento,
+                    lancamento_criado,
+                )
+            ),
+            200,
+        )
     except Exception as exc:
         return internal_error(exc)
 
@@ -148,4 +223,3 @@ def excluir_orcamento(id):
         return jsonify({"mensagem": "Orçamento excluído."}), 200
     except Exception as exc:
         return internal_error(exc)
-

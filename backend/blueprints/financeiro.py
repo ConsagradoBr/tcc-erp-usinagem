@@ -25,8 +25,17 @@ def listar_lancamentos():
         if tipo:
             query = query.filter(Lancamento.tipo == tipo)
         if q:
-            query = query.join(Cliente, isouter=True).filter(db.or_(Lancamento.descricao.ilike(f"%{q}%"), Lancamento.nfe.ilike(f"%{q}%"), Cliente.nome.ilike(f"%{q}%")))
-        resultado = [lancamento.to_dict() for lancamento in query.order_by(Lancamento.vencimento.asc()).all()]
+            query = query.join(Cliente, isouter=True).filter(
+                db.or_(
+                    Lancamento.descricao.ilike(f"%{q}%"),
+                    Lancamento.nfe.ilike(f"%{q}%"),
+                    Cliente.nome.ilike(f"%{q}%"),
+                )
+            )
+        resultado = [
+            lancamento.to_dict()
+            for lancamento in query.order_by(Lancamento.vencimento.asc()).all()
+        ]
         if status:
             resultado = [item for item in resultado if item["status"] == status]
         return jsonify(resultado), 200
@@ -41,7 +50,42 @@ def resumo():
     try:
         todos = [lancamento.to_dict() for lancamento in Lancamento.query.all()]
         mes = date.today().isoformat()[:7]
-        return jsonify({"a_receber": round(sum(item["valor_total"] for item in todos if item["tipo"] == "receber" and item["status"] != "pago"), 2), "a_pagar": round(sum(item["valor_total"] for item in todos if item["tipo"] == "pagar" and item["status"] != "pago"), 2), "atrasados": len([item for item in todos if item["status"] == "atrasado"]), "recebido_mes": round(sum(item["valor"] for item in todos if item["tipo"] == "receber" and item["data_pagamento"] and item["data_pagamento"][:7] == mes), 2)}), 200
+        return (
+            jsonify(
+                {
+                    "a_receber": round(
+                        sum(
+                            item["valor_total"]
+                            for item in todos
+                            if item["tipo"] == "receber" and item["status"] != "pago"
+                        ),
+                        2,
+                    ),
+                    "a_pagar": round(
+                        sum(
+                            item["valor_total"]
+                            for item in todos
+                            if item["tipo"] == "pagar" and item["status"] != "pago"
+                        ),
+                        2,
+                    ),
+                    "atrasados": len(
+                        [item for item in todos if item["status"] == "atrasado"]
+                    ),
+                    "recebido_mes": round(
+                        sum(
+                            item["valor"]
+                            for item in todos
+                            if item["tipo"] == "receber"
+                            and item["data_pagamento"]
+                            and item["data_pagamento"][:7] == mes
+                        ),
+                        2,
+                    ),
+                }
+            ),
+            200,
+        )
     except Exception as exc:
         logging.error(f"❌ {exc}")
         return jsonify({"erro": "Erro interno."}), 500
@@ -69,11 +113,34 @@ def criar_lancamento():
         criados = []
         for indice in range(n_parcelas):
             vencimento = base_vencimento + timedelta(days=prazo_dias * indice)
-            lancamento = Lancamento(tipo=tipo, cliente_id=data.get("cliente_id") or None, descricao=descricao if n_parcelas == 1 else f"{descricao} ({indice + 1}/{n_parcelas})", nfe=data.get("nfe", "").strip() or None, prazo_dias=data.get("prazo_dias") or None, vencimento=vencimento, valor=valor_parcela, forma_pagamento=data.get("forma_pagamento", "").strip() or None, observacao=data.get("observacao", "").strip() or None, parcelas=n_parcelas, parcela_num=indice + 1)
+            lancamento = Lancamento(
+                tipo=tipo,
+                cliente_id=data.get("cliente_id") or None,
+                descricao=(
+                    descricao
+                    if n_parcelas == 1
+                    else f"{descricao} ({indice + 1}/{n_parcelas})"
+                ),
+                nfe=data.get("nfe", "").strip() or None,
+                prazo_dias=data.get("prazo_dias") or None,
+                vencimento=vencimento,
+                valor=valor_parcela,
+                forma_pagamento=data.get("forma_pagamento", "").strip() or None,
+                observacao=data.get("observacao", "").strip() or None,
+                parcelas=n_parcelas,
+                parcela_num=indice + 1,
+            )
             db.session.add(lancamento)
             criados.append(lancamento)
         db.session.commit()
-        return jsonify([item.to_dict() for item in criados] if n_parcelas > 1 else criados[0].to_dict()), 201
+        return (
+            jsonify(
+                [item.to_dict() for item in criados]
+                if n_parcelas > 1
+                else criados[0].to_dict()
+            ),
+            201,
+        )
     except ValueError:
         return jsonify({"erro": "Data inválida. Use YYYY-MM-DD."}), 400
     except Exception as exc:
@@ -87,7 +154,10 @@ def editar_lancamento(id):
     try:
         lancamento = Lancamento.query.get_or_404(id)
         data = request.get_json() or {}
-        vencimento_mudou = "vencimento" in data and data["vencimento"] != lancamento.vencimento.isoformat()
+        vencimento_mudou = (
+            "vencimento" in data
+            and data["vencimento"] != lancamento.vencimento.isoformat()
+        )
         if "tipo" in data and data["tipo"] in ("receber", "pagar"):
             lancamento.tipo = data["tipo"]
         if "descricao" in data:
@@ -107,15 +177,29 @@ def editar_lancamento(id):
         if "observacao" in data:
             lancamento.observacao = data["observacao"].strip() or None
         if "data_pagamento" in data:
-            lancamento.data_pagamento = date.fromisoformat(data["data_pagamento"]) if data["data_pagamento"] else None
+            lancamento.data_pagamento = (
+                date.fromisoformat(data["data_pagamento"])
+                if data["data_pagamento"]
+                else None
+            )
         if vencimento_mudou and lancamento.parcelas and lancamento.parcelas > 1:
             prazo_dias = int(lancamento.prazo_dias or 30)
-            base_parcela1 = lancamento.vencimento - timedelta(days=prazo_dias * (lancamento.parcela_num - 1))
+            base_parcela1 = lancamento.vencimento - timedelta(
+                days=prazo_dias * (lancamento.parcela_num - 1)
+            )
             desc_base = re.sub(r"\s*\(\d+/\d+\)$", "", lancamento.descricao).strip()
-            irmas = Lancamento.query.filter(Lancamento.id != lancamento.id, Lancamento.tipo == lancamento.tipo, Lancamento.cliente_id == lancamento.cliente_id, Lancamento.parcelas == lancamento.parcelas, Lancamento.descricao.like(f"{desc_base}%")).all()
+            irmas = Lancamento.query.filter(
+                Lancamento.id != lancamento.id,
+                Lancamento.tipo == lancamento.tipo,
+                Lancamento.cliente_id == lancamento.cliente_id,
+                Lancamento.parcelas == lancamento.parcelas,
+                Lancamento.descricao.like(f"{desc_base}%"),
+            ).all()
             for irma in irmas:
                 if not irma.data_pagamento:
-                    irma.vencimento = base_parcela1 + timedelta(days=prazo_dias * (irma.parcela_num - 1))
+                    irma.vencimento = base_parcela1 + timedelta(
+                        days=prazo_dias * (irma.parcela_num - 1)
+                    )
         db.session.commit()
         return jsonify(lancamento.to_dict()), 200
     except ValueError:
@@ -131,8 +215,12 @@ def marcar_pago(id):
     try:
         lancamento = Lancamento.query.get_or_404(id)
         data = request.get_json() or {}
-        lancamento.data_pagamento = date.fromisoformat(data.get("data_pagamento", date.today().isoformat()))
-        lancamento.forma_pagamento = data.get("forma_pagamento", lancamento.forma_pagamento)
+        lancamento.data_pagamento = date.fromisoformat(
+            data.get("data_pagamento", date.today().isoformat())
+        )
+        lancamento.forma_pagamento = data.get(
+            "forma_pagamento", lancamento.forma_pagamento
+        )
         db.session.commit()
         return jsonify(lancamento.to_dict()), 200
     except Exception as exc:
@@ -148,7 +236,12 @@ def excluir_lancamento(id):
         modo = request.args.get("modo", "unico")
         if modo == "grupo" and lancamento.parcelas and lancamento.parcelas > 1:
             desc_base = re.sub(r"\s*\(\d+/\d+\)$", "", lancamento.descricao).strip()
-            irmas = Lancamento.query.filter(Lancamento.tipo == lancamento.tipo, Lancamento.cliente_id == lancamento.cliente_id, Lancamento.parcelas == lancamento.parcelas, Lancamento.descricao.like(f"{desc_base}%")).all()
+            irmas = Lancamento.query.filter(
+                Lancamento.tipo == lancamento.tipo,
+                Lancamento.cliente_id == lancamento.cliente_id,
+                Lancamento.parcelas == lancamento.parcelas,
+                Lancamento.descricao.like(f"{desc_base}%"),
+            ).all()
             count = len(irmas)
             for irma in irmas:
                 db.session.delete(irma)
@@ -175,6 +268,7 @@ def parsear_boleto():
         texto_total = ""
         try:
             import pdfplumber
+
             with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
                 for page in pdf.pages:
                     texto = page.extract_text()
@@ -185,6 +279,7 @@ def parsear_boleto():
         if not texto_total.strip():
             try:
                 import PyPDF2
+
                 for page in PyPDF2.PdfReader(io.BytesIO(pdf_bytes)).pages:
                     texto = page.extract_text()
                     if texto:
@@ -192,10 +287,27 @@ def parsear_boleto():
             except Exception:
                 pass
         if not texto_total.strip():
-            return jsonify({"erro": "PDF sem texto extraível. Preencha os dados manualmente."}), 422
+            return (
+                jsonify(
+                    {"erro": "PDF sem texto extraível. Preencha os dados manualmente."}
+                ),
+                422,
+            )
         dados = extrair_dados_boleto(texto_total)
-        return jsonify({"tipo": tipo_hint, "descricao": dados["descricao"] or "Boleto bancário", "valor": dados["valor"], "vencimento": dados["vencimento"], "nfe": dados["nfe"], "beneficiario": dados["beneficiario"], "pagador": dados["pagador"]}), 200
+        return (
+            jsonify(
+                {
+                    "tipo": tipo_hint,
+                    "descricao": dados["descricao"] or "Boleto bancário",
+                    "valor": dados["valor"],
+                    "vencimento": dados["vencimento"],
+                    "nfe": dados["nfe"],
+                    "beneficiario": dados["beneficiario"],
+                    "pagador": dados["pagador"],
+                }
+            ),
+            200,
+        )
     except Exception as exc:
         logging.error(f"❌ Boleto: {exc}")
         return jsonify({"erro": f"Erro ao processar PDF: {str(exc)}"}), 500
-

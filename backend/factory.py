@@ -8,8 +8,8 @@ from sqlalchemy import inspect, text
 from backend.blueprints.auth import auth_bp
 from backend.blueprints.clientes import clientes_bp
 from backend.blueprints.financeiro import financeiro_bp
-from backend.blueprints.ordens_servico import os_bp
 from backend.blueprints.orcamentos import orc_bp
+from backend.blueprints.ordens_servico import os_bp
 from backend.blueprints.sistema import sistema_bp
 from backend.config import configure_app
 from backend.extensions import db, jwt
@@ -31,10 +31,17 @@ def _garantir_colunas_usuarios():
         db.session.execute(text(sql))
 
     if alteracoes:
-        db.session.execute(text("UPDATE usuarios SET perfil = 'administrador' WHERE perfil IS NULL OR perfil = ''"))
+        db.session.execute(
+            text(
+                "UPDATE usuarios SET perfil = 'administrador' "
+                "WHERE perfil IS NULL OR perfil = ''"
+            )
+        )
         db.session.execute(text("UPDATE usuarios SET ativo = TRUE WHERE ativo IS NULL"))
         db.session.commit()
-        logging.info("Estrutura de usuarios atualizada para suportar perfis e permissoes.")
+        logging.info(
+            "Estrutura de usuarios atualizada para suportar perfis e permissoes."
+        )
 
 
 def create_app():
@@ -73,4 +80,3 @@ def run_dev_server(app):
     port = int(os.getenv("PORT", os.getenv("FLASK_PORT", "5000")))
     debug = os.getenv("FLASK_DEBUG", "true").lower() == "true"
     app.run(debug=debug, host=host, port=port)
-

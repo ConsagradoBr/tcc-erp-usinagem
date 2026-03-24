@@ -42,7 +42,8 @@ def _copy_sqlite_database(source_path, target_path):
 def _ensure_local_sqlite():
     db_path = _sqlite_db_path()
     if not db_path or not db_path.exists():
-        return None, (jsonify({"erro": "Backup local disponivel apenas para o banco SQLite do app desktop."}), 400)
+        msg = "Backup local disponivel apenas para o banco SQLite " "do app desktop."
+        return None, (jsonify({"erro": msg}), 400)
     return db_path, None
 
 
@@ -51,20 +52,32 @@ def _ensure_local_sqlite():
 def backup_info():
     db_path = _sqlite_db_path()
     if not db_path or not db_path.exists():
-        return jsonify({
-            "modo": "externo",
-            "suporta_backup_local": False,
-            "mensagem": "O backup automatico desta tela funciona apenas quando o sistema usa o banco local SQLite.",
-        }), 200
+        msg = (
+            "O backup automatico desta tela funciona apenas "
+            "quando o sistema usa o banco local SQLite."
+        )
+        return (
+            jsonify(
+                {"modo": "externo", "suporta_backup_local": False, "mensagem": msg}
+            ),
+            200,
+        )
 
     backup_dir = _backup_dir()
-    return jsonify({
-        "modo": "sqlite_local",
-        "suporta_backup_local": True,
-        "caminho_banco": str(db_path),
-        "pasta_backups": str(backup_dir),
-        "ultima_atualizacao": datetime.fromtimestamp(db_path.stat().st_mtime).isoformat(),
-    }), 200
+    return (
+        jsonify(
+            {
+                "modo": "sqlite_local",
+                "suporta_backup_local": True,
+                "caminho_banco": str(db_path),
+                "pasta_backups": str(backup_dir),
+                "ultima_atualizacao": datetime.fromtimestamp(
+                    db_path.stat().st_mtime
+                ).isoformat(),
+            }
+        ),
+        200,
+    )
 
 
 @sistema_bp.route("/backup", methods=["POST"])
@@ -106,7 +119,14 @@ def restaurar_backup():
 
     suffix = Path(nome_arquivo).suffix.lower()
     if suffix and suffix not in ALLOWED_RESTORE_SUFFIXES:
-        return jsonify({"erro": "Use um arquivo de backup SQLite valido (.sqlite3, .db ou .bak)."}), 400
+        return (
+            jsonify(
+                {
+                    "erro": "Use um arquivo de backup SQLite valido (.sqlite3, .db ou .bak)."
+                }
+            ),
+            400,
+        )
 
     try:
         payload = base64.b64decode(arquivo_base64)
@@ -123,7 +143,11 @@ def restaurar_backup():
         with sqlite3.connect(temp_restore_path) as conn:
             status = conn.execute("PRAGMA integrity_check").fetchone()[0]
             if status != "ok":
-                return jsonify({"erro": "O arquivo informado nao passou na validacao de integridade do SQLite."}), 400
+                msg = (
+                    "O arquivo informado nao passou na validacao de "
+                    "integridade do SQLite."
+                )
+                return (jsonify({"erro": msg}), 400)
 
         db.session.remove()
         db.engine.dispose()
@@ -134,9 +158,13 @@ def restaurar_backup():
             with contextlib.suppress(PermissionError, FileNotFoundError):
                 temp_restore_path.unlink()
 
-    return jsonify({
-        "mensagem": "Backup restaurado com sucesso.",
-        "backup_seguranca": str(safety_backup_path),
-        "caminho_banco": str(db_path),
-    }), 200
-
+    return (
+        jsonify(
+            {
+                "mensagem": "Backup restaurado com sucesso.",
+                "backup_seguranca": str(safety_backup_path),
+                "caminho_banco": str(db_path),
+            }
+        ),
+        200,
+    )

@@ -16,8 +16,19 @@ def listar_clientes():
         q = request.args.get("q", "").strip()
         query = Cliente.query
         if q:
-            query = query.filter(db.or_(Cliente.nome.ilike(f"%{q}%"), Cliente.documento.ilike(f"%{q}%"), Cliente.email.ilike(f"%{q}%")))
-        return jsonify([cliente.to_dict() for cliente in query.order_by(Cliente.nome).all()]), 200
+            query = query.filter(
+                db.or_(
+                    Cliente.nome.ilike(f"%{q}%"),
+                    Cliente.documento.ilike(f"%{q}%"),
+                    Cliente.email.ilike(f"%{q}%"),
+                )
+            )
+        return (
+            jsonify(
+                [cliente.to_dict() for cliente in query.order_by(Cliente.nome).all()]
+            ),
+            200,
+        )
     except Exception as exc:
         logging.error(f"Erro ao listar clientes: {exc}")
         return jsonify({"erro": "Erro interno."}), 500
@@ -31,7 +42,13 @@ def criar_cliente():
         nome = data.get("nome", "").strip()
         if not nome:
             return jsonify({"erro": "Nome e obrigatorio."}), 400
-        cliente = Cliente(nome=nome, documento=data.get("documento", "").strip() or None, telefone=data.get("telefone", "").strip() or None, email=(data.get("email", "").strip().lower()) or None, endereco=data.get("endereco", "").strip() or None)
+        cliente = Cliente(
+            nome=nome,
+            documento=data.get("documento", "").strip() or None,
+            telefone=data.get("telefone", "").strip() or None,
+            email=(data.get("email", "").strip().lower()) or None,
+            endereco=data.get("endereco", "").strip() or None,
+        )
         db.session.add(cliente)
         db.session.commit()
         return jsonify(cliente.to_dict()), 201

@@ -50,7 +50,9 @@ def serializar_usuario(usuario):
         "nome": usuario.nome,
         "email": usuario.email,
         "perfil": usuario.perfil,
-        "perfil_label": PERFIS_SISTEMA.get(usuario.perfil, PERFIS_SISTEMA["comercial"])["label"],
+        "perfil_label": PERFIS_SISTEMA.get(usuario.perfil, PERFIS_SISTEMA["comercial"])[
+            "label"
+        ],
         "ativo": bool(usuario.ativo),
         "permissoes": permissoes_do_perfil(usuario.perfil),
     }
@@ -82,9 +84,21 @@ def require_permissions(*permissoes):
             if not usuario:
                 return jsonify({"erro": "Usuário não encontrado."}), 401
             if not usuario.ativo:
-                return jsonify({"erro": "Usuário desativado. Procure um administrador do sistema."}), 403
+                return (
+                    jsonify(
+                        {
+                            "erro": "Usuário desativado. Procure um administrador do sistema."
+                        }
+                    ),
+                    403,
+                )
             if permissoes and not usuario_tem_permissoes(usuario, *permissoes):
-                return jsonify({"erro": "Você não tem permissão para acessar este recurso."}), 403
+                return (
+                    jsonify(
+                        {"erro": "Você não tem permissão para acessar este recurso."}
+                    ),
+                    403,
+                )
             return fn(*args, **kwargs)
 
         return wrapper
