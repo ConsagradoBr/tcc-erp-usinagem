@@ -25,6 +25,9 @@ jobs:
       - name: Run linters (Node)
         run: |
           if [ -f package.json ]; then if npm run | grep -q 'lint'; then npm run lint --silent; else echo 'No lint script'; fi; fi
+      - name: Install ruff and run python linter
+        run: |
+          if [ -f pyproject.toml ]; then python -m pip install --upgrade pip && pip install ruff && ruff check .; else echo 'No pyproject.toml, skipping ruff'; fi
       - name: Run tests (pytest)
         run: |
           pytest -q

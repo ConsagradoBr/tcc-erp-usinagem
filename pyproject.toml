@@ -1,0 +1,7 @@
+[tool.ruff]
+line-length = 88
+select = ["E", "F", "W", "C", "B", "N", "I"]
+exclude = [".git", "__pycache__", "build", "dist", "node_modules"]
+
+[tool.ruff.per-file-ignores]
+"backend/tests/*" = ["D"]
