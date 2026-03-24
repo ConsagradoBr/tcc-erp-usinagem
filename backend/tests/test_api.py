@@ -9,7 +9,11 @@ os.environ["DATABASE_URL"] = f"sqlite:///{TEST_DB.as_posix()}"
 os.environ["JWT_SECRET_KEY"] = "test-secret-key-with-32-characters!!"
 os.environ["SECRET_KEY"] = "test-secret-key-with-32-characters!!"
 
-from backend.app import app, db
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from backend.app import app
+from backend.extensions import db
 
 
 @pytest.fixture()
