@@ -24,6 +24,7 @@ const fmtD = (iso) => iso ? new Date(iso + "T12:00:00").toLocaleDateString("pt-B
 
 function ModalOrcamento({ item, clientes, onClose, onSalvo }) {
   const editando = Boolean(item?.id);
+  const idBase = editando ? `orcamento-${item.id}` : "orcamento-novo";
   const [form, setForm] = useState(editando ? {
     cliente_id: String(item.cliente_id || ""),
     titulo: item.titulo || "",
@@ -81,8 +82,14 @@ function ModalOrcamento({ item, clientes, onClose, onSalvo }) {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className={lbl}>Cliente *</label>
-              <select value={form.cliente_id} onChange={(e) => set("cliente_id", e.target.value)} className={inp} required>
+              <label htmlFor={`${idBase}-cliente`} className={lbl}>Cliente *</label>
+              <select
+                id={`${idBase}-cliente`}
+                value={form.cliente_id}
+                onChange={(e) => set("cliente_id", e.target.value)}
+                className={inp}
+                required
+              >
                 <option value="">Selecione um cliente</option>
                 {clientes.map((cliente) => (
                   <option key={cliente.id} value={cliente.id}>{cliente.nome}</option>
@@ -90,8 +97,13 @@ function ModalOrcamento({ item, clientes, onClose, onSalvo }) {
               </select>
             </div>
             <div>
-              <label className={lbl}>Status</label>
-              <select value={form.status} onChange={(e) => set("status", e.target.value)} className={inp}>
+              <label htmlFor={`${idBase}-status`} className={lbl}>Status</label>
+              <select
+                id={`${idBase}-status`}
+                value={form.status}
+                onChange={(e) => set("status", e.target.value)}
+                className={inp}
+              >
                 {Object.entries(STATUS).map(([key, status]) => (
                   <option key={key} value={key}>{status.label}</option>
                 ))}
@@ -100,27 +112,62 @@ function ModalOrcamento({ item, clientes, onClose, onSalvo }) {
           </div>
 
           <div>
-            <label className={lbl}>Título *</label>
-            <input value={form.titulo} onChange={(e) => set("titulo", e.target.value)} className={inp} required placeholder="Ex: Usinagem de lote piloto" />
+            <label htmlFor={`${idBase}-titulo`} className={lbl}>Titulo *</label>
+            <input
+              id={`${idBase}-titulo`}
+              value={form.titulo}
+              onChange={(e) => set("titulo", e.target.value)}
+              className={inp}
+              required
+              placeholder="Ex: Usinagem de lote piloto"
+            />
           </div>
 
           <div>
-            <label className={lbl}>Descrição</label>
-            <textarea value={form.descricao} onChange={(e) => set("descricao", e.target.value)} rows={4} className={inp + " resize-none"} placeholder="Escopo, materiais, prazo, condições..." />
+            <label htmlFor={`${idBase}-descricao`} className={lbl}>Descricao</label>
+            <textarea
+              id={`${idBase}-descricao`}
+              value={form.descricao}
+              onChange={(e) => set("descricao", e.target.value)}
+              rows={4}
+              className={inp + " resize-none"}
+              placeholder="Escopo, materiais, prazo, condicoes..."
+            />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className={lbl}>Valor *</label>
-              <input type="number" min="0.01" step="0.01" value={form.valor} onChange={(e) => set("valor", e.target.value)} className={inp} required />
+              <label htmlFor={`${idBase}-valor`} className={lbl}>Valor *</label>
+              <input
+                id={`${idBase}-valor`}
+                type="number"
+                min="0.01"
+                step="0.01"
+                value={form.valor}
+                onChange={(e) => set("valor", e.target.value)}
+                className={inp}
+                required
+              />
             </div>
             <div>
-              <label className={lbl}>Validade</label>
-              <input type="date" value={form.validade} onChange={(e) => set("validade", e.target.value)} className={inp} />
+              <label htmlFor={`${idBase}-validade`} className={lbl}>Validade</label>
+              <input
+                id={`${idBase}-validade`}
+                type="date"
+                value={form.validade}
+                onChange={(e) => set("validade", e.target.value)}
+                className={inp}
+              />
             </div>
             <div>
-              <label className={lbl}>Observação</label>
-              <input value={form.observacao} onChange={(e) => set("observacao", e.target.value)} className={inp} placeholder="Condição comercial" />
+              <label htmlFor={`${idBase}-observacao`} className={lbl}>Observacao</label>
+              <input
+                id={`${idBase}-observacao`}
+                value={form.observacao}
+                onChange={(e) => set("observacao", e.target.value)}
+                className={inp}
+                placeholder="Condicao comercial"
+              />
             </div>
           </div>
 

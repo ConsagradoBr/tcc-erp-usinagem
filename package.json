@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "build:desktop": "if exist \"dist\\AMP Usinagem Industrial.exe\" del /f /q \"dist\\AMP Usinagem Industrial.exe\" && npm run build && backend\\venv\\Scripts\\python.exe -m PyInstaller --clean --noconfirm \"AMP Usinagem Industrial.spec\"",
+    "build:desktop": "node scripts/build-desktop.mjs",
     "preview": "vite preview",
     "lint": "eslint \"src/**/*.{js,jsx,ts,tsx}\" --max-warnings=0 || node -e \"process.exit(0)\""
   },

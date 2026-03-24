@@ -74,20 +74,26 @@ export default function ProtectedLayout() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="w-12 h-12 rounded-full border-4 border-orange-200 border-t-orange-500 animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen relative overflow-hidden">
+      <div className="pointer-events-none fixed inset-0 overflow-hidden">
+        <div className="absolute -left-24 top-10 h-80 w-80 rounded-full bg-orange-300/25 blur-3xl" />
+        <div className="absolute right-[-8rem] top-32 h-96 w-96 rounded-full bg-sky-300/20 blur-3xl" />
+        <div className="absolute bottom-[-10rem] left-1/3 h-96 w-96 rounded-full bg-slate-300/25 blur-3xl" />
+      </div>
+
       <Sidebar user={user} open={open} mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
 
-      <div className={`min-h-screen flex flex-col transition-all duration-300 ${open ? "lg:pl-64" : "lg:pl-20"}`}>
+      <div className={`relative min-h-screen flex flex-col transition-all duration-300 ${open ? "lg:pl-64" : "lg:pl-20"}`}>
         <Header user={user} onMenuToggle={toggleMenu} />
 
-        <main className="flex-1 min-w-0 p-3 sm:p-4 lg:p-6 overflow-x-hidden">
+        <main className="flex-1 min-w-0 overflow-x-hidden px-3 pb-4 pt-1 sm:px-4 sm:pb-6 lg:px-6">
           <Outlet context={{ user }} />
         </main>
       </div>

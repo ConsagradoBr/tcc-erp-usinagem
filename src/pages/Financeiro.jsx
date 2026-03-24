@@ -21,7 +21,6 @@ const BADGE = {
   atrasado:  "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700",
 };
 const LABEL_STATUS = { pago: "Pago", pendente: "Pendente", atrasado: "Atrasado" };
-const LABEL_TIPO   = { receber: "A Receber", pagar: "A Pagar" };
 
 const FORMAS = ["PIX", "Boleto", "Transferência", "Dinheiro", "Cartão", "Cheque"];
 const PRAZOS = [1, 5, 7, 15, 30, 45, 60, 90];
@@ -38,10 +37,10 @@ function ModalBoleto({ clientes, onClose, onSalvo }) {
   const [tipo, setTipo]           = useState("pagar");
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro]           = useState(null);
-  const [dadosParsed, setDadosParsed] = useState(null);
   const [form, setForm]           = useState(null);
   const [salvando, setSalvando]   = useState(false);
   const inputRef                  = useRef(null);
+  const idBase = "financeiro-boleto";
 
   const set = (f, v) => setForm((p) => ({ ...p, [f]: v }));
 
@@ -64,7 +63,6 @@ function ModalBoleto({ clientes, onClose, onSalvo }) {
 
       const resp = await api.post("/financeiro/boleto", { pdf_base64: base64, tipo });
       const d    = resp.data;
-      setDadosParsed(d);
       setForm({
         tipo:            tipo,
         cliente_id:      "",
@@ -122,7 +120,7 @@ function ModalBoleto({ clientes, onClose, onSalvo }) {
             <div className="space-y-4">
               {/* Tipo */}
               <div>
-                <label className={lbl}>Este boleto é para:</label>
+                <p className={lbl}>Este boleto e para:</p>
                 <div className="mt-1 flex gap-2">
                   {[["pagar","↑ Pagar"],["receber","↓ Receber"]].map(([v,l]) => (
                     <button key={v} type="button" onClick={() => setTipo(v)}
@@ -159,7 +157,7 @@ function ModalBoleto({ clientes, onClose, onSalvo }) {
               <form onSubmit={handleSalvar} className="space-y-3">
                 {/* Tipo */}
                 <div>
-                  <label className={lbl}>Tipo</label>
+                  <p className={lbl}>Tipo</p>
                   <div className="mt-1 flex gap-2">
                     {[["pagar","↑ A Pagar"],["receber","↓ A Receber"]].map(([v,l]) => (
                       <button key={v} type="button" onClick={() => set("tipo", v)}
@@ -171,45 +169,88 @@ function ModalBoleto({ clientes, onClose, onSalvo }) {
                 </div>
 
                 <div>
-                  <label className={lbl}>Cliente</label>
-                  <select value={form.cliente_id} onChange={(e) => set("cliente_id", e.target.value)} className={inp}>
+                  <label htmlFor={`${idBase}-cliente`} className={lbl}>Cliente</label>
+                  <select
+                    id={`${idBase}-cliente`}
+                    value={form.cliente_id}
+                    onChange={(e) => set("cliente_id", e.target.value)}
+                    className={inp}
+                  >
                     <option value="">— Sem vínculo —</option>
                     {clientes.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
                   </select>
                 </div>
 
                 <div>
-                  <label className={lbl}>Descrição *</label>
-                  <input value={form.descricao} onChange={(e) => set("descricao", e.target.value)} required className={inp} />
+                  <label htmlFor={`${idBase}-descricao`} className={lbl}>Descricao *</label>
+                  <input
+                    id={`${idBase}-descricao`}
+                    value={form.descricao}
+                    onChange={(e) => set("descricao", e.target.value)}
+                    required
+                    className={inp}
+                  />
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="flex-1">
-                    <label className={lbl}>Vencimento *</label>
-                    <input type="date" value={form.vencimento} onChange={(e) => set("vencimento", e.target.value)} required className={inp} />
+                    <label htmlFor={`${idBase}-vencimento`} className={lbl}>Vencimento *</label>
+                    <input
+                      id={`${idBase}-vencimento`}
+                      type="date"
+                      value={form.vencimento}
+                      onChange={(e) => set("vencimento", e.target.value)}
+                      required
+                      className={inp}
+                    />
                   </div>
                   <div className="flex-1">
-                    <label className={lbl}>Valor (R$) *</label>
-                    <input type="number" step="0.01" min="0.01" value={form.valor} onChange={(e) => set("valor", e.target.value)} required className={inp} />
+                    <label htmlFor={`${idBase}-valor`} className={lbl}>Valor (R$) *</label>
+                    <input
+                      id={`${idBase}-valor`}
+                      type="number"
+                      step="0.01"
+                      min="0.01"
+                      value={form.valor}
+                      onChange={(e) => set("valor", e.target.value)}
+                      required
+                      className={inp}
+                    />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="flex-1">
-                    <label className={lbl}>NF-e</label>
-                    <input value={form.nfe} onChange={(e) => set("nfe", e.target.value)} className={inp} />
+                    <label htmlFor={`${idBase}-nfe`} className={lbl}>NF-e</label>
+                    <input
+                      id={`${idBase}-nfe`}
+                      value={form.nfe}
+                      onChange={(e) => set("nfe", e.target.value)}
+                      className={inp}
+                    />
                   </div>
                   <div className="flex-1">
-                    <label className={lbl}>Forma de Pagamento</label>
-                    <select value={form.forma_pagamento} onChange={(e) => set("forma_pagamento", e.target.value)} className={inp}>
+                    <label htmlFor={`${idBase}-forma`} className={lbl}>Forma de Pagamento</label>
+                    <select
+                      id={`${idBase}-forma`}
+                      value={form.forma_pagamento}
+                      onChange={(e) => set("forma_pagamento", e.target.value)}
+                      className={inp}
+                    >
                       {FORMAS.map((f) => <option key={f} value={f}>{f}</option>)}
                     </select>
                   </div>
                 </div>
 
                 <div>
-                  <label className={lbl}>Observação</label>
-                  <textarea value={form.observacao} onChange={(e) => set("observacao", e.target.value)} rows={2} className={inp + " resize-none"} />
+                  <label htmlFor={`${idBase}-observacao`} className={lbl}>Observacao</label>
+                  <textarea
+                    id={`${idBase}-observacao`}
+                    value={form.observacao}
+                    onChange={(e) => set("observacao", e.target.value)}
+                    rows={2}
+                    className={inp + " resize-none"}
+                  />
                 </div>
 
                 <div className="flex gap-3 pt-2">
@@ -244,6 +285,7 @@ function ModalLancamento({ item, clientes, onClose, onSalvo }) {
   const [parcelas, setParcelas] = useState(1);
   const [salvando, setSalvando] = useState(false);
   const [notif, show]           = useNotif();
+  const idBase = editando ? `financeiro-edit-${item.id}` : "financeiro-create";
 
   const set = (f, v) => setForm((p) => ({ ...p, [f]: v }));
 
@@ -318,7 +360,7 @@ function ModalLancamento({ item, clientes, onClose, onSalvo }) {
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {/* Tipo */}
           <div>
-            <label className={lbl}>Tipo</label>
+            <p className={lbl}>Tipo</p>
             <div className="mt-1 flex gap-2">
               {["receber","pagar"].map((t) => (
                 <button key={t} type="button" onClick={() => set("tipo", t)}
@@ -331,8 +373,13 @@ function ModalLancamento({ item, clientes, onClose, onSalvo }) {
 
           {/* Cliente — valor como string para o select */}
           <div>
-            <label className={lbl}>Cliente</label>
-            <select value={form.cliente_id} onChange={(e) => set("cliente_id", e.target.value)} className={inp}>
+            <label htmlFor={`${idBase}-cliente`} className={lbl}>Cliente</label>
+            <select
+              id={`${idBase}-cliente`}
+              value={form.cliente_id}
+              onChange={(e) => set("cliente_id", e.target.value)}
+              className={inp}
+            >
               <option value="">— Sem vínculo —</option>
               {clientes.map((c) => <option key={c.id} value={String(c.id)}>{c.nome}</option>)}
             </select>
@@ -340,41 +387,87 @@ function ModalLancamento({ item, clientes, onClose, onSalvo }) {
 
           {/* Descrição */}
           <div>
-            <label className={lbl}>Descrição <span className="text-red-500">*</span></label>
-            <input value={form.descricao} onChange={(e) => set("descricao", e.target.value)} placeholder="Ex: Serviço de torneamento CNC - OS #42" required className={inp} />
+            <label htmlFor={`${idBase}-descricao`} className={lbl}>
+              Descricao <span className="text-red-500">*</span>
+            </label>
+            <input
+              id={`${idBase}-descricao`}
+              value={form.descricao}
+              onChange={(e) => set("descricao", e.target.value)}
+              placeholder="Ex: Servico de torneamento CNC - OS #42"
+              required
+              className={inp}
+            />
           </div>
 
           {/* NF-e */}
           <div>
-            <label className={lbl}>NF-e</label>
-            <input value={form.nfe} onChange={(e) => set("nfe", e.target.value)} placeholder="Número da nota fiscal" className={inp} />
+            <label htmlFor={`${idBase}-nfe`} className={lbl}>NF-e</label>
+            <input
+              id={`${idBase}-nfe`}
+              value={form.nfe}
+              onChange={(e) => set("nfe", e.target.value)}
+              placeholder="Numero da nota fiscal"
+              className={inp}
+            />
           </div>
 
           {/* Prazo + Vencimento */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="sm:w-40">
-              <label className={lbl}>Prazo (dias)</label>
-              <select value={form.prazo_dias} onChange={(e) => handlePrazo(e.target.value)} className={inp}>
+              <label htmlFor={`${idBase}-prazo`} className={lbl}>Prazo (dias)</label>
+              <select
+                id={`${idBase}-prazo`}
+                value={form.prazo_dias}
+                onChange={(e) => handlePrazo(e.target.value)}
+                className={inp}
+              >
                 <option value="">Escolher</option>
                 {PRAZOS.map((p) => <option key={p} value={p}>{p} dias</option>)}
               </select>
             </div>
             <div className="flex-1">
-              <label className={lbl}>1º Vencimento <span className="text-red-500">*</span></label>
-              <input type="date" value={form.vencimento} onChange={(e) => set("vencimento", e.target.value)} required className={inp} />
+              <label htmlFor={`${idBase}-vencimento`} className={lbl}>
+                1o Vencimento <span className="text-red-500">*</span>
+              </label>
+              <input
+                id={`${idBase}-vencimento`}
+                type="date"
+                value={form.vencimento}
+                onChange={(e) => set("vencimento", e.target.value)}
+                required
+                className={inp}
+              />
             </div>
           </div>
 
           {/* Valor + Parcelas */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="flex-1">
-              <label className={lbl}>Valor Total (R$) <span className="text-red-500">*</span></label>
-              <input type="number" step="0.01" min="0.01" value={form.valor} onChange={(e) => set("valor", e.target.value)} placeholder="0,00" required className={inp} />
+              <label htmlFor={`${idBase}-valor`} className={lbl}>
+                Valor Total (R$) <span className="text-red-500">*</span>
+              </label>
+              <input
+                id={`${idBase}-valor`}
+                type="number"
+                step="0.01"
+                min="0.01"
+                value={form.valor}
+                onChange={(e) => set("valor", e.target.value)}
+                placeholder="0,00"
+                required
+                className={inp}
+              />
             </div>
             {!editando && (
               <div className="sm:w-32">
-                <label className={lbl}>Parcelas</label>
-                <select value={parcelas} onChange={(e) => setParcelas(Number(e.target.value))} className={inp}>
+                <label htmlFor={`${idBase}-parcelas`} className={lbl}>Parcelas</label>
+                <select
+                  id={`${idBase}-parcelas`}
+                  value={parcelas}
+                  onChange={(e) => setParcelas(Number(e.target.value))}
+                  className={inp}
+                >
                   {[1,2,3,4,5,6,7,8,9,10,11,12].map(n => (
                     <option key={n} value={n}>{n === 1 ? "À vista" : `${n}x`}</option>
                   ))}
@@ -403,8 +496,13 @@ function ModalLancamento({ item, clientes, onClose, onSalvo }) {
 
           {/* Forma de pagamento */}
           <div>
-            <label className={lbl}>Forma de Pagamento</label>
-            <select value={form.forma_pagamento} onChange={(e) => set("forma_pagamento", e.target.value)} className={inp}>
+            <label htmlFor={`${idBase}-forma`} className={lbl}>Forma de Pagamento</label>
+            <select
+              id={`${idBase}-forma`}
+              value={form.forma_pagamento}
+              onChange={(e) => set("forma_pagamento", e.target.value)}
+              className={inp}
+            >
               <option value="">— Não definida —</option>
               {FORMAS.map((f) => <option key={f} value={f}>{f}</option>)}
             </select>
@@ -412,8 +510,15 @@ function ModalLancamento({ item, clientes, onClose, onSalvo }) {
 
           {/* Observação */}
           <div>
-            <label className={lbl}>Observação</label>
-            <textarea value={form.observacao} onChange={(e) => set("observacao", e.target.value)} rows={2} placeholder="Anotações adicionais..." className={inp + " resize-none"} />
+            <label htmlFor={`${idBase}-observacao`} className={lbl}>Observacao</label>
+            <textarea
+              id={`${idBase}-observacao`}
+              value={form.observacao}
+              onChange={(e) => set("observacao", e.target.value)}
+              rows={2}
+              placeholder="Anotacoes adicionais..."
+              className={inp + " resize-none"}
+            />
           </div>
 
           <div className="flex gap-3 pt-2">
@@ -433,6 +538,7 @@ function ModalPagar({ item, onClose, onSalvo }) {
   const [dataPag, setDataPag]   = useState(new Date().toISOString().split("T")[0]);
   const [forma, setForma]       = useState(item.forma_pagamento || "");
   const [salvando, setSalvando] = useState(false);
+  const idBase = `financeiro-pagar-${item.id}`;
 
   const confirmar = async () => {
     setSalvando(true);
@@ -453,14 +559,33 @@ function ModalPagar({ item, onClose, onSalvo }) {
 
         <div className="space-y-3">
           <div>
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Data do Pagamento</label>
-            <input type="date" value={dataPag} onChange={(e) => setDataPag(e.target.value)}
-              className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400" />
+            <label
+              htmlFor={`${idBase}-data`}
+              className="text-xs font-semibold text-gray-500 uppercase tracking-wide"
+            >
+              Data do Pagamento
+            </label>
+            <input
+              id={`${idBase}-data`}
+              type="date"
+              value={dataPag}
+              onChange={(e) => setDataPag(e.target.value)}
+              className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+            />
           </div>
           <div>
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Forma de Pagamento</label>
-            <select value={forma} onChange={(e) => setForma(e.target.value)}
-              className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400">
+            <label
+              htmlFor={`${idBase}-forma`}
+              className="text-xs font-semibold text-gray-500 uppercase tracking-wide"
+            >
+              Forma de Pagamento
+            </label>
+            <select
+              id={`${idBase}-forma`}
+              value={forma}
+              onChange={(e) => setForma(e.target.value)}
+              className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+            >
               <option value="">— Não informada —</option>
               {FORMAS.map((f) => <option key={f} value={f}>{f}</option>)}
             </select>

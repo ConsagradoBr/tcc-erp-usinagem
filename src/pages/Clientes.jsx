@@ -116,7 +116,7 @@ function ModalSelecaoNFe({ dados, onSelecionar, onClose }) {
 }
 
 // ─── Modal Duplicata ──────────────────────────────────────────────────────────
-function ModalDuplicata({ existente, novo, onSubstituir, onCadastrarMesmo, onCancelar }) {
+function ModalDuplicata({ existente, onSubstituir, onCadastrarMesmo, onCancelar }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
@@ -162,6 +162,7 @@ function ModalCliente({ cliente, isImportado, onClose, onSalvo }) {
   const [form, setForm]         = useState(cliente ? { ...cliente } : { ...FORM_VAZIO });
   const [salvando, setSalvando] = useState(false);
   const [notif, mostrar]        = useNotificacao();
+  const idBase = cliente?.id ? `cliente-${cliente.id}` : "cliente-novo";
 
   const set = (f, v) => setForm((prev) => ({ ...prev, [f]: v }));
 
@@ -216,26 +217,62 @@ function ModalCliente({ cliente, isImportado, onClose, onSalvo }) {
 
         <form onSubmit={handleSubmit} className="p-6 space-y-3">
           <div>
-            <label className={lbl}>Nome <span className="text-red-500">*</span></label>
-            <input value={form.nome} onChange={(e) => set("nome", e.target.value)} placeholder="Nome completo ou razão social" required className={inp} />
+            <label htmlFor={`${idBase}-nome`} className={lbl}>
+              Nome <span className="text-red-500">*</span>
+            </label>
+            <input
+              id={`${idBase}-nome`}
+              value={form.nome}
+              onChange={(e) => set("nome", e.target.value)}
+              placeholder="Nome completo ou razão social"
+              required
+              className={inp}
+            />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="flex-1">
-              <label className={lbl}>CPF / CNPJ</label>
-              <input value={form.documento || ""} onChange={(e) => set("documento", mascaraDocumento(e.target.value))} placeholder="000.000.000-00" inputMode="numeric" className={inp} />
+              <label htmlFor={`${idBase}-documento`} className={lbl}>CPF / CNPJ</label>
+              <input
+                id={`${idBase}-documento`}
+                value={form.documento || ""}
+                onChange={(e) => set("documento", mascaraDocumento(e.target.value))}
+                placeholder="000.000.000-00"
+                inputMode="numeric"
+                className={inp}
+              />
             </div>
             <div className="flex-1">
-              <label className={lbl}>Telefone</label>
-              <input value={form.telefone || ""} onChange={(e) => set("telefone", mascaraTelefone(e.target.value))} placeholder="(19) 99999-9999" inputMode="numeric" className={inp} />
+              <label htmlFor={`${idBase}-telefone`} className={lbl}>Telefone</label>
+              <input
+                id={`${idBase}-telefone`}
+                value={form.telefone || ""}
+                onChange={(e) => set("telefone", mascaraTelefone(e.target.value))}
+                placeholder="(19) 99999-9999"
+                inputMode="numeric"
+                className={inp}
+              />
             </div>
           </div>
           <div>
-            <label className={lbl}>E-mail</label>
-            <input type="email" value={form.email || ""} onChange={(e) => set("email", e.target.value)} placeholder="contato@empresa.com" className={inp} />
+            <label htmlFor={`${idBase}-email`} className={lbl}>E-mail</label>
+            <input
+              id={`${idBase}-email`}
+              type="email"
+              value={form.email || ""}
+              onChange={(e) => set("email", e.target.value)}
+              placeholder="contato@empresa.com"
+              className={inp}
+            />
           </div>
           <div>
-            <label className={lbl}>Endereço</label>
-            <input value={form.endereco || ""} onChange={(e) => set("endereco", e.target.value)} placeholder="Rua, número, bairro, cidade" className={inp} />
+            <label htmlFor={`${idBase}-endereco`} className={lbl}>Endereco</label>
+            <input
+              id={`${idBase}-endereco`}
+              value={form.endereco || ""}
+              onChange={(e) => set("endereco", e.target.value)}
+              placeholder="Rua, numero, bairro, cidade"
+              className={inp}
+            />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
             <button type="button" onClick={onClose} className="flex-1 border border-gray-300 text-gray-600 rounded-lg py-2 text-sm font-semibold hover:bg-gray-100 transition">
@@ -360,7 +397,8 @@ export default function Clientes() {
 
   // Usuário escolheu emitente ou destinatário
   const handleSelecionarParte = (parte) => {
-    const { _rotulo, ...dadosCliente } = parte;
+    const dadosCliente = { ...parte };
+    delete dadosCliente._rotulo;
     setDadosNFe(null);
 
     // Verificar duplicata pelo documento (ignora se vazio)
@@ -550,7 +588,6 @@ export default function Clientes() {
       {modalDuplicata && (
         <ModalDuplicata
           existente={modalDuplicata.existente}
-          novo={modalDuplicata.novo}
           onSubstituir={handleSubstituir}
           onCadastrarMesmo={handleCadastrarMesmo}
           onCancelar={() => { setModalDuplicata(null); setPendente(null); }}

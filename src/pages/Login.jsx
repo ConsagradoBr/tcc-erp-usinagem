@@ -6,7 +6,6 @@ import {
   LogoMain,
   AuthSideImg,
   IconGoogle,
-  IconApple,
   IconFacebook,
   IconLogin
 } from "../assets/assets-map";

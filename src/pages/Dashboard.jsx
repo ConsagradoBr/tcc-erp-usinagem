@@ -199,26 +199,32 @@ export default function Dashboard() {
   ].filter(Boolean);
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 min-h-screen">
-      <div className="flex flex-col gap-4 md:flex-row md:justify-between md:items-center mb-8 sm:mb-10">
-        <div>
-          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 tracking-tight">Dashboard</h1>
-          <p className="text-gray-600 mt-1 text-lg">
+    <div className="min-h-screen bg-transparent p-4 sm:p-6 lg:p-8">
+      <div className="mb-8 rounded-[32px] border border-white/60 bg-white/72 px-6 py-6 shadow-[0_22px_60px_rgba(15,23,42,0.08)] backdrop-blur-xl sm:mb-10 sm:px-8 sm:py-8">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.26em] text-orange-500">Centro de comando</p>
+            <h1 className="mt-2 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">Dashboard</h1>
+            <p className="mt-1 text-lg text-gray-600">
             Visão geral da operação • {new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "long", year: "numeric" }).format(new Date())}
-          </p>
+            </p>
+          </div>
+          {erro && (
+            <span className="rounded-full bg-red-50 px-3 py-1 text-sm text-red-400">
+              Erro ao carregar parte dos dados
+            </span>
+          )}
         </div>
-        {erro && (
-          <span className="text-sm text-red-400 bg-red-50 px-3 py-1 rounded-lg">
-            Erro ao carregar parte dos dados
-          </span>
-        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-10">
         {cards.map((card) => (
-          <div key={card.key} className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
+          <div
+            key={card.key}
+            className="rounded-3xl border border-white/60 bg-white/78 p-6 shadow-[0_18px_40px_rgba(15,23,42,0.06)] backdrop-blur-xl"
+          >
             <div className="flex items-center gap-4">
-              <div className={`w-12 h-12 ${card.iconWrap} rounded-2xl flex items-center justify-center`}>
+              <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${card.iconWrap}`}>
                 <img src={card.icon} className="w-7" alt="" />
               </div>
               <div>
@@ -233,7 +239,7 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         {canFinanceiro && (
-          <div className="bg-white rounded-3xl p-5 sm:p-6 lg:p-8 shadow-sm border border-gray-100">
+          <div className="rounded-3xl border border-white/60 bg-white/78 p-5 shadow-[0_18px_40px_rgba(15,23,42,0.06)] backdrop-blur-xl sm:p-6 lg:p-8">
             <h3 className="text-xl font-semibold mb-2 text-gray-900">Receitas x Pagamentos</h3>
             <p className="text-sm text-gray-400 mb-6">Últimos 6 meses</p>
 
@@ -263,7 +269,7 @@ export default function Dashboard() {
         )}
 
         {canOS && (
-          <div className="bg-white rounded-3xl p-5 sm:p-6 lg:p-8 shadow-sm border border-gray-100">
+          <div className="rounded-3xl border border-white/60 bg-white/78 p-5 shadow-[0_18px_40px_rgba(15,23,42,0.06)] backdrop-blur-xl sm:p-6 lg:p-8">
             <h3 className="text-xl font-semibold mb-2 text-gray-900">Status das Ordens de Serviço</h3>
             <p className="text-sm text-gray-400 mb-6">Distribuição atual por etapa</p>
 
@@ -296,7 +302,7 @@ export default function Dashboard() {
         )}
 
         {canOrcamentos && (
-          <div className="bg-white rounded-3xl p-5 sm:p-6 lg:p-8 shadow-sm border border-gray-100 xl:col-span-2">
+          <div className="xl:col-span-2 rounded-3xl border border-white/60 bg-white/78 p-5 shadow-[0_18px_40px_rgba(15,23,42,0.06)] backdrop-blur-xl sm:p-6 lg:p-8">
             <h3 className="text-xl font-semibold mb-2 text-gray-900">Panorama Comercial</h3>
             <p className="text-sm text-gray-400 mb-6">Resumo atual dos orçamentos</p>
             {orcamentos === null ? (

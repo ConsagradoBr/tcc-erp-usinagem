@@ -29,23 +29,55 @@ export default function Sidebar({ user, open, mobileOpen, onClose }) {
 
   return (
     <>
-      <div
+      <button
+        type="button"
         onClick={onClose}
+        aria-label="Fechar menu lateral"
         className={`fixed inset-0 z-30 bg-black/40 transition-opacity lg:hidden ${mobileOpen ? "opacity-100" : "pointer-events-none opacity-0"}`}
       />
 
       <aside
-        className={`fixed left-0 top-0 z-40 h-full w-72 max-w-[86vw] bg-white shadow-xl transition-all duration-300 ${desktopWidth} ${mobileState}`}
+        className={`fixed left-0 top-0 z-40 h-full w-72 max-w-[86vw] border-r border-white/10 bg-slate-950/92 text-slate-100 shadow-[0_24px_60px_rgba(15,23,42,0.32)] backdrop-blur-2xl transition-all duration-300 ${desktopWidth} ${mobileState}`}
       >
-        <div className="flex items-center justify-center py-5 px-3 border-b min-h-20">
-          <img src={LogoMenu} alt="Logo Menu" className={`transition-all max-w-full object-contain ${open ? "w-32" : "lg:w-10 w-28"}`} />
+        <div className="border-b border-white/10 px-3 py-5 min-h-20">
+          <div className={`flex items-center gap-3 ${open ? "justify-start px-3" : "justify-center"}`}>
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/10 shadow-inner shadow-white/10">
+              <img
+                src={LogoMenu}
+                alt="Logo Menu"
+                className={`max-w-full object-contain transition-all ${open ? "w-9" : "w-8"}`}
+              />
+            </div>
+            {open && (
+              <div className="min-w-0">
+                <p className="text-[11px] uppercase tracking-[0.28em] text-slate-400">Desktop ERP</p>
+                <p className="truncate text-sm font-semibold text-white">AMP Usinagem</p>
+              </div>
+            )}
+          </div>
         </div>
 
-        <nav className="mt-4 flex flex-col gap-2 px-2">
+        <nav className="mt-4 flex flex-col gap-2 px-3">
           {menuItems.map((item) => (
             <SidebarItem key={item.to} to={item.to} icon={item.icon} label={item.label} open={open} onNavigate={onClose} />
           ))}
         </nav>
+
+        {user && (
+          <div className="absolute inset-x-0 bottom-0 border-t border-white/10 p-3">
+            <div className={`rounded-3xl border border-white/10 bg-white/5 px-3 py-3 ${open ? "" : "lg:px-2"}`}>
+              <div className={`flex items-center gap-3 ${open ? "" : "lg:justify-center"}`}>
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-orange-500/15 text-sm font-bold text-orange-300">
+                  {user.nome?.slice(0, 2).toUpperCase()}
+                </div>
+                <div className={`min-w-0 ${open ? "block" : "hidden lg:hidden"}`}>
+                  <p className="truncate text-sm font-semibold text-white">{user.nome}</p>
+                  <p className="truncate text-xs text-slate-400">{user.email || "Usuario autenticado"}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </aside>
     </>
   );
@@ -57,12 +89,16 @@ function SidebarItem({ to, icon, label, open, onNavigate }) {
       to={to}
       onClick={onNavigate}
       className={({ isActive }) =>
-        `flex items-center gap-3 px-4 py-3 rounded-lg transition min-w-0 ${
-          isActive ? "bg-blue-100 text-blue-700" : "text-gray-700 hover:bg-gray-100"
+        `group flex min-w-0 items-center gap-3 rounded-2xl px-4 py-3 transition ${
+          isActive
+            ? "bg-white text-slate-950 shadow-lg shadow-black/10"
+            : "text-slate-300 hover:bg-white/8 hover:text-white"
         } ${open ? "justify-start" : "lg:justify-center"}`
       }
     >
-      <img src={icon} alt={label} className="w-6 shrink-0" />
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-black/10 transition group-hover:bg-white/10">
+        <img src={icon} alt={label} className="w-6 shrink-0" />
+      </div>
       <span className={`font-medium truncate ${open ? "block" : "lg:hidden"}`}>{label}</span>
     </NavLink>
   );

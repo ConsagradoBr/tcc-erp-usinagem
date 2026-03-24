@@ -39,6 +39,7 @@ export default function OrdemServico() {
   const [mostrarDropdown, setMostrarDropdown] = useState(false);
   const [salvando,        setSalvando]        = useState(false);
   const dragCard = useRef(null);
+  const modalFieldBase = "ordem-servico-modal";
 
   // ── Carregar dados ────────────────────────────────────────────────────────
   const carregar = async () => {
@@ -347,8 +348,18 @@ export default function OrdemServico() {
               ) : (
                 <>
                   <div>
-                    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1.5">Prioridade</label>
-                    <select value={cardAtual.prioridade} onChange={(e) => setCardAtual({ ...cardAtual, prioridade: e.target.value })} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 bg-white">
+                    <label
+                      htmlFor={`${modalFieldBase}-prioridade`}
+                      className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1.5"
+                    >
+                      Prioridade
+                    </label>
+                    <select
+                      id={`${modalFieldBase}-prioridade`}
+                      value={cardAtual.prioridade}
+                      onChange={(e) => setCardAtual({ ...cardAtual, prioridade: e.target.value })}
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 bg-white"
+                    >
                       <option value="alta">🔴 Alta</option>
                       <option value="media">🟡 Média</option>
                       <option value="baixa">🟢 Baixa</option>
@@ -356,10 +367,14 @@ export default function OrdemServico() {
                   </div>
 
                   <div className="relative">
-                    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1.5">
+                    <label
+                      htmlFor={`${modalFieldBase}-cliente`}
+                      className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1.5"
+                    >
                       Cliente * <span className="text-orange-400 normal-case font-normal">(selecione ou digite)</span>
                     </label>
                     <input
+                      id={`${modalFieldBase}-cliente`}
                       type="text"
                       value={clienteFiltrado}
                       onChange={(e) => { setClienteFiltrado(e.target.value); setCardAtual({ ...cardAtual, cliente: e.target.value }); setMostrarDropdown(true); }}
@@ -382,33 +397,92 @@ export default function OrdemServico() {
                   </div>
 
                   <div>
-                    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1.5">Serviço *</label>
-                    <input type="text" value={cardAtual.servico} onChange={(e) => setCardAtual({ ...cardAtual, servico: e.target.value })} placeholder="Ex: Fresamento CNC, Torneamento..." className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300" />
+                    <label
+                      htmlFor={`${modalFieldBase}-servico`}
+                      className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1.5"
+                    >
+                      Servico *
+                    </label>
+                    <input
+                      id={`${modalFieldBase}-servico`}
+                      type="text"
+                      value={cardAtual.servico}
+                      onChange={(e) => setCardAtual({ ...cardAtual, servico: e.target.value })}
+                      placeholder="Ex: Fresamento CNC, Torneamento..."
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
+                    />
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1.5">Responsável</label>
-                      <input type="text" value={cardAtual.responsavel || ""} onChange={(e) => setCardAtual({ ...cardAtual, responsavel: e.target.value })} placeholder="Nome do técnico" className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300" />
+                      <label
+                        htmlFor={`${modalFieldBase}-responsavel`}
+                        className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1.5"
+                      >
+                        Responsavel
+                      </label>
+                      <input
+                        id={`${modalFieldBase}-responsavel`}
+                        type="text"
+                        value={cardAtual.responsavel || ""}
+                        onChange={(e) => setCardAtual({ ...cardAtual, responsavel: e.target.value })}
+                        placeholder="Nome do tecnico"
+                        className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
+                      />
                     </div>
                     <div>
-                      <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1.5">Prazo (DD/MM/AAAA)</label>
-                      <input type="text" value={cardAtual.prazo || ""} onChange={(e) => setCardAtual({ ...cardAtual, prazo: mascaraData(e.target.value) })} placeholder="DD/MM/AAAA" maxLength={10} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300" />
+                      <label
+                        htmlFor={`${modalFieldBase}-prazo`}
+                        className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1.5"
+                      >
+                        Prazo (DD/MM/AAAA)
+                      </label>
+                      <input
+                        id={`${modalFieldBase}-prazo`}
+                        type="text"
+                        value={cardAtual.prazo || ""}
+                        onChange={(e) => setCardAtual({ ...cardAtual, prazo: mascaraData(e.target.value) })}
+                        placeholder="DD/MM/AAAA"
+                        maxLength={10}
+                        className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
+                      />
                     </div>
                   </div>
 
                   {modoModal === "criar" && (
                     <div>
-                      <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1.5">Coluna inicial</label>
-                      <select value={colunaDestino} onChange={(e) => setColunaDestino(e.target.value)} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 bg-white">
+                      <label
+                        htmlFor={`${modalFieldBase}-coluna`}
+                        className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1.5"
+                      >
+                        Coluna inicial
+                      </label>
+                      <select
+                        id={`${modalFieldBase}-coluna`}
+                        value={colunaDestino}
+                        onChange={(e) => setColunaDestino(e.target.value)}
+                        className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 bg-white"
+                      >
                         {COLUNAS_CONFIG.map((col) => (<option key={col.id} value={col.id}>{col.icone} {col.titulo}</option>))}
                       </select>
                     </div>
                   )}
 
                   <div>
-                    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1.5">Descrição</label>
-                    <textarea value={cardAtual.descricao || ""} onChange={(e) => setCardAtual({ ...cardAtual, descricao: e.target.value })} rows={3} placeholder="Descreva o serviço a ser realizado..." className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 resize-none" />
+                    <label
+                      htmlFor={`${modalFieldBase}-descricao`}
+                      className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1.5"
+                    >
+                      Descricao
+                    </label>
+                    <textarea
+                      id={`${modalFieldBase}-descricao`}
+                      value={cardAtual.descricao || ""}
+                      onChange={(e) => setCardAtual({ ...cardAtual, descricao: e.target.value })}
+                      rows={3}
+                      placeholder="Descreva o servico a ser realizado..."
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 resize-none"
+                    />
                   </div>
                 </>
               )}
