@@ -1,4 +1,5 @@
 import asyncio
+import contextlib
 import ctypes
 import os
 import socket
@@ -30,6 +31,9 @@ else:
 DIST_PATH = BASE_PATH / "dist"
 ICON_PATH = BASE_PATH / "src" / "assets" / "amp-icon.ico"
 MUTEX_HANDLE = None
+ALLOW_BROWSER_FALLBACK = (
+    os.getenv("DESKTOP_ALLOW_BROWSER_FALLBACK", "").strip().lower() == "true"
+)
 
 
 def parse_size(value, fallback):
@@ -204,8 +208,6 @@ def open_browser_fallback():
 
 
 if __name__ == "__main__":
-    import contextlib
-
     if is_existing_instance_active():
         print(f"{APP_NAME} ja esta em execucao.")
         sys.exit(0)
@@ -225,8 +227,17 @@ if __name__ == "__main__":
         if open_native_window():
             sys.exit(0)
 
-        if not open_browser_fallback():
-            print(f"Abra manualmente: {URL}")
+        if ALLOW_BROWSER_FALLBACK:
+            if not open_browser_fallback():
+                print(f"Abra manualmente: {URL}")
+        else:
+            print(
+                "Falha ao abrir a janela nativa. "
+                "O app foi configurado para nao cair automaticamente no navegador. "
+                "Se precisar liberar esse comportamento, defina "
+                "DESKTOP_ALLOW_BROWSER_FALLBACK=true."
+            )
+            sys.exit(1)
 
         while True:
             time.sleep(1)

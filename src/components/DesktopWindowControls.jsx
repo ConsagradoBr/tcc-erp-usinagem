@@ -1,13 +1,29 @@
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 function getDesktopApi() {
   if (typeof window === "undefined") return null;
-  return window.webview2?.api ?? null;
+  return window.webview2?.api ?? window.pywebview?.api ?? null;
 }
 
 export default function DesktopWindowControls({ compact = false, className = "" }) {
-  const api = useMemo(() => getDesktopApi(), []);
+  const [api, setApi] = useState(() => getDesktopApi());
   const [maximized, setMaximized] = useState(false);
+
+  useEffect(() => {
+    if (api) return undefined;
+
+    const intervalId = window.setInterval(() => {
+      const resolvedApi = getDesktopApi();
+      if (resolvedApi) {
+        setApi(resolvedApi);
+        window.clearInterval(intervalId);
+      }
+    }, 250);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [api]);
 
   if (!api) return null;
 

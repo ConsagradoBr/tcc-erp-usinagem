@@ -1,0 +1,10 @@
+AMP Usinagem Industrial - Executavel
+
+1. De dois cliques em "AMP Usinagem Industrial.exe".
+2. Aguarde alguns segundos na primeira abertura.
+3. O sistema abre como aplicativo desktop local.
+
+Observacoes:
+- Este executavel embute o frontend buildado e o backend Flask local.
+- Se o Windows mostrar aviso de seguranca, escolha manter/executar.
+- Para atualizar o sistema, substitua este .exe por uma versao nova.

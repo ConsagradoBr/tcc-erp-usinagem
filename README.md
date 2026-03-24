@@ -159,6 +159,31 @@ O backend agora aceita:
 
 O arquivo `desktop_app.py` serve o frontend buildado junto com a API Flask no mesmo processo para distribuição desktop local.
 
+Por padrão, o launcher desktop agora prioriza abrir em janela nativa e **não** cai automaticamente para o navegador. Se você quiser liberar esse fallback durante diagnóstico, defina:
+
+```env
+DESKTOP_ALLOW_BROWSER_FALLBACK=true
+```
+
+Para gerar o executável desktop oficial:
+
+```bash
+npm run build:desktop
+```
+
+O build oficial usa o spec `AMP Usinagem Industrial.spec`.
+
+Para preparar os artefatos de release do desktop:
+
+```bash
+powershell -ExecutionPolicy Bypass -File scripts/Prepare-GitHubRelease.ps1 -Version v2026.03.24.000000
+```
+
+Esse script gera:
+- o executável versionado em `release/`
+- a pasta versionada com `LEIA-ME.txt`
+- o `.zip` pronto para publicar no GitHub Releases
+
 ## Releases Desktop
 
 Os binarios de distribuicao nao devem mais ser versionados no Git. O codigo-fonte permanece no repositório, e o `.exe`/`.zip` devem ser publicados em **GitHub Releases**.
@@ -166,10 +191,10 @@ Os binarios de distribuicao nao devem mais ser versionados no Git. O codigo-font
 Fluxo recomendado para novas versoes:
 
 1. gerar o build web com `npm run build`
-2. gerar o executavel desktop com o PyInstaller
+2. gerar o executavel desktop com `npm run build:desktop`
 3. preparar a pasta e o `.zip` com:
-   `powershell -ExecutionPolicy Bypass -File scripts/Prepare-GitHubRelease.ps1 -Version v1.0.0`
-4. criar uma tag como `v1.0.0`
+   `powershell -ExecutionPolicy Bypass -File scripts/Prepare-GitHubRelease.ps1 -Version v2026.03.24.000000`
+4. criar uma tag correspondente
 5. abrir a pagina de **GitHub Releases** do projeto e anexar o `.zip` e, se desejar, o `.exe`
 
 Esse criterio deixa o historico do Git leve e concentra os artefatos de distribuicao no lugar certo.
