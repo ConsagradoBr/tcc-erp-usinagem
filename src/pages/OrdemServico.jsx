@@ -1,19 +1,154 @@
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+
 import api from "../api";
 
-// ─── Configuração das colunas (visual apenas) ─────────────────────────────────
 const COLUNAS_CONFIG = [
-  { id: "solicitado",   titulo: "Solicitado",   cor: "from-slate-500 to-slate-600",   icone: "📋" },
-  { id: "em_andamento", titulo: "Em Andamento", cor: "from-blue-500 to-blue-600",     icone: "⚙️" },
-  { id: "revisao",      titulo: "Em Revisão",   cor: "from-amber-500 to-orange-500",  icone: "🔍" },
-  { id: "concluido",    titulo: "Concluído",    cor: "from-emerald-500 to-green-600", icone: "✅" },
+  { id: "solicitado", titulo: "Solicitado", tone: "accent", note: "Entrada de demanda e definição de prioridade." },
+  { id: "em_andamento", titulo: "Em andamento", tone: "default", note: "Execução ativa na operação." },
+  { id: "revisao", titulo: "Em revisão", tone: "warning", note: "Conferência técnica e acabamento." },
+  { id: "concluido", titulo: "Concluído", tone: "positive", note: "Pronto para expedição e fechamento." },
 ];
 
-const badgePrioridade = {
-  alta:  { bg: "bg-red-50 border-red-200 text-red-600",             dot: "bg-red-500",     label: "Alta"  },
-  media: { bg: "bg-amber-50 border-amber-200 text-amber-600",       dot: "bg-amber-400",   label: "Média" },
-  baixa: { bg: "bg-emerald-50 border-emerald-200 text-emerald-600", dot: "bg-emerald-500", label: "Baixa" },
+const PRIORIDADE = {
+  alta: { label: "Alta", tone: "danger" },
+  media: { label: "Média", tone: "warning" },
+  baixa: { label: "Baixa", tone: "positive" },
 };
+
+const QUICK_FILTERS = [
+  { id: "todos", label: "Todos" },
+  { id: "atencao", label: "Pedem ação" },
+  { id: "alta", label: "Alta prioridade" },
+  { id: "andamento", label: "Em andamento" },
+  { id: "concluido", label: "Concluído" },
+];
+
+const CARD_VAZIO = {
+  os: "",
+  cliente: "",
+  servico: "",
+  prioridade: "media",
+  prazo: "",
+  responsavel: "",
+  descricao: "",
+};
+
+const INPUT_BASE =
+  "mt-2 w-full rounded-[18px] border border-[color:var(--cm-line)] bg-white/75 px-4 py-3 text-sm text-[var(--cm-text)] placeholder:text-[var(--cm-muted)] shadow-[inset_0_1px_0_rgba(255,255,255,0.65)] outline-none transition focus:border-[color:rgba(180,99,56,0.38)] focus:ring-2 focus:ring-[rgba(180,99,56,0.16)]";
+
+const LABEL_BASE = "text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--cm-muted)]";
+
+function toneClasses(tone) {
+  switch (tone) {
+    case "danger":
+      return {
+        badge:
+          "border-[rgba(187,103,80,0.22)] bg-[rgba(187,103,80,0.12)] text-[var(--cm-danger)]",
+        dot: "bg-[var(--cm-danger)]",
+        panel: "bg-[rgba(187,103,80,0.1)]",
+      };
+    case "warning":
+      return {
+        badge:
+          "border-[rgba(173,122,62,0.22)] bg-[rgba(173,122,62,0.12)] text-[var(--cm-warning)]",
+        dot: "bg-[var(--cm-warning)]",
+        panel: "bg-[rgba(173,122,62,0.1)]",
+      };
+    case "positive":
+      return {
+        badge:
+          "border-[rgba(63,141,114,0.22)] bg-[rgba(63,141,114,0.12)] text-[var(--cm-positive)]",
+        dot: "bg-[var(--cm-positive)]",
+        panel: "bg-[rgba(63,141,114,0.1)]",
+      };
+    case "accent":
+      return {
+        badge:
+          "border-[rgba(180,99,56,0.22)] bg-[rgba(180,99,56,0.12)] text-[var(--cm-accent)]",
+        dot: "bg-[var(--cm-accent)]",
+        panel: "bg-[rgba(180,99,56,0.1)]",
+      };
+    default:
+      return {
+        badge: "border-[color:var(--cm-line)] bg-white/70 text-[var(--cm-text)]",
+        dot: "bg-[var(--cm-text)]",
+        panel: "bg-[rgba(37,42,49,0.04)]",
+      };
+  }
+}
+
+function ToneBadge({ tone = "default", children }) {
+  const styles = toneClasses(tone);
+  return (
+    <span className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] ${styles.badge}`}>
+      <span className={`h-1.5 w-1.5 rounded-full ${styles.dot}`} />
+      {children}
+    </span>
+  );
+}
+
+function StatTile({ label, value, note }) {
+  return (
+    <div className="rounded-[24px] border border-white/10 bg-white/7 p-4 text-white">
+      <p className="text-xs uppercase tracking-[0.18em] text-white/55">{label}</p>
+      <div className="mt-2 text-2xl font-semibold tracking-[-0.04em]">{value}</div>
+      <p className="mt-2 text-sm text-white/68">{note}</p>
+    </div>
+  );
+}
+
+function InfoItem({ label, value, subtle = false, title }) {
+  return (
+    <div>
+      <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--cm-muted)]">{label}</p>
+      <p
+        className={`mt-1 text-sm ${subtle ? "text-[var(--cm-muted)]" : "font-medium text-[var(--cm-text)]"}`}
+        title={title}
+      >
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function FocusMetric({ label, value, note }) {
+  return (
+    <div className="rounded-[22px] border border-[color:var(--cm-line)] bg-white/38 px-4 py-4">
+      <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--cm-muted)]">{label}</p>
+      <p className="mt-2 text-xl font-semibold tracking-[-0.04em] text-[var(--cm-text)]">{value}</p>
+      {note && <p className="mt-2 text-sm text-[var(--cm-muted)]">{note}</p>}
+    </div>
+  );
+}
+
+function QueueItem({ item, onSelect }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(item.id)}
+      className="w-full rounded-[24px] border border-[color:var(--cm-line)] bg-white/38 px-4 py-4 text-left transition hover:-translate-y-[1px] hover:bg-white/55"
+    >
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-sm uppercase tracking-[0.18em] text-[var(--cm-accent)]">{item.os}</p>
+          <p className="mt-2 truncate text-lg font-semibold tracking-[-0.03em] text-[var(--cm-text)]">{item.servico}</p>
+          <p className="mt-1 text-sm text-[var(--cm-muted)]">{item.cliente}</p>
+        </div>
+        <ToneBadge tone={PRIORIDADE[item.prioridade]?.tone || "default"}>
+          {PRIORIDADE[item.prioridade]?.label || item.prioridade}
+        </ToneBadge>
+      </div>
+    </button>
+  );
+}
+
+function ModalContainer({ children }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(19,18,16,0.52)] p-4 backdrop-blur-md">
+      {children}
+    </div>
+  );
+}
 
 const mascaraData = (valor) => {
   const n = valor.replace(/\D/g, "").slice(0, 8);
@@ -22,35 +157,283 @@ const mascaraData = (valor) => {
   return `${n.slice(0, 2)}/${n.slice(2, 4)}/${n.slice(4)}`;
 };
 
-const CARD_VAZIO = { os: "", cliente: "", servico: "", prioridade: "media", prazo: "", responsavel: "", descricao: "" };
+function extrairMarcadorOrcamento(texto = "") {
+  const match = String(texto).match(/\[ORC:([^\]]+)\]/);
+  return match?.[1] || "";
+}
+
+function ModalOS({
+  modoModal,
+  cardAtual,
+  colunaDestino,
+  setColunaDestino,
+  clienteFiltrado,
+  setClienteFiltrado,
+  mostrarDropdown,
+  setMostrarDropdown,
+  clientesSugeridos,
+  setCardAtual,
+  onClose,
+  onSalvar,
+  salvando,
+}) {
+  const fieldBase = "ordem-servico-modal";
+  const prioridade = PRIORIDADE[cardAtual.prioridade] || PRIORIDADE.media;
+  const origemOrcamento = extrairMarcadorOrcamento(cardAtual.descricao);
+
+  return (
+    <ModalContainer>
+      <div className="cm-surface w-full max-w-5xl rounded-[34px] shadow-[0_24px_80px_rgba(22,18,14,0.28)]">
+        <div className="grid gap-0 lg:grid-cols-[minmax(0,1.6fr)_20rem]">
+          <div className="p-6 sm:p-7">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="cm-label">
+                  {modoModal === "criar" && "Nova OS"}
+                  {modoModal === "editar" && "Editar OS"}
+                  {modoModal === "ver" && "Detalhes da OS"}
+                </p>
+                <h2 className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-[var(--cm-text)]">
+                  {modoModal === "criar" && "Abrir nova frente operacional"}
+                  {modoModal === "editar" && `Ajustar ${cardAtual.os}`}
+                  {modoModal === "ver" && `${cardAtual.os} em visão ampliada`}
+                </h2>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--cm-muted)]">
+                  O foco aqui é execução: cliente, serviço, prazo, responsável e o elo com a origem comercial quando existir.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded-full border border-[color:var(--cm-line)] bg-white/72 p-3 text-[var(--cm-muted)] transition hover:text-[var(--cm-text)]"
+                aria-label="Fechar ordem de serviço"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {modoModal === "ver" ? (
+              <div className="mt-6 grid gap-4 sm:grid-cols-2">
+                <div className="rounded-[22px] border border-[color:var(--cm-line)] bg-white/38 p-4">
+                  <InfoItem label="Número" value={cardAtual.os} />
+                  <InfoItem label="Cliente" value={cardAtual.cliente} />
+                  <InfoItem label="Serviço" value={cardAtual.servico} />
+                  <InfoItem label="Prioridade" value={prioridade.label} />
+                </div>
+                <div className="rounded-[22px] border border-[color:var(--cm-line)] bg-white/38 p-4">
+                  <InfoItem label="Prazo" value={cardAtual.prazo || "Sem prazo"} subtle={!cardAtual.prazo} />
+                  <InfoItem label="Responsável" value={cardAtual.responsavel || "Não definido"} subtle={!cardAtual.responsavel} />
+                  <InfoItem label="Origem" value={origemOrcamento ? `Orçamento ${origemOrcamento}` : "Manual"} subtle={!origemOrcamento} />
+                </div>
+                <div className="sm:col-span-2 rounded-[22px] border border-[color:var(--cm-line)] bg-white/38 p-4">
+                  <InfoItem label="Descrição" value={cardAtual.descricao || "Sem descrição complementar"} subtle={!cardAtual.descricao} />
+                </div>
+              </div>
+            ) : (
+              <div className="mt-6 space-y-5">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label htmlFor={`${fieldBase}-prioridade`} className={LABEL_BASE}>Prioridade</label>
+                    <select
+                      id={`${fieldBase}-prioridade`}
+                      value={cardAtual.prioridade}
+                      onChange={(e) => setCardAtual({ ...cardAtual, prioridade: e.target.value })}
+                      className={INPUT_BASE}
+                    >
+                      <option value="alta">Alta</option>
+                      <option value="media">Média</option>
+                      <option value="baixa">Baixa</option>
+                    </select>
+                  </div>
+
+                  {modoModal === "criar" && (
+                    <div>
+                      <label htmlFor={`${fieldBase}-status`} className={LABEL_BASE}>Coluna inicial</label>
+                      <select
+                        id={`${fieldBase}-status`}
+                        value={colunaDestino}
+                        onChange={(e) => setColunaDestino(e.target.value)}
+                        className={INPUT_BASE}
+                      >
+                        {COLUNAS_CONFIG.map((coluna) => (
+                          <option key={coluna.id} value={coluna.id}>{coluna.titulo}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
+
+                <div className="relative">
+                  <label htmlFor={`${fieldBase}-cliente`} className={LABEL_BASE}>Cliente *</label>
+                  <input
+                    id={`${fieldBase}-cliente`}
+                    type="text"
+                    value={clienteFiltrado}
+                    onChange={(e) => {
+                      setClienteFiltrado(e.target.value);
+                      setCardAtual({ ...cardAtual, cliente: e.target.value });
+                      setMostrarDropdown(true);
+                    }}
+                    onFocus={() => setMostrarDropdown(true)}
+                    onBlur={() => setTimeout(() => setMostrarDropdown(false), 150)}
+                    placeholder="Digite ou selecione um cliente..."
+                    className={INPUT_BASE}
+                  />
+                  {mostrarDropdown && clientesSugeridos.length > 0 && (
+                    <div className="absolute z-10 mt-1 max-h-44 w-full overflow-y-auto rounded-[20px] border border-[color:var(--cm-line)] bg-white shadow-lg">
+                      {clientesSugeridos.map((cliente) => (
+                        <button
+                          key={cliente}
+                          type="button"
+                          onMouseDown={() => {
+                            setClienteFiltrado(cliente);
+                            setCardAtual({ ...cardAtual, cliente });
+                            setMostrarDropdown(false);
+                          }}
+                          className="w-full px-4 py-3 text-left text-sm text-[var(--cm-text)] transition hover:bg-[rgba(180,99,56,0.08)]"
+                        >
+                          {cliente}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label htmlFor={`${fieldBase}-servico`} className={LABEL_BASE}>Serviço *</label>
+                  <input
+                    id={`${fieldBase}-servico`}
+                    type="text"
+                    value={cardAtual.servico}
+                    onChange={(e) => setCardAtual({ ...cardAtual, servico: e.target.value })}
+                    placeholder="Ex: Fresamento CNC, torneamento..."
+                    className={INPUT_BASE}
+                  />
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label htmlFor={`${fieldBase}-responsavel`} className={LABEL_BASE}>Responsável</label>
+                    <input
+                      id={`${fieldBase}-responsavel`}
+                      type="text"
+                      value={cardAtual.responsavel || ""}
+                      onChange={(e) => setCardAtual({ ...cardAtual, responsavel: e.target.value })}
+                      placeholder="Nome do técnico"
+                      className={INPUT_BASE}
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor={`${fieldBase}-prazo`} className={LABEL_BASE}>Prazo</label>
+                    <input
+                      id={`${fieldBase}-prazo`}
+                      type="text"
+                      value={cardAtual.prazo || ""}
+                      onChange={(e) => setCardAtual({ ...cardAtual, prazo: mascaraData(e.target.value) })}
+                      placeholder="DD/MM/AAAA"
+                      maxLength={10}
+                      className={INPUT_BASE}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor={`${fieldBase}-descricao`} className={LABEL_BASE}>Descrição</label>
+                  <textarea
+                    id={`${fieldBase}-descricao`}
+                    value={cardAtual.descricao || ""}
+                    onChange={(e) => setCardAtual({ ...cardAtual, descricao: e.target.value })}
+                    rows={4}
+                    placeholder="Descreva o serviço, setup, acabamento e observações..."
+                    className={`${INPUT_BASE} resize-none`}
+                  />
+                </div>
+
+                <div className="flex flex-wrap gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="rounded-full border border-[color:var(--cm-line)] bg-white/74 px-5 py-3 text-sm font-semibold text-[var(--cm-text)] transition hover:bg-white"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onSalvar}
+                    disabled={salvando}
+                    className="rounded-full bg-[var(--cm-text)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-92 disabled:cursor-not-allowed disabled:opacity-55"
+                  >
+                    {salvando ? "Salvando..." : modoModal === "criar" ? "Criar OS" : "Salvar alterações"}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <aside className="rounded-b-[34px] border-t border-[color:var(--cm-line)] bg-[rgba(37,42,49,0.96)] p-6 text-white lg:rounded-r-[34px] lg:rounded-bl-none lg:border-l lg:border-t-0">
+            <p className="text-[11px] uppercase tracking-[0.18em] text-white/52">Leitura operacional</p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <ToneBadge tone={prioridade.tone}>{prioridade.label}</ToneBadge>
+              {origemOrcamento && <ToneBadge tone="accent">Origem {origemOrcamento}</ToneBadge>}
+            </div>
+
+            <div className="mt-5 space-y-3 rounded-[24px] border border-white/10 bg-white/6 p-4">
+              <InfoItem label="Cliente" value={cardAtual.cliente || "A definir"} subtle={!cardAtual.cliente} />
+              <InfoItem label="Serviço" value={cardAtual.servico || "A definir"} subtle={!cardAtual.servico} />
+              <InfoItem label="Prazo" value={cardAtual.prazo || "Sem prazo"} subtle={!cardAtual.prazo} />
+              <InfoItem label="Responsável" value={cardAtual.responsavel || "Não definido"} subtle={!cardAtual.responsavel} />
+            </div>
+
+            <div className="mt-5 rounded-[24px] border border-white/10 bg-white/6 p-4">
+              <p className="text-[11px] uppercase tracking-[0.18em] text-white/52">Como usar essa etapa</p>
+              <div className="mt-3 space-y-3 text-sm text-white/72">
+                <p>1. Solicite com contexto claro e prioridade bem definida.</p>
+                <p>2. Arraste no kanban para mostrar ritmo real da execução.</p>
+                <p>3. Use revisão e conclusão como checkpoints objetivos.</p>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </ModalContainer>
+  );
+}
 
 export default function OrdemServico() {
-  const [ordens,          setOrdens]          = useState([]);
-  const [clientes,        setClientes]        = useState([]);
-  const [carregando,      setCarregando]      = useState(true);
-  const [filtro,          setFiltro]          = useState("");
-  const [notificacao,     setNotificacao]     = useState(null);
-  const [modalAberto,     setModalAberto]     = useState(false);
-  const [modoModal,       setModoModal]       = useState("criar");
-  const [cardAtual,       setCardAtual]       = useState(null);
-  const [colunaDestino,   setColunaDestino]   = useState("solicitado");
-  const [colunaDragOver,  setColunaDragOver]  = useState(null);
+  const [ordens, setOrdens] = useState([]);
+  const [clientes, setClientes] = useState([]);
+  const [carregando, setCarregando] = useState(true);
+  const [filtro, setFiltro] = useState("");
+  const [filtroRapido, setFiltroRapido] = useState("todos");
+  const [notificacao, setNotificacao] = useState(null);
+  const [modalAberto, setModalAberto] = useState(false);
+  const [modoModal, setModoModal] = useState("criar");
+  const [cardAtual, setCardAtual] = useState(null);
+  const [colunaDestino, setColunaDestino] = useState("solicitado");
+  const [colunaDragOver, setColunaDragOver] = useState(null);
   const [clienteFiltrado, setClienteFiltrado] = useState("");
   const [mostrarDropdown, setMostrarDropdown] = useState(false);
-  const [salvando,        setSalvando]        = useState(false);
+  const [salvando, setSalvando] = useState(false);
+  const [cardFocoId, setCardFocoId] = useState(null);
   const dragCard = useRef(null);
-  const modalFieldBase = "ordem-servico-modal";
 
-  // ── Carregar dados ────────────────────────────────────────────────────────
+  const notificar = (msg, tipo = "sucesso") => {
+    setNotificacao({ msg, tipo });
+    window.clearTimeout(window.__osToastTimer);
+    window.__osToastTimer = window.setTimeout(() => setNotificacao(null), 3200);
+  };
+
   const carregar = async () => {
     setCarregando(true);
     try {
-      const [resOS, resC] = await Promise.all([
+      const [resOS, resClientes] = await Promise.all([
         api.get("/ordens-servico"),
         api.get("/clientes"),
       ]);
       setOrdens(resOS.data);
-      setClientes(resC.data.map(c => c.nome));
+      setClientes(resClientes.data.map((cliente) => cliente.nome));
     } catch {
       notificar("Erro ao carregar ordens de serviço.", "erro");
     } finally {
@@ -58,58 +441,104 @@ export default function OrdemServico() {
     }
   };
 
-  useEffect(() => { carregar(); }, []);
+  useEffect(() => {
+    carregar();
+  }, []);
 
-  // ── Notificações ──────────────────────────────────────────────────────────
-  const notificar = (msg, tipo = "sucesso") => {
-    setNotificacao({ msg, tipo });
-    setTimeout(() => setNotificacao(null), 3000);
-  };
+  const ordensFiltradas = useMemo(() => {
+    return ordens.filter((ordem) => {
+      const termo =
+        ordem.cliente.toLowerCase().includes(filtro.toLowerCase()) ||
+        ordem.os.toLowerCase().includes(filtro.toLowerCase()) ||
+        ordem.servico.toLowerCase().includes(filtro.toLowerCase());
 
-  // ── Organiza ordens em colunas ────────────────────────────────────────────
-  const colunas = COLUNAS_CONFIG.map(col => ({
-    ...col,
-    cards: ordens.filter(o => o.status === col.id),
-  }));
+      if (!termo) return false;
+      if (filtroRapido === "alta") return ordem.prioridade === "alta";
+      if (filtroRapido === "andamento") return ordem.status === "em_andamento";
+      if (filtroRapido === "concluido") return ordem.status === "concluido";
+      if (filtroRapido === "atencao") return ordem.status === "solicitado" || ordem.status === "revisao";
+      return true;
+    });
+  }, [filtro, filtroRapido, ordens]);
 
-  const colunasFiltradas = colunas.map(col => ({
-    ...col,
-    cards: col.cards.filter(c =>
-      c.cliente.toLowerCase().includes(filtro.toLowerCase()) ||
-      c.os.toLowerCase().includes(filtro.toLowerCase()) ||
-      c.servico.toLowerCase().includes(filtro.toLowerCase())
-    ),
-  }));
+  const colunas = useMemo(() => {
+    return COLUNAS_CONFIG.map((coluna) => ({
+      ...coluna,
+      cards: ordensFiltradas
+        .filter((ordem) => ordem.status === coluna.id)
+        .sort((a, b) => {
+          const scoreA = a.prioridade === "alta" ? 3 : a.prioridade === "media" ? 2 : 1;
+          const scoreB = b.prioridade === "alta" ? 3 : b.prioridade === "media" ? 2 : 1;
+          return scoreB - scoreA;
+        }),
+    }));
+  }, [ordensFiltradas]);
 
   const totalOS = ordens.length;
+  const totalEmFluxo = ordens.filter((ordem) => ordem.status !== "concluido").length;
+  const totalRevisao = ordens.filter((ordem) => ordem.status === "revisao").length;
+  const totalAlta = ordens.filter((ordem) => ordem.prioridade === "alta").length;
 
-  // ── Drag & Drop ───────────────────────────────────────────────────────────
-  const onDragStart = (card, colunaId) => { dragCard.current = { card, colunaId }; };
-  const onDragOver  = (e, colunaId)    => { e.preventDefault(); setColunaDragOver(colunaId); };
-  const onDragLeave = ()               => setColunaDragOver(null);
+  const filaPrioritaria = useMemo(() => {
+    return [...ordens]
+      .filter((ordem) => ordem.status !== "concluido")
+      .sort((a, b) => {
+        const score = (item) => {
+          if (item.prioridade === "alta") return 4;
+          if (item.status === "revisao") return 3;
+          if (item.status === "solicitado") return 2;
+          return 1;
+        };
+        return score(b) - score(a);
+      })
+      .slice(0, 4);
+  }, [ordens]);
+
+  useEffect(() => {
+    const idsVisiveis = new Set(ordensFiltradas.map((item) => item.id));
+    if (!ordensFiltradas.length) {
+      setCardFocoId(null);
+      return;
+    }
+    if (!idsVisiveis.has(cardFocoId)) {
+      setCardFocoId(ordensFiltradas[0].id);
+    }
+  }, [cardFocoId, ordensFiltradas]);
+
+  const cardFoco = useMemo(
+    () => ordensFiltradas.find((item) => item.id === cardFocoId) || null,
+    [cardFocoId, ordensFiltradas]
+  );
+
+  const onDragStart = (card, colunaId) => {
+    dragCard.current = { card, colunaId };
+  };
+
+  const onDragOver = (e, colunaId) => {
+    e.preventDefault();
+    setColunaDragOver(colunaId);
+  };
 
   const onDrop = async (dest) => {
     setColunaDragOver(null);
     if (!dragCard.current) return;
+
     const { card, colunaId: origem } = dragCard.current;
     dragCard.current = null;
     if (origem === dest) return;
 
-    // Atualiza na tela imediatamente (otimista)
-    setOrdens(prev => prev.map(o => o.id === card.id ? { ...o, status: dest } : o));
+    setOrdens((prev) => prev.map((ordem) => (ordem.id === card.id ? { ...ordem, status: dest } : ordem)));
 
     try {
       await api.patch(`/ordens-servico/${card.id}/status`, { status: dest });
-      const tituloDestino = COLUNAS_CONFIG.find(c => c.id === dest)?.titulo;
-      notificar(`"${card.os}" movido para "${tituloDestino}"`);
+      const tituloDestino = COLUNAS_CONFIG.find((coluna) => coluna.id === dest)?.titulo;
+      notificar(`${card.os} movida para ${tituloDestino}.`);
     } catch {
-      // Reverte se falhar
-      setOrdens(prev => prev.map(o => o.id === card.id ? { ...o, status: origem } : o));
+      setOrdens((prev) => prev.map((ordem) => (ordem.id === card.id ? { ...ordem, status: origem } : ordem)));
       notificar("Erro ao mover OS.", "erro");
     }
   };
 
-  // ── Modal ─────────────────────────────────────────────────────────────────
   const abrirCriar = (colunaId) => {
     setModoModal("criar");
     setColunaDestino(colunaId);
@@ -127,25 +556,28 @@ export default function OrdemServico() {
 
   const abrirVer = (card) => {
     setModoModal("ver");
+    setClienteFiltrado(card.cliente);
     setCardAtual({ ...card });
     setModalAberto(true);
   };
 
   const salvar = async () => {
     if (!cardAtual.cliente || !cardAtual.servico) {
-      notificar("Preencha cliente e serviço!", "erro");
+      notificar("Preencha cliente e serviço.", "erro");
       return;
     }
     setSalvando(true);
     try {
       if (modoModal === "criar") {
         const res = await api.post("/ordens-servico", { ...cardAtual, status: colunaDestino });
-        setOrdens(prev => [...prev, res.data]);
-        notificar(`${res.data.os} criada com sucesso! 🎉`);
+        setOrdens((prev) => [...prev, res.data]);
+        setCardFocoId(res.data.id);
+        notificar(`${res.data.os} criada com sucesso.`);
       } else {
         const res = await api.put(`/ordens-servico/${cardAtual.id}`, cardAtual);
-        setOrdens(prev => prev.map(o => o.id === res.data.id ? res.data : o));
-        notificar(`${res.data.os} atualizada!`);
+        setOrdens((prev) => prev.map((ordem) => (ordem.id === res.data.id ? res.data : ordem)));
+        setCardFocoId(res.data.id);
+        notificar(`${res.data.os} atualizada.`);
       }
       setModalAberto(false);
     } catch {
@@ -159,347 +591,301 @@ export default function OrdemServico() {
     if (!window.confirm("Deseja excluir esta Ordem de Serviço?")) return;
     try {
       await api.delete(`/ordens-servico/${cardId}`);
-      setOrdens(prev => prev.filter(o => o.id !== cardId));
-      notificar(`${numeroOS} excluída!`);
+      setOrdens((prev) => prev.filter((ordem) => ordem.id !== cardId));
+      notificar(`${numeroOS} excluída.`);
     } catch {
       notificar("Erro ao excluir OS.", "erro");
     }
   };
 
-  const clientesSugeridos = clientes.filter(c =>
-    c.toLowerCase().includes(clienteFiltrado.toLowerCase())
+  const clientesSugeridos = clientes.filter((cliente) =>
+    cliente.toLowerCase().includes(clienteFiltrado.toLowerCase())
   );
 
-  // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className="flex-1 min-w-0 min-h-screen p-3 sm:p-4 lg:p-6 overflow-x-hidden" style={{ background: "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)" }}>
-
-      {/* Notificação */}
+    <div className="min-h-screen bg-transparent p-4 sm:p-6 lg:p-8">
       {notificacao && (
-        <div className={`fixed top-5 right-5 z-50 flex items-center gap-2 px-5 py-3 rounded-xl shadow-2xl text-white text-sm font-semibold ${notificacao.tipo === "erro" ? "bg-red-500" : "bg-emerald-500"}`}>
-          <span>{notificacao.tipo === "erro" ? "⚠️" : "✅"}</span>
+        <div
+          className={`fixed right-5 top-5 z-50 rounded-[20px] border px-5 py-3 text-sm font-semibold shadow-[0_18px_48px_rgba(22,18,14,0.2)] ${
+            notificacao.tipo === "erro"
+              ? "border-[rgba(187,103,80,0.2)] bg-[rgba(255,244,240,0.94)] text-[var(--cm-danger)]"
+              : "border-[rgba(63,141,114,0.2)] bg-[rgba(246,255,251,0.95)] text-[var(--cm-positive)]"
+          }`}
+        >
           {notificacao.msg}
         </div>
       )}
 
-      {/* Cabeçalho */}
-      <div className="flex flex-col items-center mb-8 text-center">
-        <div className="flex items-center gap-3 mb-1">
-          <div className="w-10 h-10 rounded-xl bg-orange-500 flex items-center justify-center shadow-lg">
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-            </svg>
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
+        <section className="cm-surface-strong rounded-[32px] p-6 sm:p-7 xl:col-span-8">
+          <p className="cm-label text-white/58">Ceramic Monolith · Ordem de Serviço</p>
+          <h1 className="mt-3 text-3xl font-semibold tracking-[-0.05em] sm:text-4xl">
+            Operação em kanban, com prioridade, origem e ritmo visíveis
+          </h1>
+          <p className="mt-3 max-w-3xl text-sm leading-6 text-white/72 sm:text-base">
+            A OS agora aparece como centro de execução. Você vê o que entrou, o que está em revisão, o que é urgente e o
+            que já nasceu de orçamento aprovado.
+          </p>
+
+          <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <StatTile label="Total de OS" value={String(totalOS)} note="Todas as ordens cadastradas" />
+            <StatTile label="Em fluxo" value={String(totalEmFluxo)} note="Ainda em execução operacional" />
+            <StatTile label="Em revisão" value={String(totalRevisao)} note="Pedindo conferência técnica" />
+            <StatTile label="Alta prioridade" value={String(totalAlta)} note="Demandas que merecem atenção agora" />
           </div>
-          <h1 className="text-2xl font-black tracking-widest text-gray-800 uppercase">Ordem de Serviço</h1>
-        </div>
-        <p className="text-xs text-gray-400 font-medium">{totalOS} ordem(ns) cadastrada(s)</p>
-      </div>
+        </section>
 
-      {/* Barra de controles */}
-      <div className="flex items-center gap-3 mb-6 flex-wrap">
-        <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2 shadow-sm w-full sm:flex-1 sm:max-w-xs">
-          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-          <input type="text" value={filtro} onChange={(e) => setFiltro(e.target.value)} placeholder="Buscar OS, cliente ou serviço..." className="text-sm bg-transparent outline-none w-full text-gray-700 placeholder-gray-400" />
-          {filtro && <button onClick={() => setFiltro("")} className="text-gray-300 hover:text-red-400 transition text-xs">✕</button>}
-        </div>
-        <button onClick={() => abrirCriar("solicitado")} className="flex w-full sm:w-auto items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 active:scale-95 text-white text-sm font-bold px-4 py-2 rounded-xl shadow-md transition-all">
-          <span className="text-lg leading-none">+</span> Nova OS
-        </button>
-        <button onClick={carregar} disabled={carregando} className="flex w-full sm:w-auto items-center justify-center gap-2 border border-gray-200 text-gray-500 hover:bg-gray-100 text-sm font-semibold px-3 py-2 rounded-xl transition">
-          <svg xmlns="http://www.w3.org/2000/svg" className={`w-4 h-4 ${carregando ? "animate-spin" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-          Atualizar
-        </button>
-      </div>
-
-      {/* Loading */}
-      {carregando && (
-        <div className="flex justify-center items-center py-20">
-          <div className="w-8 h-8 border-4 border-orange-200 border-t-orange-500 rounded-full animate-spin" />
-        </div>
-      )}
-
-      {/* Board Kanban */}
-      {!carregando && (
-        <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-4 gap-5 items-start">
-          {colunasFiltradas.map((coluna) => (
-            <div key={coluna.id}
-              onDragOver={(e) => onDragOver(e, coluna.id)}
-              onDrop={() => onDrop(coluna.id)}
-              onDragLeave={onDragLeave}
-              className={`flex min-w-0 flex-col rounded-2xl transition-all duration-200 ${colunaDragOver === coluna.id ? "ring-2 ring-orange-400 ring-offset-2 scale-[1.01]" : ""}`}>
-
-              {/* Cabeçalho da coluna */}
-              <div className={`flex items-center justify-between px-4 py-3.5 rounded-t-2xl bg-gradient-to-r ${coluna.cor} shadow-md`}>
-                <div className="flex items-center gap-2.5">
-                  <span>{coluna.icone}</span>
-                  <span className="text-white font-bold text-sm uppercase tracking-wide">{coluna.titulo}</span>
-                  <span className="bg-white/25 text-white text-xs font-black px-2 py-0.5 rounded-full">{coluna.cards.length}</span>
+        <section className="cm-surface rounded-[32px] p-6 xl:col-span-4">
+          <p className="cm-label">OS em foco</p>
+          {cardFoco ? (
+            <>
+              <div className="mt-3 flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="text-sm uppercase tracking-[0.18em] text-[var(--cm-accent)]">{cardFoco.os}</p>
+                  <h2 className="mt-2 truncate text-2xl font-semibold tracking-[-0.04em] text-[var(--cm-text)]">{cardFoco.servico}</h2>
+                  <p className="mt-2 text-sm text-[var(--cm-muted)]">{cardFoco.cliente}</p>
                 </div>
-                <button onClick={() => abrirCriar(coluna.id)} className="text-white/80 hover:text-white hover:bg-white/20 rounded-lg p-1.5 transition">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                  </svg>
+                <ToneBadge tone={PRIORIDADE[cardFoco.prioridade]?.tone || "default"}>
+                  {PRIORIDADE[cardFoco.prioridade]?.label || cardFoco.prioridade}
+                </ToneBadge>
+              </div>
+
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                <FocusMetric label="Status" value={COLUNAS_CONFIG.find((coluna) => coluna.id === cardFoco.status)?.titulo || cardFoco.status} note={COLUNAS_CONFIG.find((coluna) => coluna.id === cardFoco.status)?.note} />
+                <FocusMetric label="Prazo" value={cardFoco.prazo || "Sem prazo"} note={cardFoco.responsavel || "Responsável não definido"} />
+              </div>
+
+              <div className="mt-5 rounded-[24px] border border-[color:var(--cm-line)] bg-white/42 p-4">
+                <p className="cm-label">Origem e contexto</p>
+                <div className="mt-3 grid gap-4 sm:grid-cols-2">
+                  <InfoItem label="Origem" value={extrairMarcadorOrcamento(cardFoco.descricao) ? `Orçamento ${extrairMarcadorOrcamento(cardFoco.descricao)}` : "Cadastro manual"} subtle={!extrairMarcadorOrcamento(cardFoco.descricao)} />
+                  <InfoItem label="Responsável" value={cardFoco.responsavel || "Não definido"} subtle={!cardFoco.responsavel} />
+                </div>
+                {cardFoco.descricao && <p className="mt-4 text-sm leading-6 text-[var(--cm-muted)]">{cardFoco.descricao}</p>}
+              </div>
+
+              <div className="mt-5 flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  onClick={() => abrirVer(cardFoco)}
+                  className="rounded-full border border-[color:var(--cm-line)] bg-white/74 px-5 py-3 text-sm font-semibold text-[var(--cm-text)] transition hover:bg-white"
+                >
+                  Ver detalhes
+                </button>
+                <button
+                  type="button"
+                  onClick={() => abrirEditar(cardFoco)}
+                  className="rounded-full bg-[var(--cm-text)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-92"
+                >
+                  Editar OS
                 </button>
               </div>
-
-              {/* Cards */}
-              <div
-                className={`flex flex-col gap-3 p-3 rounded-b-2xl flex-1 transition-colors ${colunaDragOver === coluna.id ? "bg-orange-50/80" : "bg-white/70"}`}
-                style={{ backdropFilter: "blur(4px)", border: "1px solid rgba(0,0,0,0.06)", borderTop: "none" }}>
-
-                {coluna.cards.length === 0 && (
-                  <div className="flex flex-col items-center justify-center py-10 text-gray-300 gap-2">
-                    <span className="text-3xl">📭</span>
-                    <span className="text-xs font-medium">Nenhuma OS aqui</span>
-                    <button onClick={() => abrirCriar(coluna.id)} className="text-xs text-orange-400 hover:text-orange-600 underline transition mt-1">+ Adicionar</button>
-                  </div>
-                )}
-
-                {coluna.cards.map((card) => {
-                  const prio = badgePrioridade[card.prioridade] || badgePrioridade.media;
-                  return (
-                    <div key={card.id} draggable onDragStart={() => onDragStart(card, coluna.id)}
-                      className="bg-white rounded-xl border border-gray-100 shadow-sm p-3.5 cursor-grab active:cursor-grabbing hover:shadow-md hover:border-orange-200 hover:-translate-y-0.5 transition-all group">
-                      <div className="flex items-center justify-between mb-2.5">
-                        <span className="text-xs font-black text-orange-500 tracking-wider bg-orange-50 px-2 py-0.5 rounded-lg border border-orange-100">{card.os}</span>
-                        <span className={`flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${prio.bg}`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${prio.dot}`}></span>{prio.label}
-                        </span>
-                      </div>
-                      <p className="text-sm font-bold text-gray-800 leading-tight mb-1">{card.servico}</p>
-                      <p className="text-xs text-gray-500 mb-3 flex items-center gap-1"><span>🏢</span> {card.cliente}</p>
-                      <div className="flex items-center justify-between text-xs text-gray-400 pb-3 border-b border-gray-50">
-                        <span className="flex items-center gap-1"><span>📅</span> {card.prazo || "—"}</span>
-                        <span className="flex items-center gap-1"><span>👤</span> {card.responsavel || "—"}</span>
-                      </div>
-                      <div className="flex items-center justify-end gap-1 mt-2.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => abrirVer(card)} title="Ver" className="p-1.5 rounded-lg text-gray-400 hover:text-orange-500 hover:bg-orange-50 transition">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                        </button>
-                        <button onClick={() => abrirEditar(card)} title="Editar" className="p-1.5 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-blue-50 transition">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-                        </button>
-                        <button onClick={() => excluir(card.id, card.os)} title="Excluir" className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-
-                {coluna.cards.length > 0 && (
-                  <button onClick={() => abrirCriar(coluna.id)} className="flex items-center gap-2 text-gray-400 hover:text-orange-500 hover:bg-orange-50 text-xs font-semibold px-3 py-2.5 rounded-xl transition border border-dashed border-gray-200 hover:border-orange-300">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
-                    Adicionar OS
-                  </button>
-                )}
-              </div>
+            </>
+          ) : (
+            <div className="mt-5 rounded-[24px] border border-[color:var(--cm-line)] bg-white/40 px-4 py-6 text-sm leading-6 text-[var(--cm-muted)]">
+              Selecione uma OS no board para abrir o inspector com prioridade, origem e contexto operacional.
             </div>
-          ))}
-        </div>
-      )}
+          )}
 
-      {/* MODAL */}
-      {modalAberto && cardAtual && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
-
-            <div className="bg-gradient-to-r from-orange-500 to-orange-600 px-6 py-4 flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <span className="text-2xl">{modoModal === "criar" ? "🆕" : modoModal === "editar" ? "✏️" : "🔎"}</span>
-                <div>
-                  <h2 className="text-white font-bold text-base leading-tight">
-                    {modoModal === "criar"  && "Nova Ordem de Serviço"}
-                    {modoModal === "editar" && `Editar ${cardAtual.os}`}
-                    {modoModal === "ver"    && `Detalhes — ${cardAtual.os}`}
-                  </h2>
-                  {modoModal !== "ver" && (
-                    <p className="text-orange-100 text-xs">
-                      {modoModal === "criar" ? "Número gerado automaticamente" : cardAtual.os}
-                    </p>
-                  )}
+          <div className="mt-6">
+            <p className="cm-label">Fila de atenção</p>
+            <div className="mt-3 grid gap-3">
+              {filaPrioritaria.length ? (
+                filaPrioritaria.map((item) => <QueueItem key={item.id} item={item} onSelect={setCardFocoId} />)
+              ) : (
+                <div className="rounded-[24px] border border-[color:var(--cm-line)] bg-white/40 px-4 py-6 text-sm leading-6 text-[var(--cm-muted)]">
+                  Nenhuma OS crítica no momento.
                 </div>
-              </div>
-              <button onClick={() => setModalAberto(false)} className="text-white/70 hover:text-white hover:bg-white/20 rounded-lg p-1.5 transition">
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+              )}
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <section className="mt-6 cm-surface rounded-[32px] p-5 sm:p-6">
+        <div className="flex flex-col gap-5">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <p className="cm-label">Workspace operacional</p>
+              <h2 className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-[var(--cm-text)]">Kanban de ordens de serviço</h2>
+              <p className="mt-2 text-sm leading-6 text-[var(--cm-muted)]">
+                Arraste as OS entre colunas, use os filtros rápidos e mantenha o board como leitura viva da produção.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={() => abrirCriar("solicitado")}
+                className="rounded-full bg-[var(--cm-text)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-92"
+              >
+                Nova OS
+              </button>
+              <button
+                type="button"
+                onClick={carregar}
+                className="rounded-full border border-[color:var(--cm-line)] bg-white/74 px-5 py-3 text-sm font-semibold text-[var(--cm-text)] transition hover:bg-white"
+              >
+                Atualizar
               </button>
             </div>
+          </div>
 
-            <div className="px-6 py-5 space-y-4 max-h-[65vh] overflow-y-auto">
-              {modoModal === "ver" ? (
-                <div className="space-y-3">
-                  {[
-                    ["🔢 Número da OS", cardAtual.os],
-                    ["🏢 Cliente",      cardAtual.cliente],
-                    ["🔧 Serviço",      cardAtual.servico],
-                    ["👤 Responsável",  cardAtual.responsavel],
-                    ["📅 Prazo",        cardAtual.prazo],
-                    ["⚡ Prioridade",   badgePrioridade[cardAtual.prioridade]?.label],
-                    ["📝 Descrição",    cardAtual.descricao],
-                  ].map(([label, valor]) => (
-                    <div key={label} className="bg-gray-50 rounded-xl px-4 py-3">
-                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-0.5">{label}</span>
-                      <span className="text-sm font-semibold text-gray-700">{valor || "—"}</span>
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+            <div className="flex min-w-0 flex-1 items-center gap-3 rounded-[24px] border border-[color:var(--cm-line)] bg-white/68 px-4 py-3">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 shrink-0 text-[var(--cm-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.9}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-4.35-4.35m1.85-5.4a7.25 7.25 0 1 1-14.5 0 7.25 7.25 0 0 1 14.5 0Z" />
+              </svg>
+              <input
+                type="text"
+                value={filtro}
+                onChange={(e) => setFiltro(e.target.value)}
+                placeholder="Buscar OS, cliente ou serviço..."
+                className="min-w-0 flex-1 bg-transparent text-sm text-[var(--cm-text)] outline-none placeholder:text-[var(--cm-muted)]"
+              />
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              {QUICK_FILTERS.map((item) => {
+                const ativo = filtroRapido === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setFiltroRapido(item.id)}
+                    className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] transition ${
+                      ativo
+                        ? "border-[rgba(180,99,56,0.22)] bg-[rgba(180,99,56,0.12)] text-[var(--cm-accent)]"
+                        : "border-[color:var(--cm-line)] bg-white/66 text-[var(--cm-muted)] hover:text-[var(--cm-text)]"
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {carregando ? (
+          <div className="flex items-center justify-center px-6 py-20">
+            <div className="h-10 w-10 animate-spin rounded-full border-4 border-black/8 border-t-[var(--cm-accent)]" />
+          </div>
+        ) : (
+          <div className="mt-6 grid grid-cols-1 gap-5 2xl:grid-cols-4 xl:grid-cols-2">
+            {colunas.map((coluna) => {
+              const styles = toneClasses(coluna.tone);
+              return (
+                <div
+                  key={coluna.id}
+                  onDragOver={(e) => onDragOver(e, coluna.id)}
+                  onDrop={() => onDrop(coluna.id)}
+                  onDragLeave={() => setColunaDragOver(null)}
+                  className={`flex min-w-0 flex-col rounded-[28px] border border-[color:var(--cm-line)] bg-white/28 transition ${
+                    colunaDragOver === coluna.id ? "ring-2 ring-[rgba(180,99,56,0.28)] ring-offset-2" : ""
+                  }`}
+                >
+                  <div className={`rounded-t-[28px] border-b border-[color:var(--cm-line)] px-4 py-4 ${styles.panel}`}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--cm-muted)]">{coluna.titulo}</p>
+                        <p className="mt-2 text-sm leading-6 text-[var(--cm-muted)]">{coluna.note}</p>
+                      </div>
+                      <span className="rounded-full border border-[color:var(--cm-line)] bg-white/70 px-3 py-1 text-xs font-semibold text-[var(--cm-text)]">
+                        {coluna.cards.length}
+                      </span>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <>
-                  <div>
-                    <label
-                      htmlFor={`${modalFieldBase}-prioridade`}
-                      className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1.5"
-                    >
-                      Prioridade
-                    </label>
-                    <select
-                      id={`${modalFieldBase}-prioridade`}
-                      value={cardAtual.prioridade}
-                      onChange={(e) => setCardAtual({ ...cardAtual, prioridade: e.target.value })}
-                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 bg-white"
-                    >
-                      <option value="alta">🔴 Alta</option>
-                      <option value="media">🟡 Média</option>
-                      <option value="baixa">🟢 Baixa</option>
-                    </select>
                   </div>
 
-                  <div className="relative">
-                    <label
-                      htmlFor={`${modalFieldBase}-cliente`}
-                      className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1.5"
-                    >
-                      Cliente * <span className="text-orange-400 normal-case font-normal">(selecione ou digite)</span>
-                    </label>
-                    <input
-                      id={`${modalFieldBase}-cliente`}
-                      type="text"
-                      value={clienteFiltrado}
-                      onChange={(e) => { setClienteFiltrado(e.target.value); setCardAtual({ ...cardAtual, cliente: e.target.value }); setMostrarDropdown(true); }}
-                      onFocus={() => setMostrarDropdown(true)}
-                      onBlur={() => setTimeout(() => setMostrarDropdown(false), 150)}
-                      placeholder="Digite ou selecione um cliente..."
-                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
-                    />
-                    {mostrarDropdown && clientesSugeridos.length > 0 && (
-                      <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-40 overflow-y-auto">
-                        {clientesSugeridos.map((c) => (
-                          <button key={c} type="button"
-                            onMouseDown={() => { setClienteFiltrado(c); setCardAtual({ ...cardAtual, cliente: c }); setMostrarDropdown(false); }}
-                            className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600 flex items-center gap-2 transition">
-                            <span>🏢</span> {c}
-                          </button>
-                        ))}
+                  <div className="flex flex-1 flex-col gap-3 p-3">
+                    {coluna.cards.length === 0 ? (
+                      <div className="flex min-h-[10rem] flex-col items-center justify-center rounded-[22px] border border-dashed border-[color:var(--cm-line)] bg-white/36 px-4 text-center">
+                        <p className="text-sm text-[var(--cm-muted)]">Nenhuma OS nesta etapa.</p>
+                        <button
+                          type="button"
+                          onClick={() => abrirCriar(coluna.id)}
+                          className="mt-3 rounded-full border border-[color:var(--cm-line)] bg-white/74 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--cm-text)] transition hover:bg-white"
+                        >
+                          Adicionar OS
+                        </button>
                       </div>
+                    ) : (
+                      coluna.cards.map((card) => {
+                        const prioridade = PRIORIDADE[card.prioridade] || PRIORIDADE.media;
+                        const origem = extrairMarcadorOrcamento(card.descricao);
+                        return (
+                          <article
+                            key={card.id}
+                            draggable
+                            onDragStart={() => onDragStart(card, coluna.id)}
+                            className={`rounded-[24px] border border-[color:var(--cm-line)] bg-white px-4 py-4 shadow-[0_8px_24px_rgba(22,18,14,0.06)] transition hover:-translate-y-[1px] hover:shadow-[0_14px_32px_rgba(22,18,14,0.1)] ${
+                              card.id === cardFocoId ? "ring-2 ring-[rgba(180,99,56,0.24)]" : ""
+                            }`}
+                          >
+                            <button type="button" onClick={() => setCardFocoId(card.id)} className="w-full text-left">
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <span className="text-sm uppercase tracking-[0.18em] text-[var(--cm-accent)]">{card.os}</span>
+                                <ToneBadge tone={prioridade.tone}>{prioridade.label}</ToneBadge>
+                              </div>
+                              <p className="mt-3 text-base font-semibold tracking-[-0.03em] text-[var(--cm-text)]">{card.servico}</p>
+                              <p className="mt-1 text-sm text-[var(--cm-muted)]">{card.cliente}</p>
+                              <div className="mt-3 grid gap-2 text-sm text-[var(--cm-muted)]">
+                                <span>{card.prazo || "Sem prazo definido"}</span>
+                                <span>{card.responsavel || "Responsável não definido"}</span>
+                                <span>{origem ? `Origem: ${origem}` : "Origem manual"}</span>
+                              </div>
+                            </button>
+
+                            <div className="mt-4 flex flex-wrap gap-2">
+                              <button
+                                type="button"
+                                onClick={() => abrirVer(card)}
+                                className="rounded-full border border-[color:var(--cm-line)] bg-white/74 px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--cm-text)] transition hover:bg-white"
+                              >
+                                Ver
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => abrirEditar(card)}
+                                className="rounded-full border border-[color:var(--cm-line)] bg-white/74 px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--cm-text)] transition hover:bg-white"
+                              >
+                                Editar
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => excluir(card.id, card.os)}
+                                className="rounded-full border border-[rgba(187,103,80,0.18)] bg-[rgba(187,103,80,0.1)] px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--cm-danger)] transition hover:bg-[rgba(187,103,80,0.14)]"
+                              >
+                                Excluir
+                              </button>
+                            </div>
+                          </article>
+                        );
+                      })
                     )}
                   </div>
-
-                  <div>
-                    <label
-                      htmlFor={`${modalFieldBase}-servico`}
-                      className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1.5"
-                    >
-                      Servico *
-                    </label>
-                    <input
-                      id={`${modalFieldBase}-servico`}
-                      type="text"
-                      value={cardAtual.servico}
-                      onChange={(e) => setCardAtual({ ...cardAtual, servico: e.target.value })}
-                      placeholder="Ex: Fresamento CNC, Torneamento..."
-                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label
-                        htmlFor={`${modalFieldBase}-responsavel`}
-                        className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1.5"
-                      >
-                        Responsavel
-                      </label>
-                      <input
-                        id={`${modalFieldBase}-responsavel`}
-                        type="text"
-                        value={cardAtual.responsavel || ""}
-                        onChange={(e) => setCardAtual({ ...cardAtual, responsavel: e.target.value })}
-                        placeholder="Nome do tecnico"
-                        className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
-                      />
-                    </div>
-                    <div>
-                      <label
-                        htmlFor={`${modalFieldBase}-prazo`}
-                        className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1.5"
-                      >
-                        Prazo (DD/MM/AAAA)
-                      </label>
-                      <input
-                        id={`${modalFieldBase}-prazo`}
-                        type="text"
-                        value={cardAtual.prazo || ""}
-                        onChange={(e) => setCardAtual({ ...cardAtual, prazo: mascaraData(e.target.value) })}
-                        placeholder="DD/MM/AAAA"
-                        maxLength={10}
-                        className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
-                      />
-                    </div>
-                  </div>
-
-                  {modoModal === "criar" && (
-                    <div>
-                      <label
-                        htmlFor={`${modalFieldBase}-coluna`}
-                        className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1.5"
-                      >
-                        Coluna inicial
-                      </label>
-                      <select
-                        id={`${modalFieldBase}-coluna`}
-                        value={colunaDestino}
-                        onChange={(e) => setColunaDestino(e.target.value)}
-                        className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 bg-white"
-                      >
-                        {COLUNAS_CONFIG.map((col) => (<option key={col.id} value={col.id}>{col.icone} {col.titulo}</option>))}
-                      </select>
-                    </div>
-                  )}
-
-                  <div>
-                    <label
-                      htmlFor={`${modalFieldBase}-descricao`}
-                      className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1.5"
-                    >
-                      Descricao
-                    </label>
-                    <textarea
-                      id={`${modalFieldBase}-descricao`}
-                      value={cardAtual.descricao || ""}
-                      onChange={(e) => setCardAtual({ ...cardAtual, descricao: e.target.value })}
-                      rows={3}
-                      placeholder="Descreva o servico a ser realizado..."
-                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 resize-none"
-                    />
-                  </div>
-                </>
-              )}
-            </div>
-
-            <div className="flex gap-3 px-6 py-4 bg-gray-50 border-t border-gray-100 rounded-b-2xl">
-              <button onClick={() => setModalAberto(false)} className="flex-1 border border-gray-200 text-gray-600 rounded-xl py-2.5 text-sm font-semibold hover:bg-gray-100 transition">
-                {modoModal === "ver" ? "Fechar" : "Cancelar"}
-              </button>
-              {modoModal !== "ver" && (
-                <button onClick={salvar} disabled={salvando} className="flex-1 bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 active:scale-95 text-white rounded-xl py-2.5 text-sm font-bold transition-all shadow-md shadow-orange-200">
-                  {salvando ? "Salvando..." : modoModal === "criar" ? "✅ Criar OS" : "💾 Salvar"}
-                </button>
-              )}
-            </div>
+                </div>
+              );
+            })}
           </div>
-        </div>
+        )}
+      </section>
+
+      {modalAberto && cardAtual && (
+        <ModalOS
+          modoModal={modoModal}
+          cardAtual={cardAtual}
+          colunaDestino={colunaDestino}
+          setColunaDestino={setColunaDestino}
+          clienteFiltrado={clienteFiltrado}
+          setClienteFiltrado={setClienteFiltrado}
+          mostrarDropdown={mostrarDropdown}
+          setMostrarDropdown={setMostrarDropdown}
+          clientesSugeridos={clientesSugeridos}
+          setCardAtual={setCardAtual}
+          onClose={() => setModalAberto(false)}
+          onSalvar={salvar}
+          salvando={salvando}
+        />
       )}
     </div>
   );
