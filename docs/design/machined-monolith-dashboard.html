@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AMP Dashboard - Machined Monolith</title>
+    <link rel="stylesheet" href="./dashboard-directions.css" />
+  </head>
+  <body class="theme-monolith">
+    <div class="design-stage">
+      <div class="shell">
+        <aside class="sidebar">
+          <div class="brand">
+            <div class="brand-mark"></div>
+            <div class="brand-copy">
+              <h1>AMP Monolith</h1>
+              <p>Industrial command suite</p>
+            </div>
+          </div>
+
+          <div class="nav-group">
+            <p class="section-label">Core system</p>
+            <div class="nav-item active"><span class="dot"></span>Dashboard</div>
+            <div class="nav-item"><span class="dot"></span>Clientes</div>
+            <div class="nav-item"><span class="dot"></span>Ordens</div>
+            <div class="nav-item"><span class="dot"></span>Financeiro</div>
+            <div class="nav-item"><span class="dot"></span>Comercial</div>
+          </div>
+
+          <div class="nav-group">
+            <p class="section-label">Control</p>
+            <div class="nav-item"><span class="dot"></span>Fila critica</div>
+            <div class="nav-item"><span class="dot"></span>Capacidade</div>
+            <div class="nav-item"><span class="dot"></span>Equipe</div>
+          </div>
+
+          <div class="sidebar-card">
+            <p class="section-label">Machined view</p>
+            <h3 style="margin: 8px 0 6px;">Painel de autoridade</h3>
+            <p class="summary">Interface mais densa, mais propria e mais AMP, com leitura de sala de controle.</p>
+          </div>
+        </aside>
+
+        <main class="workspace">
+          <div class="topbar">
+            <div>
+              <p class="section-label">Control stack</p>
+              <h2>Operacao total</h2>
+              <p class="top-meta">Monitoramento, decisoes e gargalos no mesmo plano visual.</p>
+            </div>
+            <div class="top-actions">
+              <span class="chip">25 mar 2026</span>
+              <span class="chip">Nivel 02</span>
+              <span class="chip primary">Acionar fila</span>
+              <span class="avatar"></span>
+            </div>
+          </div>
+
+          <div class="dashboard-grid">
+            <section class="panel hero">
+              <p class="panel-eyebrow">Machined Monolith</p>
+              <h3>Comando com massa e decisao</h3>
+              <p class="summary">Um dashboard mais acoplado, com menos widgets e mais superficies de comando, ideal para a identidade industrial da AMP.</p>
+              <div class="shell-note">Foco do turno: gargalos, priorizacao de OS e resposta comercial rapida.</div>
+              <div class="stats">
+                <div class="stat">
+                  <p class="stat-label">Capacidade</p>
+                  <p class="stat-value">82%</p>
+                </div>
+                <div class="stat">
+                  <p class="stat-label">OS criticas</p>
+                  <p class="stat-value">04</p>
+                </div>
+                <div class="stat">
+                  <p class="stat-label">Receita travada</p>
+                  <p class="stat-value">R$ 19k</p>
+                </div>
+              </div>
+            </section>
+
+            <section class="panel chart">
+              <p class="panel-eyebrow">Carga produtiva</p>
+              <h3>Balanceamento de fila</h3>
+              <p class="summary">Volume processado versus volume planejado, com leitura rapida e alto contraste.</p>
+              <div class="chart-frame">
+                <div class="line-chart">
+                  <svg viewBox="0 0 100 60" preserveAspectRatio="none">
+                    <polyline fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="2" points="0,44 15,40 30,28 45,30 60,24 75,14 100,18"></polyline>
+                    <polyline fill="none" stroke="rgba(255,123,51,0.9)" stroke-width="2.5" points="0,50 15,33 30,38 45,22 60,26 75,18 100,10"></polyline>
+                  </svg>
+                </div>
+              </div>
+            </section>
+
+            <section class="panel radial">
+              <p class="panel-eyebrow">Pressao operacional</p>
+              <h3>Meta de throughput</h3>
+              <div class="radial-wrap">
+                <div class="ring"></div>
+                <div class="ring-value">68%</div>
+                <p class="summary">Leitura mais agressiva e orientada a resposta rapida de capacidade e atraso.</p>
+              </div>
+            </section>
+
+            <section class="panel pending">
+              <p class="panel-eyebrow">Fila critica</p>
+              <h3>Decisoes urgentes</h3>
+              <div class="list">
+                <div class="list-item">
+                  <div class="list-head">
+                    <strong>OS-1881 bloqueada</strong>
+                    <span class="badge warning">Material</span>
+                  </div>
+                  <p class="summary">Falta liberacao da materia-prima para retomar usinagem de acabamento.</p>
+                </div>
+                <div class="list-item">
+                  <div class="list-head">
+                    <strong>Cliente Nortec</strong>
+                    <span class="badge">Comercial</span>
+                  </div>
+                  <p class="summary">Orcamento aprovado sem conversao em OS ha 6 horas.</p>
+                </div>
+              </div>
+            </section>
+
+            <section class="panel orders">
+              <p class="panel-eyebrow">Camaras de execucao</p>
+              <h3>Fila por impacto</h3>
+              <div class="tasks">
+                <div class="task-card">
+                  <p class="task-meta">Alta criticidade</p>
+                  <strong>Eixo D-41</strong>
+                  <p class="summary">Revisao metrologica e liberacao de bancada.</p>
+                  <div class="task-kpi">P1</div>
+                </div>
+                <div class="task-card">
+                  <p class="task-meta">Media criticidade</p>
+                  <strong>Flange TR-8</strong>
+                  <p class="summary">Aguardando janela de maquina para segundo turno.</p>
+                  <div class="task-kpi">P2</div>
+                </div>
+                <div class="task-card">
+                  <p class="task-meta">Baixa criticidade</p>
+                  <strong>Kit Sigma</strong>
+                  <p class="summary">Pronto para fechamento financeiro e expedicao.</p>
+                  <div class="task-kpi positive-text">P3</div>
+                </div>
+              </div>
+            </section>
+
+            <section class="panel clients">
+              <p class="panel-eyebrow">Clientes x operacao</p>
+              <h3>Conexao entre modulos</h3>
+              <div class="table">
+                <div class="table-row table-header">
+                  <span>Conta</span>
+                  <span>Prioridade</span>
+                  <span>OS</span>
+                  <span>Risco</span>
+                </div>
+                <div class="table-row">
+                  <p>Atlas Industrial</p>
+                  <p class="accent">Alta</p>
+                  <p>4 abertas</p>
+                  <p>Financeiro travado</p>
+                </div>
+                <div class="table-row">
+                  <p>Prisma Equipamentos</p>
+                  <p>Media</p>
+                  <p>2 abertas</p>
+                  <p class="positive-text">Controlado</p>
+                </div>
+                <div class="table-row">
+                  <p>Nortec Metal</p>
+                  <p class="accent">Alta</p>
+                  <p>3 abertas</p>
+                  <p>Follow-up pendente</p>
+                </div>
+              </div>
+            </section>
+
+            <section class="panel finance">
+              <p class="panel-eyebrow">Leitura monetaria</p>
+              <h3>Impacto operacional</h3>
+              <div class="finance-grid">
+                <div class="finance-row">
+                  <span>Receita processada</span>
+                  <strong>R$ 212k</strong>
+                </div>
+                <div class="finance-row">
+                  <span>OS prontas sem cobranca</span>
+                  <strong class="accent">R$ 17k</strong>
+                </div>
+                <div class="finance-row">
+                  <span>Recebimento em atraso</span>
+                  <strong class="accent">R$ 13k</strong>
+                </div>
+              </div>
+            </section>
+          </div>
+        </main>
+      </div>
+    </div>
+  </body>
+</html>
