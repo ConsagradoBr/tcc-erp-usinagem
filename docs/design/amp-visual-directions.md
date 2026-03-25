@@ -216,3 +216,19 @@ Motivo:
 ## Próximo passo
 
 Escolher uma vencedora ou, se fizer sentido, combinar a base de uma com detalhes pontuais de outra antes da implementação no sistema real.
+
+## Decisão tomada
+
+A direção vencedora do projeto deixou de ser uma opção isolada e passou a ser um híbrido deliberado:
+
+**Ceramic Command + Machined Monolith**
+
+Leitura da decisão:
+- o peso, a massa estrutural e a assinatura industrial vêm de `Machined Monolith`
+- o acabamento, o contraste off-white com grafite e o refinamento de superfície vêm de `Ceramic Command`
+
+Observação importante da escolha:
+- o azul muito claro usado em partes de `Machined Monolith` não deve seguir adiante, porque apaga conteúdo e reduz a presença da interface
+
+Documento de continuidade:
+- veja [amp-visual-winner.md](amp-visual-winner.md) para a especificação prática da linguagem vencedora
