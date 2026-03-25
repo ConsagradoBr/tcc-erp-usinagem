@@ -1,79 +1,126 @@
 ---
 name: amp-usinagem-industrial
-version: 1.0.0
-author: 'Equipe TCC - AMP Usinagem'
-description: 'Regras e padrões específicos do TCC ERP Usinagem Industrial (AMP Usinagem). Sempre siga esta skill quando trabalhar no projeto tcc-erp-usinagem.'
-tags: ["tcc","erp","usinagem","amp"]
+version: 2.0.0
+author: 'Codex + Equipe TCC - AMP Usinagem'
+description: 'Skill suprema do projeto tcc-erp-usinagem. Use em qualquer tarefa deste repositório, especialmente redesign visual, integração entre módulos, automações de fluxo, desktop nativo, build/release e validação final.'
+tags: ["tcc","erp","usinagem","amp","desktop","produto"]
 ---
 
 # Skill: AMP Usinagem Industrial
 
-Resumo
-- Esta skill contém regras, padrões, convenções e exemplos para trabalhar com o repositório tcc-erp-usinagem. Deve ser consultada e aplicada em PRs, issues e durante desenvolvimento.
+Esta é a skill-mãe do projeto. Ela deve orientar qualquer trabalho neste repositório para que o ERP evolua como um produto único, coeso e memorável, e não como um conjunto de telas ou CRUDs isolados.
 
-## Quando usar esta skill
-Use esta skill em **todas** as tarefas relacionadas a este repositório: criação de componentes, endpoints, testes, refatorações, correções de bugs, adição de funcionalidades, reviews de código, etc.
+## Quando usar
 
-## Stack e Tecnologias Obrigatórias
-- **Frontend**: React 18 + Vite + TypeScript + Tailwind CSS
-- **Backend**: Python + Flask (factory pattern)
-- **Banco de dados**: SQLAlchemy + PostgreSQL (produção) / SQLite (dev e testes)
-- **Autenticação**: JWT com Flask-JWT-Extended
-- **Desktop**: Python + built frontend servido pelo Flask
+Use esta skill em toda tarefa do `tcc-erp-usinagem`, incluindo:
+- redesign de interface
+- ajustes de UX e fluxo
+- novas funcionalidades
+- integrações entre módulos
+- backend, testes e refatorações
+- desktop nativo, empacotamento e releases
 
-## Estrutura do Projeto (obrigatório respeitar)
-- Frontend → raiz do projeto (`src/`, `routes.jsx`, `api.js`, `main.jsx`)
-- Backend → pasta `backend/` (blueprints por domínio)
-- Desktop → `desktop_app.py`
-- Testes → `backend/tests/`
+## Norte do produto
 
-## Padrões do Backend (Flask)
-- Sempre use o **factory pattern** (`backend/factory.py` → `create_app()`)
-- Blueprints organizados por domínio: `auth`, `clientes`, `orcamentos`, `ordens_servico`, `financeiro`, `sistema`
-- Endpoints REST previsíveis: `/auth/*`, `/clientes`, `/orcamentos`, `/ordens-servico`, etc.
-- Use `current_app` e `g` quando necessário
-- Nunca crie rotas diretamente em `app.py`
-- Sempre registre blueprints no factory
+- O sistema deve parecer um **centro de comando industrial premium**.
+- O fluxo deve ser **conectado**, com contexto e próxima ação clara.
+- Toda evolução relevante deve fortalecer a cadeia:
+  `cliente -> orçamento -> ordem de serviço -> financeiro`
+- O desktop nativo é superfície de primeira classe.
+- O usuário deve sentir menos navegação entre páginas e mais continuidade operacional.
 
-## Padrões do Frontend
-- Use o cliente centralizado: `src/api.js` (nunca use axios diretamente)
-- Componentes em `src/` com Tailwind (classe `className`, não `class`)
-- Prefira composição de componentes
-- Mantenha rotas em `src/routes.jsx`
+## Classifique a tarefa antes de agir
 
-## Nomenclatura
-- Backend: snake_case (funções, variáveis, arquivos)
-- Frontend: camelCase + PascalCase para componentes
-- Pastas e blueprints: kebab-case ou snake_case consistente
-- Modelos: nomes claros em português (Cliente, Orcamento, OrdemServico, etc.)
+Antes de implementar, identifique em qual trilha a tarefa cai. Uma mesma tarefa pode usar mais de uma.
 
-## Testes
-- Backend: pytest
-- Sempre mantenha testes idempotentes
-- Use `test_client` do Flask quando possível
-- Consulte `backend/tests/test_api.py` como referência de fluxos
+- `visual-system`
+  Leia [references/visual-system.md](references/visual-system.md) para qualquer trabalho em shell, dashboard, tabelas, formulários, modais ou identidade visual.
+- `operational-flow`
+  Leia [references/operational-flows.md](references/operational-flows.md) para qualquer trabalho que envolva integração entre módulos, automação, preenchimento automático, status, atalhos ou visão 360 do cliente.
+- `quality-gates`
+  Leia [references/quality-gates.md](references/quality-gates.md) para validação, build, desktop, release e critérios de entrega.
 
-## Environment Variables
-- Frontend: `VITE_API_BASE_URL`
-- Backend: `DATABASE_URL`, `JWT_SECRET_KEY`, `SECRET_KEY`, `FLASK_HOST`, `FLASK_PORT`, `FLASK_DEBUG`
+## Mapa atual do repositório
 
-## Regras Importantes
-- Nunca altere o schema do banco sem cuidado (veja `_garantir_colunas_usuarios()` em factory.py)
-- Migrations não automatizadas → prefira alterações compatíveis ou documente
-- Erros: o handler global retorna JSON 500 + traceback (útil em dev)
-- Sempre rode `npm run build` antes de testar o desktop
-- Mantenha o código limpo e com comentários educativos quando possível
+- Frontend React/Vite na raiz, com rotas em `src/routes.jsx`
+- Layout autenticado em `src/layouts/ProtectedLayout.jsx`
+- Shell desktop em `desktop_app.py`
+- Backend Flask factory em `backend/factory.py`
+- Blueprints: `auth`, `clientes`, `financeiro`, `orcamentos`, `ordens_servico`, `sistema`
+- Scripts oficiais de release em `scripts/Prepare-GitHubRelease.ps1` e `scripts/Publish-GitHubRelease.ps1`
+- Testes backend em `backend/tests/`
 
-## Exemplos de uso
-- Ao criar um endpoint de clientes, siga os blueprints e nomeie o arquivo como `backend/clients/routes.py` (ou `clientes` em pt).
-- Para mudanças de DB, crie uma migration compatível e documente passos no PR.
+Rotas de produto já existentes:
+- `/app/dashboard`
+- `/app/clientes`
+- `/app/financeiro`
+- `/app/ordemservico`
+- `/app/orcamentos`
+- `/app/backup`
+- `/app/usuarios`
 
-## Checklist de PRs (aplicar em cada PR deste repositório)
-- [ ] Segue estrutura de pastas e padrões descritos
-- [ ] Testes novos/atualizados adicionados e passando
-- [ ] Variáveis de ambiente necessárias documentadas
-- [ ] Não há secrets em código
+## Regras supremas de execução
 
----
+- Não trate módulos como ilhas. Sempre pergunte o que vem antes e o que vem depois no fluxo.
+- Não adicione UI bonita sem aumentar clareza operacional.
+- Não adicione automação sem manter rastreabilidade e previsibilidade.
+- Não regrida o desktop nativo para comportamento de navegador por padrão.
+- Não crie lógica duplicada entre frontend e backend se o backend pode centralizar a regra.
+- Não entregue uma tela nova se ela quebrar a linguagem visual do restante do sistema.
 
-Esta skill tem prioridade máxima sobre as demais skills genéricas quando o contexto for este repositório.
+## Padrões obrigatórios
+
+### Produto e UX
+
+- Prefira experiências guiadas por contexto, histórico, status e próxima ação.
+- Cada tela deve responder rapidamente:
+  - onde o usuário está
+  - o que está pendente
+  - o que pode fazer agora
+  - o que acontece depois
+- Sempre que possível, exponha relações entre cliente, orçamento, OS e financeiro na própria interface.
+
+### Frontend
+
+- Use `src/api.js` como cliente centralizado.
+- Preserve a linguagem visual do shell e aplique a mesma coerência em páginas internas.
+- Prefira composição, clareza de hierarquia e densidade controlada.
+- Modal é para ação rápida; fluxo longo pede página, painel ou seções claras.
+
+### Backend
+
+- Mantenha factory pattern e blueprints por domínio.
+- Registre rotas pelo `backend/factory.py`.
+- Preserve compatibilidade com SQLite local e PostgreSQL configurado por ambiente.
+- Mudanças estruturais devem ser compatíveis com a base local existente.
+
+### Desktop e release
+
+- O launcher deve priorizar janela nativa.
+- O build desktop oficial usa `npm run build:desktop`.
+- Releases oficiais devem usar os scripts do diretório `scripts/`.
+
+## Definição de pronto
+
+Uma entrega boa para este projeto normalmente precisa passar por estes filtros:
+
+- melhora a clareza visual ou a clareza operacional
+- respeita a cadeia de negócio do sistema
+- mantém a aplicação coerente em desktop e web empacotada
+- considera permissões e perfis
+- valida lint, build, testes e, quando necessário, desktop/release
+
+## Sinais de que a solução está no caminho errado
+
+- parece um dashboard SaaS genérico
+- exige muitos cliques para avançar no fluxo
+- cria telas sem ligação com entidades vizinhas
+- mostra dados, mas não mostra decisão ou ação
+- usa muitos cards como muleta de layout
+- depende de fallback para navegador para “funcionar”
+
+## Referências desta skill
+
+- Visual e direção de interface: [references/visual-system.md](references/visual-system.md)
+- Fluxos e automações de negócio: [references/operational-flows.md](references/operational-flows.md)
+- Validação, desktop e release: [references/quality-gates.md](references/quality-gates.md)
