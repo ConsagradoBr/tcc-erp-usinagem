@@ -30,6 +30,7 @@ release/
 
 # Logs
 *.log
+output/
 
 # OS
 Thumbs.db
