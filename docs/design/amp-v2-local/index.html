@@ -1,0 +1,1020 @@
+<!-- <!doctype html> -->
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AMP V2 Local First</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./amp-v2-local.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+  </head>
+  <body data-theme="light" data-screen="dashboard">
+    <div class="app-shell">
+      <aside class="rail">
+        <div class="brand-lockup">
+          <div class="brand-mark" aria-hidden="true">
+            <div class="amp-emblem amp-emblem-compact">
+              <span class="amp-emblem-gear"></span>
+              <span class="amp-emblem-core">AMP</span>
+            </div>
+          </div>
+          <div class="brand-copy">
+            <p class="eyebrow">AMP V2</p>
+            <h1>AMP Usinagem</h1>
+            <p class="muted">Local first design canvas</p>
+          </div>
+        </div>
+
+        <nav class="nav-stack" aria-label="Telas">
+          <button class="nav-link is-active" data-screen-target="dashboard">
+            <span class="nav-icon">DB</span>
+            <span>Dashboard</span>
+          </button>
+          <button class="nav-link" data-screen-target="relacionamento">
+            <span class="nav-icon">CR</span>
+            <span>Clientes e Fornecedores</span>
+          </button>
+          <button class="nav-link" data-screen-target="orcamentos">
+            <span class="nav-icon">OC</span>
+            <span>Orcamentos</span>
+          </button>
+          <button class="nav-link" data-screen-target="os">
+            <span class="nav-icon">OS</span>
+            <span>OS</span>
+          </button>
+          <button class="nav-link" data-screen-target="financeiro">
+            <span class="nav-icon">FN</span>
+            <span>Financeiro</span>
+          </button>
+          <button class="nav-link" data-screen-target="usuarios">
+            <span class="nav-icon">US</span>
+            <span>Usuarios</span>
+          </button>
+          <button class="nav-link" data-screen-target="backup">
+            <span class="nav-icon">BK</span>
+            <span>Backup</span>
+          </button>
+          <button class="nav-link" data-screen-target="login">
+            <span class="nav-icon">LG</span>
+            <span>Login</span>
+          </button>
+        </nav>
+
+        <section class="rail-console">
+          <div class="rail-console-head">
+            <p class="eyebrow">Pulse operacional</p>
+            <span class="rail-console-state">Live</span>
+          </div>
+          <div class="rail-console-grid">
+            <article>
+              <span>OS vivas</span>
+              <strong>14</strong>
+            </article>
+            <article>
+              <span>Caixa proj.</span>
+              <strong>R$ 468k</strong>
+            </article>
+            <article>
+              <span>Estoque crit.</span>
+              <strong>03</strong>
+            </article>
+            <article>
+              <span>Entrega SLA</span>
+              <strong>94%</strong>
+            </article>
+          </div>
+        </section>
+      </aside>
+
+      <main class="workspace">
+        <header class="workspace-bar">
+          <div class="workspace-copy">
+            <p class="eyebrow" id="workspace-kicker">AMP industrial suite</p>
+            <h2 id="workspace-title">Dashboard</h2>
+            <p class="workspace-note" id="workspace-note">
+              Canvas local para convergencia entre Figma, sistema e TCC.
+            </p>
+          </div>
+
+          <div class="workspace-actions">
+            <div class="workspace-pulse">
+              <span class="workspace-pulse-dot"></span>
+              <span>Local first terminal</span>
+            </div>
+            <div class="mode-switch" aria-label="Tema">
+              <button class="mode-chip is-active" type="button" data-theme-target="light">
+                Light
+              </button>
+              <button class="mode-chip" type="button" data-theme-target="dark">
+                Dark
+              </button>
+            </div>
+            <div class="workspace-meta">
+              <span>Desktop native</span>
+              <span>AMP trader shell</span>
+              <span>Figma aligned</span>
+            </div>
+          </div>
+        </header>
+
+        <section class="screen is-visible" data-screen-name="dashboard">
+          <div class="trader-dashboard">
+            <div class="trader-topbar">
+              <div class="trader-logo">
+                <div class="trader-logo-ring" aria-hidden="true">
+                  <span class="amp-emblem amp-emblem-compact">
+                    <span class="amp-emblem-gear"></span>
+                    <span class="amp-emblem-core">AMP</span>
+                  </span>
+                </div>
+                <div class="trader-logo-text">
+                  <div class="trader-logo-name">AMP</div>
+                  <div class="trader-logo-sub">Usinagem Industrial</div>
+                </div>
+              </div>
+
+              <div class="trader-dash-title">Centro analitico AMP - operacao industrial</div>
+
+              <div class="trader-weather">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--trd-warn)" stroke-width="1.5">
+                  <circle cx="12" cy="12" r="4"></circle>
+                  <line x1="12" y1="2" x2="12" y2="4"></line>
+                  <line x1="12" y1="20" x2="12" y2="22"></line>
+                  <line x1="2" y1="12" x2="4" y2="12"></line>
+                  <line x1="20" y1="12" x2="22" y2="12"></line>
+                  <line x1="4.93" y1="4.93" x2="6.34" y2="6.34"></line>
+                  <line x1="17.66" y1="17.66" x2="19.07" y2="19.07"></line>
+                  <line x1="4.93" y1="19.07" x2="6.34" y2="17.66"></line>
+                  <line x1="17.66" y1="6.34" x2="19.07" y2="4.93"></line>
+                </svg>
+                <div>
+                  <div class="trader-weather-temp">27C</div>
+                  <div class="trader-weather-city">Campinas, BR</div>
+                  <div class="trader-weather-desc">Turno em operacao</div>
+                </div>
+              </div>
+
+              <div class="trader-calendar-chip">
+                <div class="trader-cal-month" id="trader-cal-month">MAR</div>
+                <div class="trader-cal-day" id="trader-cal-day">30</div>
+                <div class="trader-cal-weekday" id="trader-cal-weekday">SEG</div>
+              </div>
+
+              <div class="trader-clock-widget">
+                <canvas id="trader-clock-canvas" width="58" height="58"></canvas>
+                <div class="trader-clock-time" id="trader-clock-time">00:00:00</div>
+              </div>
+            </div>
+
+            <div class="trader-kpi-row">
+              <article class="trader-kpi" style="--trd-kpi-color: var(--trd-accent);">
+                <div class="trader-kpi-label">Faturamento MTD</div>
+                <div class="trader-kpi-value" id="trader-kpi-fat">R$ 0</div>
+                <div class="trader-kpi-delta is-pos">+ 8,2% vs mes anterior</div>
+              </article>
+              <article class="trader-kpi" style="--trd-kpi-color: var(--trd-warn);">
+                <div class="trader-kpi-label">OEE operacional</div>
+                <div class="trader-kpi-value" id="trader-kpi-prod">0%</div>
+                <div class="trader-kpi-delta is-pos">+ eficiencia h x p / meta</div>
+              </article>
+              <article class="trader-kpi" style="--trd-kpi-color: var(--trd-purple);">
+                <div class="trader-kpi-label">Ticket por OS</div>
+                <div class="trader-kpi-value" id="trader-kpi-ticket">R$ 0</div>
+                <div class="trader-kpi-delta is-neg">- 3,1% vs mes anterior</div>
+              </article>
+            </div>
+
+            <div class="trader-ticker" aria-label="Resumo de operacao">
+              <div class="trader-ticker-item">
+                <span class="trader-ticker-label">Backlog</span>
+                <span class="trader-ticker-value is-pos">+14 OS</span>
+              </div>
+              <div class="trader-ticker-item">
+                <span class="trader-ticker-label">Setup medio</span>
+                <span class="trader-ticker-value">01h42</span>
+              </div>
+              <div class="trader-ticker-item">
+                <span class="trader-ticker-label">Entrega no prazo</span>
+                <span class="trader-ticker-value is-pos">94%</span>
+              </div>
+              <div class="trader-ticker-item">
+                <span class="trader-ticker-label">Risco estoque</span>
+                <span class="trader-ticker-value is-neg">03 itens</span>
+              </div>
+              <div class="trader-ticker-item">
+                <span class="trader-ticker-label">Margem media</span>
+                <span class="trader-ticker-value">22,4%</span>
+              </div>
+            </div>
+
+            <div class="trader-main">
+              <div class="trader-col">
+                <section class="trader-panel">
+                  <div class="trader-panel-title">Faturamento mensal</div>
+                  <div class="trader-chart-wrap"><canvas id="trader-fat-chart"></canvas></div>
+                  <div class="trader-panel-foot">
+                    Total vendas:
+                    <span id="trader-total-vendas">R$ 0</span>
+                  </div>
+                </section>
+
+                <section class="trader-panel">
+                  <div class="trader-panel-title">Fluxo de caixa</div>
+                  <div class="trader-fluxo-value" id="trader-fluxo-val">R$ 0</div>
+                  <div class="trader-donut-row">
+                    <canvas id="trader-donut-canvas" width="88" height="88"></canvas>
+                    <div class="trader-donut-legend">
+                      <div class="trader-legend-item">
+                        <span class="trader-legend-dot is-pos"></span>
+                        A receber <em>68%</em>
+                      </div>
+                      <div class="trader-legend-item">
+                        <span class="trader-legend-dot is-neg"></span>
+                        A pagar <em>32%</em>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="trader-fluxo-breakdown">
+                    <div class="trader-break-row">
+                      <span>Entradas previstas</span>
+                      <strong class="is-pos">R$ 742 mil</strong>
+                    </div>
+                    <div class="trader-break-row">
+                      <span>Saidas compromissadas</span>
+                      <strong class="is-neg">R$ 273 mil</strong>
+                    </div>
+                    <div class="trader-break-row">
+                      <span>Saldo projetado</span>
+                      <strong>R$ 468 mil</strong>
+                    </div>
+                  </div>
+                </section>
+
+                <section class="trader-panel trader-panel-grow">
+                  <div class="trader-panel-title">Recebimentos sensiveis</div>
+                  <table class="trader-table">
+                    <thead>
+                      <tr><th>Cliente</th><th>Valor</th><th>Janela</th><th>Status</th></tr>
+                    </thead>
+                    <tbody>
+                      <tr><td>Atlas Motores</td><td class="is-mono is-pos">R$ 18.500</td><td>15/04</td><td><span class="trader-badge is-good">OK</span></td></tr>
+                      <tr><td>Metal Vale</td><td class="is-mono is-warn-text">R$ 42.000</td><td class="is-neg">02/04</td><td><span class="trader-badge is-warn">Vence</span></td></tr>
+                      <tr><td>UsiCamp</td><td class="is-mono is-pos">R$ 65.000</td><td>20/04</td><td><span class="trader-badge is-good">OK</span></td></tr>
+                    </tbody>
+                  </table>
+                </section>
+              </div>
+
+              <div class="trader-col">
+                <section class="trader-panel">
+                  <div class="trader-panel-title">Pipeline comercial</div>
+                  <div class="trader-pipe-list">
+                    <div class="trader-pipe-row">
+                      <div class="trader-pipe-label">Entrada</div>
+                      <div class="trader-pipe-track"><div class="trader-pipe-fill is-blue" style="width:84%"></div></div>
+                      <div class="trader-pipe-number">24</div>
+                    </div>
+                    <div class="trader-pipe-row">
+                      <div class="trader-pipe-label">Proposta</div>
+                      <div class="trader-pipe-track"><div class="trader-pipe-fill is-warn" style="width:58%"></div></div>
+                      <div class="trader-pipe-number">13</div>
+                    </div>
+                    <div class="trader-pipe-row">
+                      <div class="trader-pipe-label">Aprovado</div>
+                      <div class="trader-pipe-track"><div class="trader-pipe-fill is-pos" style="width:36%"></div></div>
+                      <div class="trader-pipe-number">8</div>
+                    </div>
+                  </div>
+                </section>
+
+                <section class="trader-panel trader-kanban-panel">
+                  <div class="trader-panel-title">Fila de OS</div>
+                  <div class="trader-kanban">
+                    <div class="trader-kanban-col">
+                      <div class="trader-kanban-head">Para fazer</div>
+                      <div class="trader-kanban-card">OS-218 | Flange A</div>
+                      <div class="trader-kanban-card">OS-221 | Bucha Eixo</div>
+                      <div class="trader-kanban-card is-warn">OS-223 | Ajuste guia</div>
+                    </div>
+                    <div class="trader-kanban-col">
+                      <div class="trader-kanban-head">Fazendo</div>
+                      <div class="trader-kanban-card is-pos">OS-214 | Corpo valvula</div>
+                      <div class="trader-kanban-card is-pos">OS-216 | Eixo roscado</div>
+                    </div>
+                    <div class="trader-kanban-col">
+                      <div class="trader-kanban-head">Feito</div>
+                      <div class="trader-kanban-card is-purple">OS-210 | Tampa prensa</div>
+                      <div class="trader-kanban-card is-purple">OS-212 | Suporte cnc</div>
+                    </div>
+                  </div>
+                </section>
+
+                <section class="trader-panel trader-panel-grow">
+                  <div class="trader-panel-title">Carga x capacidade de producao</div>
+                  <div class="trader-chart-wrap trader-chart-wrap-grow"><canvas id="trader-tempo-chart"></canvas></div>
+                </section>
+
+                <section class="trader-panel">
+                  <div class="trader-panel-title">Receita por cliente</div>
+                  <div class="trader-receita-list">
+                    <div class="trader-receita-row"><div class="trader-receita-label">Atlas</div><div class="trader-receita-track"><div class="trader-receita-fill" style="width:40%"></div></div><div class="trader-receita-value">R$ 120 mil</div></div>
+                    <div class="trader-receita-row"><div class="trader-receita-label">Metal</div><div class="trader-receita-track"><div class="trader-receita-fill" style="width:62%"></div></div><div class="trader-receita-value">R$ 186 mil</div></div>
+                    <div class="trader-receita-row"><div class="trader-receita-label">UsiCamp</div><div class="trader-receita-track"><div class="trader-receita-fill" style="width:74%"></div></div><div class="trader-receita-value">R$ 224 mil</div></div>
+                    <div class="trader-receita-row"><div class="trader-receita-label">NovaMaq</div><div class="trader-receita-track"><div class="trader-receita-fill" style="width:100%"></div></div><div class="trader-receita-value">R$ 302 mil</div></div>
+                  </div>
+                  <div class="trader-panel-foot">
+                    Valor total:
+                    <span>R$ 832.000</span>
+                  </div>
+                </section>
+              </div>
+
+              <div class="trader-col">
+                <section class="trader-panel">
+                  <div class="trader-panel-title">Ordens em atraso - mes</div>
+                  <div class="trader-overdue">
+                    <div class="trader-overdue-big">3</div>
+                    <div>
+                      <div class="trader-overdue-info">ordens fora do prazo</div>
+                      <div class="trader-overdue-sub">Mes: <span>MAR/26</span></div>
+                    </div>
+                  </div>
+                </section>
+
+                <section class="trader-panel">
+                  <div class="trader-panel-title">Pulso do estoque</div>
+                  <div class="trader-stock-bars">
+                    <div class="trader-stock-wrap">
+                      <div class="trader-stock-value">142</div>
+                      <div class="trader-stock-bar is-pos" style="height:68px"></div>
+                      <div class="trader-stock-label">Aco 1020</div>
+                    </div>
+                    <div class="trader-stock-wrap">
+                      <div class="trader-stock-value">89</div>
+                      <div class="trader-stock-bar is-warn" style="height:42px"></div>
+                      <div class="trader-stock-label">Bronze</div>
+                    </div>
+                    <div class="trader-stock-wrap">
+                      <div class="trader-stock-value">203</div>
+                      <div class="trader-stock-bar is-purple" style="height:96px"></div>
+                      <div class="trader-stock-label">Inox 304</div>
+                    </div>
+                  </div>
+                </section>
+
+                <section class="trader-panel">
+                  <div class="trader-panel-title">Criticidade do estoque</div>
+                  <div class="trader-gauge-wrap">
+                    <canvas id="trader-gauge-canvas" width="174" height="96"></canvas>
+                    <div class="trader-gauge-note">3 itens abaixo do minimo</div>
+                  </div>
+                </section>
+
+                <section class="trader-panel trader-panel-grow">
+                  <div class="trader-panel-title">Itens criticos</div>
+                  <table class="trader-table">
+                    <thead>
+                      <tr><th>Item</th><th>Qtde</th><th>VU</th><th>Status</th></tr>
+                    </thead>
+                    <tbody>
+                      <tr><td>Bronze SAE 65</td><td class="is-mono">12</td><td>Kg</td><td><span class="trader-badge is-bad">Critico</span></td></tr>
+                      <tr><td>Aco 1045</td><td class="is-mono">28</td><td>Barra</td><td><span class="trader-badge is-warn">Alerta</span></td></tr>
+                      <tr><td>Inox 316</td><td class="is-mono">5</td><td>Barra</td><td><span class="trader-badge is-bad">Critico</span></td></tr>
+                    </tbody>
+                  </table>
+                </section>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen" data-screen-name="relacionamento">
+          <div class="rel-terminal">
+            <section class="rel-command-deck">
+              <div class="rel-command-head">
+                <div>
+                  <p class="eyebrow">Relacionamento unificado</p>
+                  <h3>Clientes e fornecedores no mesmo terminal operacional</h3>
+                </div>
+                <div class="segmented rel-segmented">
+                  <button class="segment is-active" type="button">Clientes</button>
+                  <button class="segment" type="button">Fornecedores</button>
+                </div>
+              </div>
+
+              <div class="rel-command-tools">
+                <div class="search-box rel-search-box">Buscar conta, documento, contato ou contexto fiscal</div>
+                <div class="pill-row rel-pill-row">
+                  <span class="pill is-solid">Ativos</span>
+                  <span class="pill">Pendentes</span>
+                  <span class="pill">Fiscal pronto</span>
+                  <span class="pill">Com OS em curso</span>
+                </div>
+              </div>
+
+              <div class="rel-kpi-tape">
+                <article class="rel-tape-card">
+                  <p class="eyebrow">Clientes ativos</p>
+                  <strong>18</strong>
+                  <span>12 com fluxo conectado</span>
+                </article>
+                <article class="rel-tape-card">
+                  <p class="eyebrow">Fornecedores</p>
+                  <strong>06</strong>
+                  <span>3 estrategicos e 2 homologacoes</span>
+                </article>
+                <article class="rel-tape-card">
+                  <p class="eyebrow">Pendencias</p>
+                  <strong>04</strong>
+                  <span>2 fiscais e 2 comerciais</span>
+                </article>
+                <article class="rel-tape-card">
+                  <p class="eyebrow">Conversao</p>
+                  <strong>72%</strong>
+                  <span>da proposta para OS em ate 9 dias</span>
+                </article>
+              </div>
+            </section>
+
+            <div class="rel-terminal-grid">
+              <section class="rel-ledger-panel">
+                <div class="rel-ledger-top">
+                  <div>
+                    <p class="eyebrow">Ledger principal</p>
+                    <h3>Base operacional de relacionamento</h3>
+                  </div>
+                  <div class="rel-ledger-flags">
+                    <span class="status-tag is-cool">Desktop sync</span>
+                    <span class="status-tag">Fiscal rastreado</span>
+                  </div>
+                </div>
+
+                <div class="rel-ledger-head">
+                  <span>Conta</span>
+                  <span>Documento</span>
+                  <span>Perfil</span>
+                  <span>Pulso operacional</span>
+                  <span>Acoes</span>
+                </div>
+
+                <div class="rel-ledger-body">
+                  <article class="rel-ledger-row is-selected">
+                    <div class="rel-ledger-main">
+                      <strong>AMP Industrial Ltda</strong>
+                      <p>Cliente ancora com cadastro estavel, leitura fiscal limpa e boa conversao entre comercial, OS e financeiro.</p>
+                    </div>
+                    <div class="rel-ledger-doc">12.345.678/0001-95</div>
+                    <div class="rel-ledger-flow">
+                      <span class="trader-badge is-good">Cliente</span>
+                      <span class="trader-badge is-good">Fiscal ok</span>
+                    </div>
+                    <div class="rel-ledger-pulse">
+                      <span>2 orc</span>
+                      <span>1 OS</span>
+                      <span>0 atraso</span>
+                    </div>
+                    <div class="rel-ledger-actions">
+                      <span class="status-tag is-cool">Foco</span>
+                      <span class="status-tag">Abrir</span>
+                    </div>
+                  </article>
+
+                  <article class="rel-ledger-row">
+                    <div class="rel-ledger-main">
+                      <strong>Atlas Industrial</strong>
+                      <p>Fornecedor de material e parceiro estrategico para compras recorrentes e suprimento de ligas especiais.</p>
+                    </div>
+                    <div class="rel-ledger-doc">48.019.998/0001-10</div>
+                    <div class="rel-ledger-flow">
+                      <span class="trader-badge is-warn">Fornecedor</span>
+                      <span class="trader-badge is-good">Homologado</span>
+                    </div>
+                    <div class="rel-ledger-pulse">
+                      <span>3 comp</span>
+                      <span>1 risco</span>
+                      <span>lead 4d</span>
+                    </div>
+                    <div class="rel-ledger-actions">
+                      <span class="status-tag">Ver</span>
+                    </div>
+                  </article>
+
+                  <article class="rel-ledger-row">
+                    <div class="rel-ledger-main">
+                      <strong>Nortec Metal</strong>
+                      <p>Conta comercial aquecida com follow-up pendente e aprovacao aguardando transicao para ordem de servico.</p>
+                    </div>
+                    <div class="rel-ledger-doc">11.004.998/0001-44</div>
+                    <div class="rel-ledger-flow">
+                      <span class="trader-badge is-warn">Follow-up</span>
+                      <span class="trader-badge is-good">Orc ativo</span>
+                    </div>
+                    <div class="rel-ledger-pulse">
+                      <span>1 aprov</span>
+                      <span>OS pend.</span>
+                      <span>7d parada</span>
+                    </div>
+                    <div class="rel-ledger-actions">
+                      <span class="status-tag is-cool">Acao</span>
+                    </div>
+                  </article>
+                </div>
+              </section>
+
+              <aside class="rel-focus-panel">
+                <div class="rel-focus-card rel-focus-card-primary">
+                  <p class="eyebrow">Registro em foco</p>
+                  <h3>AMP Industrial Ltda</h3>
+                  <p class="muted">
+                    Conta com melhor sinal de renovacao comercial, historico fiscal completo e operacao sem ruido.
+                  </p>
+                </div>
+
+                <div class="rel-focus-grid">
+                  <article class="rel-focus-metric">
+                    <span>Tipo</span>
+                    <strong>Cliente</strong>
+                  </article>
+                  <article class="rel-focus-metric">
+                    <span>Status</span>
+                    <strong>Ativo</strong>
+                  </article>
+                  <article class="rel-focus-metric">
+                    <span>Financeiro</span>
+                    <strong>Sem atraso</strong>
+                  </article>
+                  <article class="rel-focus-metric">
+                    <span>Praca</span>
+                    <strong>Campinas</strong>
+                  </article>
+                </div>
+
+                <div class="rel-next-action">
+                  <p class="eyebrow">Proxima melhor acao</p>
+                  <strong>Apresentar renovacao comercial</strong>
+                  <p class="muted">Aproveitar o ciclo saudavel para abrir uma nova OS com ticket mais alto.</p>
+                </div>
+
+                <div class="rel-activity-feed">
+                  <article class="rel-feed-item">
+                    <div>
+                      <strong>Fiscal atualizado</strong>
+                      <p class="muted">NF-e conciliada e cadastro sem lacunas.</p>
+                    </div>
+                    <span>Hoje</span>
+                  </article>
+                  <article class="rel-feed-item">
+                    <div>
+                      <strong>Orcamento aprovado</strong>
+                      <p class="muted">Transicao pronta para abertura de OS.</p>
+                    </div>
+                    <span>+2d</span>
+                  </article>
+                  <article class="rel-feed-item">
+                    <div>
+                      <strong>Contato validado</strong>
+                      <p class="muted">Canal comercial ativo e sem bloqueio.</p>
+                    </div>
+                    <span>+5d</span>
+                  </article>
+                </div>
+              </aside>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen" data-screen-name="orcamentos">
+          <div class="screen-grid screen-grid-flow">
+            <section class="surface-panel">
+              <div class="section-head">
+                <div>
+                  <p class="eyebrow">Comercial</p>
+                  <h3>Orcamentos com ponte para operacao</h3>
+                </div>
+                <span class="pill is-solid">Aprovados 4</span>
+              </div>
+              <div class="terminal-ribbon">
+                <article class="terminal-metric">
+                  <span>Backlog comercial</span>
+                  <strong>08</strong>
+                </article>
+                <article class="terminal-metric">
+                  <span>Conversao 30d</span>
+                  <strong>72%</strong>
+                </article>
+                <article class="terminal-metric">
+                  <span>Ticket alvo</span>
+                  <strong>R$ 18,6k</strong>
+                </article>
+              </div>
+              <div class="flow-strip">
+                <div class="stage-card">
+                  <p class="eyebrow">Em analise</p>
+                  <strong>03</strong>
+                  <p class="muted">Volume aguardando resposta tecnica</p>
+                </div>
+                <div class="stage-card is-accented">
+                  <p class="eyebrow">Aprovados</p>
+                  <strong>04</strong>
+                  <p class="muted">Prontos para OS e reflexo no financeiro</p>
+                </div>
+                <div class="stage-card">
+                  <p class="eyebrow">Perdidos</p>
+                  <strong>01</strong>
+                  <p class="muted">Encerrar ciclo e registrar motivo</p>
+                </div>
+              </div>
+              <div class="table-shell slim">
+                <div class="table-head table-grid-flow">
+                  <span>Cliente</span>
+                  <span>Status</span>
+                  <span>Validade</span>
+                  <span>Valor</span>
+                  <span>Proxima acao</span>
+                </div>
+                <div class="table-body">
+                  <div class="table-row table-grid-flow">
+                    <span>Atlas Industrial</span>
+                    <span class="is-warm-text">Aprovado</span>
+                    <span>31/03/2026</span>
+                    <span>R$ 18.400</span>
+                    <span>Gerar OS</span>
+                  </div>
+                  <div class="table-row table-grid-flow">
+                    <span>Prisma Equipamentos</span>
+                    <span>Em decisao</span>
+                    <span>04/04/2026</span>
+                    <span>R$ 9.200</span>
+                    <span>Follow-up</span>
+                  </div>
+                </div>
+              </div>
+            </section>
+            <aside class="inspector-panel">
+              <p class="eyebrow">Conversao</p>
+              <h3>Regra visual oficial</h3>
+              <p class="muted">
+                Orcamento aprovado precisa deixar clara a passagem natural para
+                Ordem de Servico e Financeiro.
+              </p>
+            </aside>
+          </div>
+        </section>
+
+        <section class="screen" data-screen-name="os">
+          <div class="screen-grid screen-grid-os">
+            <section class="surface-panel full-span">
+              <div class="section-head">
+                <div>
+                  <p class="eyebrow">Operacao</p>
+                  <h3>Quadro de ordem de servico mais manuseavel</h3>
+                </div>
+                <div class="pill-row">
+                  <span class="pill is-solid">Todos</span>
+                  <span class="pill">Pede acao</span>
+                  <span class="pill">Alta prioridade</span>
+                </div>
+              </div>
+              <div class="terminal-ribbon">
+                <article class="terminal-metric">
+                  <span>Lead time medio</span>
+                  <strong>05d 12h</strong>
+                </article>
+                <article class="terminal-metric">
+                  <span>Celulas ativas</span>
+                  <strong>03</strong>
+                </article>
+                <article class="terminal-metric">
+                  <span>Bloqueios</span>
+                  <strong>01</strong>
+                </article>
+              </div>
+              <div class="kanban-grid">
+                <article class="lane">
+                  <header>
+                    <p class="eyebrow">Solicitado</p>
+                    <strong>02</strong>
+                  </header>
+                  <div class="lane-card">
+                    <strong>OS-1048</strong>
+                    <p class="muted">Atlas Industrial</p>
+                    <p class="muted">Definir prioridade e materia-prima</p>
+                  </div>
+                </article>
+                <article class="lane">
+                  <header>
+                    <p class="eyebrow">Em andamento</p>
+                    <strong>03</strong>
+                  </header>
+                  <div class="lane-card">
+                    <strong>OS-1052</strong>
+                    <p class="muted">Nortec Metal</p>
+                    <p class="muted">Usinagem ativa em bancada 2</p>
+                  </div>
+                </article>
+                <article class="lane">
+                  <header>
+                    <p class="eyebrow">Em revisao</p>
+                    <strong>01</strong>
+                  </header>
+                  <div class="lane-card">
+                    <strong>OS-1044</strong>
+                    <p class="muted">Prisma Equipamentos</p>
+                    <p class="muted">Conferencia tecnica e acabamento</p>
+                  </div>
+                </article>
+                <article class="lane">
+                  <header>
+                    <p class="eyebrow">Concluido</p>
+                    <strong>01</strong>
+                  </header>
+                  <div class="lane-card">
+                    <strong>OS-1039</strong>
+                    <p class="muted">AMP Industrial</p>
+                    <p class="muted">Pronto para fechamento financeiro</p>
+                  </div>
+                </article>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section class="screen" data-screen-name="financeiro">
+          <div class="screen-grid screen-grid-fin">
+            <section class="surface-panel">
+              <div class="section-head">
+                <div>
+                  <p class="eyebrow">Financeiro</p>
+                  <h3>Titulos e parcelas com espinha dorsal em tabela</h3>
+                </div>
+                <div class="pill-row">
+                  <span class="pill is-solid">A receber</span>
+                  <span class="pill">A pagar</span>
+                  <span class="pill">Parcelados</span>
+                </div>
+              </div>
+              <div class="terminal-ribbon">
+                <article class="terminal-metric">
+                  <span>D+7 recebimento</span>
+                  <strong>R$ 43k</strong>
+                </article>
+                <article class="terminal-metric">
+                  <span>D+7 pagamento</span>
+                  <strong>R$ 19k</strong>
+                </article>
+                <article class="terminal-metric">
+                  <span>Inadimplencia</span>
+                  <strong>2,4%</strong>
+                </article>
+              </div>
+              <div class="overview-strip finance-overview">
+                <article class="overview-chip">
+                  <p class="eyebrow">Recebido no mes</p>
+                  <strong>R$ 184k</strong>
+                  <span class="muted">Fluxo saudavel</span>
+                </article>
+                <article class="overview-chip">
+                  <p class="eyebrow">A receber</p>
+                  <strong>R$ 43k</strong>
+                  <span class="muted">Janela de 7 dias</span>
+                </article>
+                <article class="overview-chip">
+                  <p class="eyebrow">Atrasado</p>
+                  <strong class="is-warm-text">R$ 11k</strong>
+                  <span class="muted">Precisa acao</span>
+                </article>
+              </div>
+              <div class="toolbar-row">
+                <div class="search-box">Buscar cliente, descricao ou NF-e</div>
+                <div class="pill-row">
+                  <span class="pill">Vencendo</span>
+                  <span class="pill">Em atraso</span>
+                  <span class="pill">Sem vinculo</span>
+                </div>
+              </div>
+              <div class="table-shell">
+                <div class="table-head table-grid-fin">
+                  <span>Titulo</span>
+                  <span>Vencimento</span>
+                  <span>Valor</span>
+                  <span>Contexto</span>
+                  <span>Status</span>
+                </div>
+                <div class="table-body">
+                  <div class="table-row table-grid-fin">
+                    <div>
+                      <strong>ORC-002 Orcamento aprovado</strong>
+                      <p class="muted">AMP Industrial Ltda</p>
+                    </div>
+                    <span>27/03/2026</span>
+                    <span>R$ 2.000</span>
+                    <span>Origem comercial</span>
+                    <span class="status-tag is-cool">A receber</span>
+                  </div>
+                  <div class="table-row table-grid-fin">
+                    <div>
+                      <strong>Parcela 2 de 3</strong>
+                      <p class="muted">Prisma Equipamentos</p>
+                    </div>
+                    <span>04/04/2026</span>
+                    <span>R$ 1.800</span>
+                    <span>Grupo parcelado</span>
+                    <span class="status-tag">Aberta</span>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <aside class="inspector-panel finance-side">
+              <p class="eyebrow">Receita x pagamento</p>
+              <h3>Leitura limpa do caixa</h3>
+              <div class="balance-stack">
+                <div class="balance-card">
+                  <span>Receita recorrente</span>
+                  <strong>R$ 22k</strong>
+                </div>
+                <div class="balance-card">
+                  <span>Parcelas abertas</span>
+                  <strong>07</strong>
+                </div>
+                <div class="balance-card">
+                  <span>Sem vinculo</span>
+                  <strong>02</strong>
+                </div>
+              </div>
+              <p class="muted inspector-summary">
+                O lado direito nao compete com a tabela. Ele so orienta leitura,
+                risco e prioridade.
+              </p>
+            </aside>
+          </div>
+        </section>
+
+        <section class="screen" data-screen-name="usuarios">
+          <div class="screen-grid screen-grid-admin">
+            <section class="surface-panel">
+              <div class="section-head">
+                <div>
+                  <p class="eyebrow">Administracao</p>
+                  <h3>Usuarios e papeis internos</h3>
+                </div>
+              </div>
+              <div class="table-shell slim">
+                <div class="table-head table-grid-users">
+                  <span>Usuario</span>
+                  <span>Papel</span>
+                  <span>Status</span>
+                  <span>Acesso</span>
+                </div>
+                <div class="table-body">
+                  <div class="table-row table-grid-users">
+                    <span>lucas</span>
+                    <span>Administrador</span>
+                    <span>Ativo</span>
+                    <span>Total</span>
+                  </div>
+                  <div class="table-row table-grid-users">
+                    <span>ana.comercial</span>
+                    <span>Comercial</span>
+                    <span>Ativo</span>
+                    <span>Restrito</span>
+                  </div>
+                </div>
+              </div>
+            </section>
+            <aside class="inspector-panel">
+              <p class="eyebrow">Mensagem oficial</p>
+              <h3>Acesso controlado</h3>
+              <p class="muted">
+                A AMP V2 reforca que o sistema nao trabalha com cadastro publico.
+                Usuarios sao criados e liberados pela administracao.
+              </p>
+            </aside>
+          </div>
+        </section>
+
+        <section class="screen" data-screen-name="backup">
+          <div class="screen-grid screen-grid-admin">
+            <section class="surface-panel">
+              <div class="section-head">
+                <div>
+                  <p class="eyebrow">Confiabilidade</p>
+                  <h3>Backup e restauracao com leitura simples</h3>
+                </div>
+              </div>
+              <div class="action-list">
+                <article class="action-row">
+                  <div>
+                    <strong>Backup local automatico</strong>
+                    <p class="muted">Ultima geracao em 25/03/2026 as 18:20.</p>
+                  </div>
+                  <span class="status-tag is-cool">Saudavel</span>
+                </article>
+                <article class="action-row">
+                  <div>
+                    <strong>Exportar copia manual</strong>
+                    <p class="muted">Fluxo para preservar dados fora do runtime local.</p>
+                  </div>
+                  <span class="status-tag">Acao</span>
+                </article>
+                <article class="action-row">
+                  <div>
+                    <strong>Restauracao guiada</strong>
+                    <p class="muted">Painel tecnico com foco em seguranca e rastreio.</p>
+                  </div>
+                  <span class="status-tag">Tecnico</span>
+                </article>
+              </div>
+            </section>
+            <aside class="inspector-panel">
+              <p class="eyebrow">Desktop</p>
+              <h3>Confianca operacional</h3>
+              <p class="muted">
+                A tela de backup precisa comunicar que o desktop nativo nao e um
+                modo simplificado, e sim um canal de uso confiavel.
+              </p>
+            </aside>
+          </div>
+        </section>
+
+        <section class="screen" data-screen-name="login">
+          <div class="login-shell">
+            <section class="login-scene">
+              <header class="login-scene-bar">
+                <div class="login-scene-brand">
+                  <span class="login-scene-brand-mark" aria-hidden="true">
+                    <span class="amp-emblem amp-emblem-compact">
+                      <span class="amp-emblem-gear"></span>
+                      <span class="amp-emblem-core">AMP</span>
+                    </span>
+                  </span>
+                  <div>
+                    <p class="eyebrow">AMP industrial access</p>
+                    <strong>AMP Usinagem</strong>
+                  </div>
+                </div>
+                <nav class="login-scene-nav" aria-label="Contexto">
+                  <span>Desktop</span>
+                  <span>Operacao</span>
+                  <span>Suporte</span>
+                </nav>
+                <div class="login-scene-status">Acesso corporativo</div>
+              </header>
+
+              <div class="login-center-stage">
+                <div class="login-logo-stage" aria-hidden="true">
+                  <object
+                    class="login-logo-object"
+                    type="image/svg+xml"
+                    data="./amp-login-motion.svg"
+                  >
+                    Logo AMP Usinagem
+                  </object>
+                </div>
+
+                <section class="login-auth-card">
+                  <p class="eyebrow">Entrar</p>
+                  <h3>Acesse o sistema</h3>
+                  <p class="muted">Use uma conta liberada pela administracao da AMP.</p>
+
+                  <label class="login-field">
+                    <span>E-mail</span>
+                    <strong>usuario@ampusinagem.com</strong>
+                  </label>
+                  <label class="login-field">
+                    <span>Senha</span>
+                    <strong>••••••••••••</strong>
+                  </label>
+
+                  <button class="primary-button login-submit" type="button">Entrar no sistema</button>
+
+                  <p class="helper-note">
+                    Sem cadastro publico e sem login social. O acesso e liberado internamente.
+                  </p>
+                </section>
+              </div>
+
+              <div class="login-scenery" aria-hidden="true">
+                <span class="login-cloud cloud-a"></span>
+                <span class="login-cloud cloud-b"></span>
+                <span class="login-star-field"></span>
+                <span class="login-range range-back"></span>
+                <span class="login-range range-front"></span>
+                <span class="login-tree-line trees-left"></span>
+                <span class="login-tree-line trees-right"></span>
+                <span class="login-water-line"></span>
+              </div>
+            </section>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="./amp-v2-local.js"></script>
+  </body>
+</html>

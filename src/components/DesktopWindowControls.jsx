@@ -1,9 +1,6 @@
 import { useEffect, useState } from "react";
 
-function getDesktopApi() {
-  if (typeof window === "undefined") return null;
-  return window.webview2?.api ?? window.pywebview?.api ?? null;
-}
+import { getDesktopApi, getDesktopWindowMaximized, toggleDesktopMaximize } from "../utils/desktopWindow";
 
 export default function DesktopWindowControls({ compact = false, className = "" }) {
   const [api, setApi] = useState(() => getDesktopApi());
@@ -25,32 +22,59 @@ export default function DesktopWindowControls({ compact = false, className = "" 
     };
   }, [api]);
 
+  useEffect(() => {
+    if (!api) return undefined;
+
+    let active = true;
+
+    const syncState = async () => {
+      const next = await getDesktopWindowMaximized();
+      if (active) setMaximized(next);
+    };
+
+    syncState();
+    window.addEventListener("focus", syncState);
+    window.addEventListener("resize", syncState);
+    const intervalId = window.setInterval(syncState, 1200);
+
+    return () => {
+      active = false;
+      window.removeEventListener("focus", syncState);
+      window.removeEventListener("resize", syncState);
+      window.clearInterval(intervalId);
+    };
+  }, [api]);
+
   if (!api) return null;
 
   const baseButton = compact
-    ? "h-9 w-9 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+    ? "h-8 w-11 rounded-[10px] text-white/64 hover:bg-white/10 hover:text-white"
     : "h-10 w-10 rounded-xl text-slate-500 hover:bg-slate-100 hover:text-slate-700";
+  const groupGap = compact ? "gap-1" : "gap-2";
 
   const handleMinimize = async () => {
-    await api.minimize();
+    try {
+      await api.minimize?.();
+    } catch {
+      // Keep the shell responsive even if the native bridge glitches.
+    }
   };
 
   const handleToggleMaximize = async () => {
-    if (maximized) {
-      await api.restore();
-      setMaximized(false);
-      return;
-    }
-    await api.maximize();
-    setMaximized(true);
+    const next = await toggleDesktopMaximize();
+    setMaximized(next);
   };
 
   const handleClose = async () => {
-    await api.close();
+    try {
+      await api.close?.();
+    } catch {
+      // Ignore bridge errors here; the fallback shell state is still valid.
+    }
   };
 
   return (
-    <div className={`flex items-center gap-2 ${className}`.trim()}>
+    <div className={`flex items-center ${groupGap} ${className}`.trim()} data-no-drag="true">
       <button
         type="button"
         onClick={handleMinimize}

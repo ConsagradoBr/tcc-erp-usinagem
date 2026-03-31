@@ -5,10 +5,11 @@ from flask import Blueprint, jsonify, request
 from backend.api_utils import (error_response, get_or_404, internal_error,
                                json_body)
 from backend.extensions import db
-from backend.models import STATUS_ORCAMENTO_VALIDOS, Cliente, Orcamento
+from backend.models import (STATUS_ORCAMENTO_VALIDOS, Cliente, Lancamento,
+                            Orcamento)
 from backend.security import require_permissions
 from backend.services import (garantir_lancamento_para_orcamento,
-                              garantir_os_para_orcamento,
+                              garantir_os_para_orcamento, marcador_orcamento,
                               proximo_numero_orcamento,
                               serializar_orcamento_integrado)
 
@@ -50,6 +51,18 @@ def listar_orcamentos():
 def resumo_orcamentos():
     try:
         todos = Orcamento.query.all()
+        aprovados = [orcamento for orcamento in todos if orcamento.status == "aprovado"]
+        lancamentos_abertos = Lancamento.query.filter(
+            Lancamento.tipo == "receber", Lancamento.data_pagamento.is_(None)
+        ).all()
+        orcamentos_ativos = {
+            orcamento.numero
+            for orcamento in aprovados
+            if any(
+                marcador_orcamento(orcamento.numero) in (lancamento.descricao or "")
+                for lancamento in lancamentos_abertos
+            )
+        }
         resultado = {
             status: Orcamento.query.filter_by(status=status).count()
             for status in STATUS_ORCAMENTO_VALIDOS
@@ -59,10 +72,14 @@ def resumo_orcamentos():
             sum(float(orcamento.valor) for orcamento in todos), 2
         )
         resultado["valor_aprovado"] = round(
+            sum(float(orcamento.valor) for orcamento in aprovados),
+            2,
+        )
+        resultado["valor_aprovado_ativo"] = round(
             sum(
                 float(orcamento.valor)
-                for orcamento in todos
-                if orcamento.status == "aprovado"
+                for orcamento in aprovados
+                if orcamento.numero in orcamentos_ativos
             ),
             2,
         )

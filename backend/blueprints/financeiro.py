@@ -14,6 +14,33 @@ from backend.security import require_permissions
 financeiro_bp = Blueprint("financeiro", __name__, url_prefix="/financeiro")
 
 
+def descricao_base(texto):
+    return re.sub(r"\s*\(\d+/\d+\)$", "", (texto or "")).strip()
+
+
+def consultar_grupo(lancamento):
+    base = descricao_base(lancamento.descricao)
+    query = Lancamento.query.filter(Lancamento.tipo == lancamento.tipo)
+    if lancamento.cliente_id is None:
+        query = query.filter(Lancamento.cliente_id.is_(None))
+    else:
+        query = query.filter(Lancamento.cliente_id == lancamento.cliente_id)
+    query = query.filter(Lancamento.descricao.like(f"{base}%"))
+    if lancamento.parcelas and lancamento.parcelas > 1:
+        query = query.filter(Lancamento.parcelas == lancamento.parcelas)
+    return query.order_by(Lancamento.parcela_num.asc(), Lancamento.id.asc()).all()
+
+
+def distribuir_valor_total(valor_total, parcelas):
+    parcelas = max(int(parcelas or 1), 1)
+    valor_total = round(float(valor_total), 2)
+    valor_base = round(valor_total / parcelas, 2)
+    valores = [valor_base for _ in range(parcelas)]
+    diferenca = round(valor_total - sum(valores), 2)
+    valores[-1] = round(valores[-1] + diferenca, 2)
+    return valores
+
+
 @financeiro_bp.route("", methods=["GET"])
 @require_permissions("financeiro")
 def listar_lancamentos():
@@ -154,52 +181,108 @@ def editar_lancamento(id):
     try:
         lancamento = Lancamento.query.get_or_404(id)
         data = request.get_json() or {}
-        vencimento_mudou = (
-            "vencimento" in data
-            and data["vencimento"] != lancamento.vencimento.isoformat()
+        grupo_atual = consultar_grupo(lancamento)
+        parcelas_atuais = max(int(lancamento.parcelas or 1), 1)
+
+        tipo = data.get("tipo", lancamento.tipo)
+        if tipo not in ("receber", "pagar"):
+            tipo = lancamento.tipo
+
+        descricao = data.get("descricao", lancamento.descricao)
+        descricao = descricao.strip() if descricao is not None else lancamento.descricao
+        cliente_id = data.get("cliente_id", lancamento.cliente_id)
+        cliente_id = cliente_id or None
+        nfe = data.get("nfe", lancamento.nfe)
+        nfe = nfe.strip() if isinstance(nfe, str) else nfe
+        prazo_dias = data.get("prazo_dias", lancamento.prazo_dias)
+        prazo_dias = int(prazo_dias or 30)
+        vencimento = (
+            date.fromisoformat(data["vencimento"])
+            if data.get("vencimento")
+            else lancamento.vencimento
         )
-        if "tipo" in data and data["tipo"] in ("receber", "pagar"):
-            lancamento.tipo = data["tipo"]
-        if "descricao" in data:
-            lancamento.descricao = data["descricao"].strip()
-        if "cliente_id" in data:
-            lancamento.cliente_id = data["cliente_id"] or None
-        if "nfe" in data:
-            lancamento.nfe = data["nfe"].strip() or None
-        if "prazo_dias" in data:
-            lancamento.prazo_dias = data["prazo_dias"] or None
-        if "vencimento" in data:
-            lancamento.vencimento = date.fromisoformat(data["vencimento"])
+        forma_pagamento = data.get("forma_pagamento", lancamento.forma_pagamento)
+        forma_pagamento = (
+            forma_pagamento.strip()
+            if isinstance(forma_pagamento, str)
+            else forma_pagamento
+        ) or None
+        observacao = data.get("observacao", lancamento.observacao)
+        observacao = observacao.strip() if isinstance(observacao, str) else observacao
+        data_pagamento = (
+            date.fromisoformat(data["data_pagamento"])
+            if data.get("data_pagamento")
+            else None if "data_pagamento" in data else lancamento.data_pagamento
+        )
+        parcelas_desejadas = max(int(data.get("parcelas", parcelas_atuais) or 1), 1)
+
         if "valor" in data:
-            lancamento.valor = float(data["valor"])
-        if "forma_pagamento" in data:
-            lancamento.forma_pagamento = data["forma_pagamento"].strip() or None
-        if "observacao" in data:
-            lancamento.observacao = data["observacao"].strip() or None
-        if "data_pagamento" in data:
-            lancamento.data_pagamento = (
-                date.fromisoformat(data["data_pagamento"])
-                if data["data_pagamento"]
-                else None
-            )
-        if vencimento_mudou and lancamento.parcelas and lancamento.parcelas > 1:
-            prazo_dias = int(lancamento.prazo_dias or 30)
-            base_parcela1 = lancamento.vencimento - timedelta(
-                days=prazo_dias * (lancamento.parcela_num - 1)
-            )
-            desc_base = re.sub(r"\s*\(\d+/\d+\)$", "", lancamento.descricao).strip()
-            irmas = Lancamento.query.filter(
-                Lancamento.id != lancamento.id,
-                Lancamento.tipo == lancamento.tipo,
-                Lancamento.cliente_id == lancamento.cliente_id,
-                Lancamento.parcelas == lancamento.parcelas,
-                Lancamento.descricao.like(f"{desc_base}%"),
-            ).all()
-            for irma in irmas:
-                if not irma.data_pagamento:
-                    irma.vencimento = base_parcela1 + timedelta(
-                        days=prazo_dias * (irma.parcela_num - 1)
-                    )
+            valor_total = float(data["valor"])
+        elif parcelas_atuais > 1:
+            valor_total = sum(float(item.valor) for item in grupo_atual)
+        else:
+            valor_total = float(lancamento.valor)
+
+        usa_grupo = parcelas_desejadas > 1 or parcelas_atuais > 1
+        if usa_grupo:
+            if any(item.data_pagamento for item in grupo_atual):
+                return (
+                    jsonify(
+                        {
+                            "erro": "Nao e possivel reparcelar um grupo com parcelas pagas."
+                        }
+                    ),
+                    400,
+                )
+
+            valores = distribuir_valor_total(valor_total, parcelas_desejadas)
+            base = descricao_base(descricao)
+
+            for item in grupo_atual:
+                db.session.delete(item)
+            db.session.flush()
+
+            criados = []
+            for indice, valor_parcela in enumerate(valores):
+                item = Lancamento(
+                    tipo=tipo,
+                    cliente_id=cliente_id,
+                    descricao=(
+                        base
+                        if parcelas_desejadas == 1
+                        else f"{base} ({indice + 1}/{parcelas_desejadas})"
+                    ),
+                    nfe=nfe or None,
+                    prazo_dias=(
+                        prazo_dias
+                        if parcelas_desejadas > 1
+                        else (data.get("prazo_dias") or None)
+                    ),
+                    vencimento=vencimento + timedelta(days=prazo_dias * indice),
+                    valor=valor_parcela,
+                    forma_pagamento=forma_pagamento,
+                    observacao=observacao or None,
+                    parcelas=parcelas_desejadas,
+                    parcela_num=indice + 1,
+                    data_pagamento=None,
+                )
+                db.session.add(item)
+                criados.append(item)
+
+            db.session.commit()
+            return jsonify(criados[0].to_dict()), 200
+
+        lancamento.tipo = tipo
+        lancamento.descricao = descricao
+        lancamento.cliente_id = cliente_id
+        lancamento.nfe = nfe or None
+        lancamento.prazo_dias = data.get("prazo_dias") or None
+        lancamento.vencimento = vencimento
+        lancamento.valor = valor_total
+        lancamento.forma_pagamento = forma_pagamento
+        lancamento.observacao = observacao or None
+        lancamento.data_pagamento = data_pagamento
+
         db.session.commit()
         return jsonify(lancamento.to_dict()), 200
     except ValueError:

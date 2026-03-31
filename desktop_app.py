@@ -1,5 +1,3 @@
-import asyncio
-import contextlib
 import ctypes
 import os
 import socket
@@ -42,22 +40,6 @@ def parse_size(value, fallback):
         return max(int(width), 640), max(int(height), 480)
     except Exception:
         return fallback
-
-
-def get_screen_size():
-    if os.name != "nt":
-        return 1920, 1080
-    user32 = ctypes.windll.user32
-    try:
-        user32.SetProcessDPIAware()
-    except Exception:
-        pass
-    return user32.GetSystemMetrics(0), user32.GetSystemMetrics(1)
-
-
-def centered_position(width, height):
-    screen_width, screen_height = get_screen_size()
-    return max((screen_width - width) // 2, 0), max((screen_height - height) // 2, 0)
 
 
 def acquire_single_instance():
@@ -128,69 +110,129 @@ def is_existing_instance_active():
         return False
 
 
-async def keep_window_stable(min_width, min_height, initial_x, initial_y):
-    import win32gui
-    from webview2.base import get_window, set_position, set_size
+def focus_existing_instance():
+    if os.name != "nt":
+        return False
 
-    positioned = False
+    try:
+        import win32con
+        import win32gui
 
-    while True:
-        hwnd = get_window()
-        if hwnd:
-            if not positioned:
-                set_position(initial_x, initial_y)
-                positioned = True
+        hwnd = win32gui.FindWindow(None, APP_NAME)
+        if not hwnd:
+            return False
 
-            left, top, right, bottom = win32gui.GetWindowRect(hwnd)
-            width = max(right - left, 0)
-            height = max(bottom - top, 0)
+        if win32gui.IsIconic(hwnd):
+            win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
+        else:
+            win32gui.ShowWindow(hwnd, win32con.SW_SHOW)
 
-            if width < min_width or height < min_height:
-                set_size(max(width, min_width), max(height, min_height))
+        try:
+            ctypes.windll.user32.SetForegroundWindow(hwnd)
+        except Exception:
+            pass
 
-            if left < 0 or top < 0:
-                set_position(max(left, 0), max(top, 0))
-
-        await asyncio.sleep(0.2)
+        return True
+    except Exception as exc:
+        print(f"Falha ao focar a janela existente: {exc}")
+        return False
 
 
 def open_native_window():
     try:
-        from webview2 import Window
+        from PySide6.QtCore import QStandardPaths, Qt, QUrl
+        from PySide6.QtGui import QGuiApplication, QIcon
+        from PySide6.QtWebEngineCore import (QWebEnginePage, QWebEngineProfile,
+                                             QWebEngineSettings)
+        from PySide6.QtWebEngineWidgets import QWebEngineView
+        from PySide6.QtWidgets import QApplication, QMainWindow
     except Exception as exc:
-        print(f"WebView2 nativo indisponivel: {exc}")
+        print(f"Host Qt indisponivel: {exc}")
         return False
-
-    cache_dir = runtime_data_dir() / "webview2-cache"
-    cache_dir.mkdir(parents=True, exist_ok=True)
 
     width, height = parse_size(WINDOW_SIZE, (1440, 900))
     min_width, min_height = parse_size(MIN_WINDOW_SIZE, (1180, 760))
-    x, y = centered_position(width, height)
-    icon = str(ICON_PATH) if ICON_PATH.exists() else None
+    data_dir = runtime_data_dir()
+    profile_dir = data_dir / "qtwebengine"
+    profile_dir.mkdir(parents=True, exist_ok=True)
 
-    async def run_window():
-        window = Window(
-            title=APP_NAME,
-            icon=icon,
-            url=URL,
-            size=f"{width}x{height}",
-            cache=str(cache_dir),
-        )
-        monitor = asyncio.create_task(keep_window_stable(min_width, min_height, x, y))
-        try:
-            await window.run()
-        finally:
-            monitor.cancel()
-            with contextlib.suppress(asyncio.CancelledError):
-                await monitor
+    class AmpPage(QWebEnginePage):
+        def __init__(self, profile, parent=None):
+            super().__init__(profile, parent)
+            self.new_page = None
+
+        def createWindow(self, _window_type):
+            self.new_page = QWebEnginePage(self.profile(), self)
+            self.new_page.urlChanged.connect(self._handle_new_window_url)
+            return self.new_page
+
+        def _handle_new_window_url(self, url):
+            if url.isValid() and url.scheme().startswith("http"):
+                webbrowser.open_new(url.toString())
+            if self.new_page is not None:
+                self.new_page.deleteLater()
+                self.new_page = None
+
+    class AmpWindow(QMainWindow):
+        def __init__(self):
+            super().__init__()
+            self.setWindowTitle(APP_NAME)
+            if ICON_PATH.exists():
+                self.setWindowIcon(QIcon(str(ICON_PATH)))
+            self.resize(width, height)
+            self.setMinimumSize(min_width, min_height)
+
+            self.webview = QWebEngineView(self)
+            self.profile = QWebEngineProfile(APP_NAME, self.webview)
+            self.profile.setCachePath(str(profile_dir / "cache"))
+            self.profile.setPersistentStoragePath(str(profile_dir / "storage"))
+            self.profile.settings().setAttribute(
+                QWebEngineSettings.LocalContentCanAccessRemoteUrls, True
+            )
+            self.profile.settings().setAttribute(
+                QWebEngineSettings.FullScreenSupportEnabled, False
+            )
+
+            page = AmpPage(self.profile, self.webview)
+            page.windowCloseRequested.connect(self.close)
+            page.loadFinished.connect(lambda _ok: self.setWindowTitle(APP_NAME))
+            self.webview.setPage(page)
+            self.webview.setContextMenuPolicy(Qt.NoContextMenu)
+
+            self.setCentralWidget(self.webview)
+            self._center_on_screen()
+            self.webview.load(QUrl(URL))
+
+        def _center_on_screen(self):
+            screen = self.screen() or QGuiApplication.primaryScreen()
+            if not screen:
+                return
+            available = screen.availableGeometry()
+            frame = self.frameGeometry()
+            frame.moveCenter(available.center())
+            self.move(frame.topLeft())
+
+        def closeEvent(self, event):
+            self.profile.deleteLater()
+            super().closeEvent(event)
 
     try:
-        print("Abrindo janela nativa com WebView2...")
-        asyncio.run(run_window())
-        return True
+        print("Abrindo janela nativa com PySide6...")
+        app = QApplication.instance() or QApplication(sys.argv)
+        app.setApplicationName(APP_NAME)
+        app.setOrganizationName("AMP Usinagem Industrial")
+        if ICON_PATH.exists():
+            app.setWindowIcon(QIcon(str(ICON_PATH)))
+
+        storage_path = QStandardPaths.writableLocation(QStandardPaths.AppDataLocation)
+        if storage_path:
+            Path(storage_path).mkdir(parents=True, exist_ok=True)
+
+        window = AmpWindow()
+        window.show()
+        return app.exec() == 0
     except Exception as exc:
-        print(f"Falha ao abrir janela nativa: {exc}")
+        print(f"Falha ao abrir janela nativa Qt: {exc}")
         return False
 
 
@@ -210,10 +252,12 @@ def open_browser_fallback():
 if __name__ == "__main__":
     if is_existing_instance_active():
         print(f"{APP_NAME} ja esta em execucao.")
+        focus_existing_instance()
         sys.exit(0)
 
     if not acquire_single_instance():
         print(f"{APP_NAME} ja esta em execucao.")
+        focus_existing_instance()
         sys.exit(0)
 
     print(f"Inicializando {APP_NAME}...")
@@ -238,9 +282,6 @@ if __name__ == "__main__":
                 "DESKTOP_ALLOW_BROWSER_FALLBACK=true."
             )
             sys.exit(1)
-
-        while True:
-            time.sleep(1)
     except KeyboardInterrupt:
         print(f"Encerrando {APP_NAME}...")
         sys.exit(0)

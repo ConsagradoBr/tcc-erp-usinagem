@@ -148,11 +148,11 @@ function parsearJsonNFe(obj) {
 function useNotificacao() {
   const [notif, setNotif] = useState(null);
 
-  const mostrar = (msg, tipo = "sucesso") => {
+  const mostrar = useCallback((msg, tipo = "sucesso") => {
     setNotif({ msg, tipo });
     window.clearTimeout(window.__ampClientesToast);
     window.__ampClientesToast = window.setTimeout(() => setNotif(null), 3200);
-  };
+  }, []);
 
   return [notif, mostrar];
 }
@@ -212,93 +212,50 @@ function calcularCompletude(cliente) {
 function toneClasses(tone) {
   switch (tone) {
     case "danger":
-      return {
-        badge:
-          "border-[rgba(187,103,80,0.22)] bg-[rgba(187,103,80,0.12)] text-[var(--cm-danger)]",
-        text: "text-[var(--cm-danger)]",
-        dot: "bg-[var(--cm-danger)]",
-      };
+      return "is-danger";
     case "warning":
-      return {
-        badge:
-          "border-[rgba(173,122,62,0.22)] bg-[rgba(173,122,62,0.12)] text-[var(--cm-warning)]",
-        text: "text-[var(--cm-warning)]",
-        dot: "bg-[var(--cm-warning)]",
-      };
+      return "is-warning";
     case "positive":
-      return {
-        badge:
-          "border-[rgba(63,141,114,0.22)] bg-[rgba(63,141,114,0.12)] text-[var(--cm-positive)]",
-        text: "text-[var(--cm-positive)]",
-        dot: "bg-[var(--cm-positive)]",
-      };
+      return "is-positive";
     case "accent":
-      return {
-        badge:
-          "border-[rgba(180,99,56,0.22)] bg-[rgba(180,99,56,0.12)] text-[var(--cm-accent)]",
-        text: "text-[var(--cm-accent)]",
-        dot: "bg-[var(--cm-accent)]",
-      };
+      return "is-accent";
     default:
-      return {
-        badge: "border-[color:var(--cm-line)] bg-white/70 text-[var(--cm-text)]",
-        text: "text-[var(--cm-text)]",
-        dot: "bg-[var(--cm-text)]",
-      };
+      return "is-default";
   }
 }
 
 function StatTile({ icon, label, value, note, inverse = false }) {
   return (
-    <div
-      className={`rounded-[24px] border p-4 ${
-        inverse
-          ? "border-white/10 bg-white/7 text-white"
-          : "border-[color:var(--cm-line)] bg-white/38 text-[var(--cm-text)]"
-      }`}
-    >
-      <div className="flex items-start gap-3">
-        <div
-          className={`flex h-11 w-11 items-center justify-center rounded-[16px] border ${
-            inverse ? "border-white/10 bg-white/8" : "border-[color:var(--cm-line)] bg-[rgba(37,42,49,0.04)]"
-          }`}
-        >
-          <img src={icon} alt="" className={`w-6 ${inverse ? "brightness-[3.4]" : ""}`} />
+    <article className={`amp-rel-tape-card ${inverse ? "is-strong" : ""}`}>
+      <div className="amp-rel-tape-head">
+        <div className={`amp-rel-tape-icon ${inverse ? "is-strong" : ""}`}>
+          <img src={icon} alt="" className="w-5" />
         </div>
         <div className="min-w-0">
-          <p className={`text-xs uppercase tracking-[0.18em] ${inverse ? "text-white/55" : "text-[var(--cm-muted)]"}`}>{label}</p>
-          <div className="mt-2 text-2xl font-semibold tracking-[-0.04em]">{value}</div>
-          {note && <p className={`mt-2 text-sm ${inverse ? "text-white/68" : "text-[var(--cm-muted)]"}`}>{note}</p>}
+          <p className="amp-rel-kicker">{label}</p>
+          <strong>{value}</strong>
         </div>
       </div>
-    </div>
-  );
-}
-
-function MiniMetric({ label, value }) {
-  return (
-    <div className="rounded-[22px] border border-[color:var(--cm-line)] bg-white/36 px-4 py-4">
-      <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--cm-muted)]">{label}</p>
-      <p className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-[var(--cm-text)]">{value}</p>
-    </div>
+      {note && <span>{note}</span>}
+    </article>
   );
 }
 
 function ToneBadge({ tone = "default", children }) {
-  const styles = toneClasses(tone);
+  const toneClass = toneClasses(tone);
   return (
-    <span className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] ${styles.badge}`}>
-      <span className={`h-1.5 w-1.5 rounded-full ${styles.dot}`} />
+    <span className={`amp-rel-badge ${toneClass}`}>
+      <span className="amp-rel-badge-dot" />
       {children}
     </span>
   );
 }
 
 function ProgressBar({ value, tone = "accent" }) {
-  const styles = toneClasses(tone);
+  const toneClass = toneClasses(tone);
   return (
-    <div className="mt-3 h-2 overflow-hidden rounded-full bg-[rgba(37,42,49,0.08)]">
-      <div className={`h-full rounded-full ${styles.dot}`} style={{ width: `${value}%` }} />
+    <div className="amp-rel-progress">
+      <div className={`amp-rel-progress-fill ${toneClass}`} style={{ width: `${value}%` }} />
     </div>
   );
 }
@@ -308,16 +265,16 @@ function PriorityCard({ item, onSelect }) {
     <button
       type="button"
       onClick={() => onSelect(item.id)}
-      className="w-full rounded-[24px] border border-[color:var(--cm-line)] bg-white/38 px-4 py-4 text-left transition hover:-translate-y-[1px] hover:bg-white/55"
+      className="amp-rel-queue-card"
     >
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="amp-rel-queue-head">
         <div className="min-w-0">
-          <p className="truncate text-base font-semibold tracking-[-0.03em] text-[var(--cm-text)]">{item.nome}</p>
-          <p className="mt-1 text-sm text-[var(--cm-muted)]">{item.nextAction}</p>
+          <p className="truncate text-base font-semibold tracking-[-0.03em] text-[var(--amp-shell-ink)]">{item.nome}</p>
+          <p className="mt-1 text-sm text-[var(--amp-shell-soft)]">{item.nextAction}</p>
         </div>
         <ToneBadge tone={item.statusTone}>{item.statusLabel}</ToneBadge>
       </div>
-      <div className="mt-3 flex flex-wrap gap-2 text-xs text-[var(--cm-muted)]">
+      <div className="amp-rel-queue-meta">
         <span>{item.documento || "Documento pendente"}</span>
         <span>{item.telefone || item.email || "Sem contato direto"}</span>
       </div>
@@ -327,58 +284,203 @@ function PriorityCard({ item, onSelect }) {
 
 function InfoItem({ label, value, subtle = false, title }) {
   return (
-    <div>
-      <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--cm-muted)]">{label}</p>
-      <p
-        className={`mt-1 text-sm ${subtle ? "text-[var(--cm-muted)]" : "font-medium text-[var(--cm-text)]"}`}
-        title={title}
-      >
+    <div className="amp-rel-info-item">
+      <p>{label}</p>
+      <strong className={subtle ? "is-subtle" : ""} title={title}>
         {value}
-      </p>
+      </strong>
     </div>
   );
 }
 
 function FocusMetric({ label, value, note }) {
   return (
-    <div className="rounded-[22px] border border-[color:var(--cm-line)] bg-white/38 px-4 py-4">
-      <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--cm-muted)]">{label}</p>
-      <p className="mt-2 text-xl font-semibold tracking-[-0.04em] text-[var(--cm-text)]">{value}</p>
-      {note && <p className="mt-2 text-sm text-[var(--cm-muted)]">{note}</p>}
-    </div>
+    <article className="amp-rel-focus-metric">
+      <span>{label}</span>
+      <strong>{value}</strong>
+      {note && <p>{note}</p>}
+    </article>
   );
 }
 
 function EmptyState({ filtroAtivo, onNovo, onImportar }) {
   return (
-    <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
-      <div className="flex h-14 w-14 items-center justify-center rounded-[18px] border border-[color:var(--cm-line)] bg-white/46">
+    <div className="amp-rel-empty">
+      <div className="amp-rel-empty-icon">
         <img src={IconClients} alt="" className="w-7 opacity-70" />
       </div>
-      <h3 className="mt-5 text-2xl font-semibold tracking-[-0.04em] text-[var(--cm-text)]">
+      <h3>
         {filtroAtivo ? "Nenhum cliente encontrado nesse recorte" : "Sua carteira ainda está vazia"}
       </h3>
-      <p className="mt-3 max-w-xl text-sm leading-6 text-[var(--cm-muted)]">
+      <p>
         {filtroAtivo
           ? "Ajuste a busca ou os filtros rápidos para voltar a enxergar oportunidades, pendências e clientes ativos."
           : "Cadastre manualmente ou use a importação por NF-e para montar uma base pronta para comercial, operação e financeiro."}
       </p>
-      <div className="mt-6 flex flex-wrap justify-center gap-3">
-        <button
-          type="button"
-          onClick={onNovo}
-          className="rounded-full bg-[var(--cm-text)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-92"
-        >
+      <div className="amp-rel-empty-actions">
+        <button type="button" onClick={onNovo} className="amp-rel-primary-btn">
           Novo cliente
         </button>
-        <button
-          type="button"
-          onClick={onImportar}
-          className="rounded-full border border-[color:var(--cm-line)] bg-white/75 px-5 py-3 text-sm font-semibold text-[var(--cm-text)] transition hover:bg-white"
-        >
+        <button type="button" onClick={onImportar} className="amp-rel-secondary-btn">
           Importar NF-e
         </button>
       </div>
+    </div>
+  );
+}
+
+function SelectionBanner({ total, onExportar, onLimpar }) {
+  return (
+    <div className="amp-rel-selection">
+      <p className="amp-rel-kicker">Seleção ativa</p>
+      <strong>{fmtNumber(total)} conta(s) prontas para ação em lote</strong>
+      <p>Exporte o recorte atual ou limpe a seleção para voltar à leitura completa da carteira.</p>
+      <div className="amp-rel-selection-actions">
+        <button type="button" onClick={onExportar} className="amp-rel-primary-btn">
+          Exportar seleção
+        </button>
+        <button type="button" onClick={onLimpar} className="amp-rel-secondary-btn">
+          Limpar seleção
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function FeedItem({ title, note, when }) {
+  return (
+    <article className="amp-rel-feed-item">
+      <div>
+        <strong>{title}</strong>
+        <p>{note}</p>
+      </div>
+      <span>{when}</span>
+    </article>
+  );
+}
+
+function PulseChip({ children }) {
+  return <span className="amp-rel-pulse-chip">{children}</span>;
+}
+
+function RowMetric({ label, value, note, subtle = false, tone = "default" }) {
+  return (
+    <div className="amp-rel-row-metric">
+      <span>{label}</span>
+      <strong className={subtle ? "is-subtle" : ""}>{value}</strong>
+      {note && <p className={`amp-rel-row-note ${toneClasses(tone)}`}>{note}</p>}
+    </div>
+  );
+}
+
+function LedgerRow({
+  cliente,
+  selected,
+  onFocus,
+  onToggleSelect,
+  onEdit,
+  onDelete,
+  onShare,
+  canOrcamentos,
+  canOS,
+  canFinanceiro,
+}) {
+  return (
+    <article className={`amp-rel-ledger-row ${selected ? "is-selected" : ""}`}>
+      <div className="amp-rel-ledger-check">
+        <input
+          type="checkbox"
+          checked={selected}
+          onChange={() => onToggleSelect(cliente.id)}
+          className="h-4 w-4 rounded border-[color:var(--amp-shell-line)] bg-transparent text-[var(--amp-shell-accent)] focus:ring-[rgba(0,212,170,0.2)]"
+          aria-label={`Selecionar ${cliente.nome}`}
+        />
+      </div>
+
+      <button type="button" onClick={() => onFocus(cliente.id)} className="amp-rel-ledger-main">
+        <div className="amp-rel-ledger-title">
+          <strong>{cliente.nome}</strong>
+          <ToneBadge tone={cliente.statusTone}>{cliente.statusLabel}</ToneBadge>
+        </div>
+        <p>{cliente.nextAction}</p>
+        <div className="amp-rel-ledger-meta">
+          <span>{cliente.documento || "Documento pendente"}</span>
+          <span>{cliente.telefone || cliente.email || "Sem contato direto"}</span>
+          <span>Últ. mov.: {fmtDate(cliente.ultimaMovimentacao)}</span>
+        </div>
+      </button>
+
+      <div className="amp-rel-ledger-block">
+        <RowMetric
+          label="Cadastro"
+          value={`${cliente.completude}%`}
+          note={
+            cliente.cadastroCompleto
+              ? "Pronto para integração"
+              : `Falta: ${cliente.faltantes.join(", ") || "dados"}`
+          }
+          tone={cliente.cadastroCompleto ? "positive" : cliente.completude >= 50 ? "accent" : "warning"}
+        />
+        <ProgressBar
+          value={cliente.completude}
+          tone={cliente.cadastroCompleto ? "positive" : cliente.completude >= 50 ? "accent" : "warning"}
+        />
+      </div>
+
+      <div className="amp-rel-ledger-block">
+        <RowMetric
+          label="Fluxo conectado"
+          value={
+            [
+              canOrcamentos ? `${fmtNumber(cliente.orcamentos.total)} orç.` : null,
+              canOS ? `${fmtNumber(cliente.ordens.emFluxo)} OS` : null,
+              canFinanceiro ? `${fmtCurrency(cliente.financeiro.saldoAberto)} aberto` : null,
+            ]
+              .filter(Boolean)
+              .join(" · ") || "Sem permissão"
+          }
+          note={
+            canFinanceiro
+              ? `${fmtNumber(cliente.financeiro.atrasados)} atraso(s) · ${fmtNumber(cliente.financeiro.receberPendente)} a receber`
+              : canOS
+                ? `${fmtNumber(cliente.ordens.concluidas)} concluídas`
+                : canOrcamentos
+                  ? `${fmtNumber(cliente.orcamentos.emDecisao)} em decisão`
+                  : "Leitura restrita"
+          }
+          subtle={!canOrcamentos && !canOS && !canFinanceiro}
+          tone={cliente.statusTone}
+        />
+        <div className="amp-rel-ledger-pulse">
+          {canOrcamentos && <PulseChip>{fmtNumber(cliente.orcamentos.emDecisao)} em decisão</PulseChip>}
+          {canOS && <PulseChip>{fmtNumber(cliente.ordens.emFluxo)} em fluxo</PulseChip>}
+          {canFinanceiro && <PulseChip>{fmtNumber(cliente.financeiro.atrasados)} atraso</PulseChip>}
+        </div>
+      </div>
+
+      <div className="amp-rel-ledger-actions">
+        <button type="button" onClick={() => onFocus(cliente.id)} className="amp-rel-ghost-chip">
+          Foco
+        </button>
+        <button type="button" onClick={() => onShare(cliente)} className="amp-rel-ghost-chip">
+          Exportar
+        </button>
+        <button type="button" onClick={() => onEdit(cliente)} className="amp-rel-ghost-chip">
+          Editar
+        </button>
+        <button type="button" onClick={() => onDelete(cliente)} className="amp-rel-ghost-chip is-danger">
+          Excluir
+        </button>
+      </div>
+    </article>
+  );
+}
+
+function LoadingState() {
+  return (
+    <div className="amp-rel-loading">
+      <div className="amp-rel-loader" />
+      <span>Consolidando carteira operacional...</span>
     </div>
   );
 }
@@ -1048,6 +1150,24 @@ export default function Clientes() {
     return { completos, ativos, criticos, emFluxo };
   }, [clientesEnriquecidos]);
 
+  const panorama = useMemo(() => {
+    const comerciais = clientesEnriquecidos.filter(
+      (item) => item.statusLabel === "Comercial ativo" || item.statusLabel === "Aprovado sem OS"
+    ).length;
+    const cobertura = clientesEnriquecidos.length
+      ? Math.round((stats.completos / clientesEnriquecidos.length) * 100)
+      : 0;
+
+    return {
+      base: clientesEnriquecidos.length,
+      cobertura,
+      comerciais,
+      criticos: stats.criticos,
+      ativos: stats.ativos,
+      emFluxo: stats.emFluxo,
+    };
+  }, [clientesEnriquecidos, stats]);
+
   useEffect(() => {
     const idsVisiveis = new Set(clientesVisiveis.map((item) => item.id));
     setSelecionados((prev) => prev.filter((id) => idsVisiveis.has(id)));
@@ -1071,6 +1191,77 @@ export default function Clientes() {
     () => clientesEnriquecidos.filter((item) => selecionados.includes(item.id)),
     [clientesEnriquecidos, selecionados]
   );
+
+  const todosSelecionados =
+    clientesVisiveis.length > 0 && clientesVisiveis.every((item) => selecionados.includes(item.id));
+
+  const radarSecundario = useMemo(
+    () => filaPrioritaria.filter((item) => item.id !== clienteFocoId).slice(0, 3),
+    [clienteFocoId, filaPrioritaria]
+  );
+
+  const atividadeFoco = useMemo(() => {
+    if (!clienteFoco) return [];
+
+    const feed = [];
+
+    feed.push({
+      title: clienteFoco.documento ? "Cadastro fiscal validado" : "Documento ainda pendente",
+      note: clienteFoco.documento
+        ? "Documento principal disponível e pronto para sustentar o fluxo entre comercial, OS e caixa."
+        : "Vale concluir o documento para evitar ruído no fluxo comercial e financeiro.",
+      when: fmtDate(clienteFoco.created_at),
+    });
+
+    if (canOrcamentos) {
+      feed.push({
+        title:
+          clienteFoco.orcamentos.aprovados > 0
+            ? "Orçamento aprovado em carteira"
+            : clienteFoco.orcamentos.emDecisao > 0
+              ? "Proposta comercial em decisão"
+              : "Sem proposta ativa",
+        note:
+          clienteFoco.orcamentos.aprovados > 0
+            ? `${fmtNumber(clienteFoco.orcamentos.aprovados)} aprovação(ões) prontas para virar OS.`
+            : clienteFoco.orcamentos.emDecisao > 0
+              ? `${fmtNumber(clienteFoco.orcamentos.emDecisao)} proposta(s) ainda em negociação.`
+              : "Abrir uma nova frente comercial pode destravar recorrência.",
+        when: fmtDate(clienteFoco.orcamentos.ultimaData),
+      });
+    }
+
+    if (canOS) {
+      feed.push({
+        title: clienteFoco.ordens.emFluxo > 0 ? "Operação em andamento" : "Sem OS em curso",
+        note:
+          clienteFoco.ordens.emFluxo > 0
+            ? `${fmtNumber(clienteFoco.ordens.emFluxo)} ordem(ns) em fluxo e ${fmtNumber(clienteFoco.ordens.concluidas)} concluída(s).`
+            : "Nenhuma OS ativa no momento para esta conta.",
+        when: fmtDate(clienteFoco.ordens.ultimaData),
+      });
+    }
+
+    if (canFinanceiro) {
+      feed.push({
+        title:
+          clienteFoco.financeiro.atrasados > 0
+            ? "Recebimento em atenção"
+            : clienteFoco.financeiro.receberPendente > 0
+              ? "Saldo em acompanhamento"
+              : "Financeiro estabilizado",
+        note:
+          clienteFoco.financeiro.atrasados > 0
+            ? `${fmtNumber(clienteFoco.financeiro.atrasados)} título(s) em atraso pedindo ação direta.`
+            : clienteFoco.financeiro.receberPendente > 0
+              ? `${fmtNumber(clienteFoco.financeiro.receberPendente)} lançamento(s) ainda abertos.`
+              : "Sem pendências financeiras relevantes neste recorte.",
+        when: fmtDate(clienteFoco.financeiro.ultimaData || clienteFoco.financeiro.ultimoVencimento),
+      });
+    }
+
+    return feed.filter((item) => item.when !== "—" || item.note).slice(0, 4);
+  }, [canFinanceiro, canOS, canOrcamentos, clienteFoco]);
 
   const toggleSelecionado = (id) => {
     setSelecionados((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]));
@@ -1237,490 +1428,289 @@ export default function Clientes() {
   };
 
   return (
-    <div className="min-h-screen bg-transparent p-4 sm:p-6 lg:p-8">
+    <div className="amp-rel-page">
       {notif && (
-        <div
-          className={`fixed right-5 top-5 z-50 rounded-[20px] border px-5 py-3 text-sm font-semibold shadow-[0_18px_48px_rgba(22,18,14,0.2)] ${
-            notif.tipo === "erro"
-              ? "border-[rgba(187,103,80,0.2)] bg-[rgba(255,244,240,0.94)] text-[var(--cm-danger)]"
-              : "border-[rgba(63,141,114,0.2)] bg-[rgba(246,255,251,0.95)] text-[var(--cm-positive)]"
-          }`}
-        >
+        <div className={`amp-rel-notice ${notif.tipo === "erro" ? "is-error" : "is-success"}`}>
           {notif.msg}
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
-        <section className="cm-surface-strong rounded-[32px] p-6 sm:p-7 xl:col-span-8">
-          <p className="cm-label text-white/58">Ceramic Monolith · Clientes</p>
-          <h1 className="mt-3 text-3xl font-semibold tracking-[-0.05em] sm:text-4xl">
-            Carteira com contexto real de relacionamento, operação e caixa
-          </h1>
-          <p className="mt-3 max-w-3xl text-sm leading-6 text-white/72 sm:text-base">
-            A tela de clientes deixa de ser só cadastro. Agora ela prioriza onde agir, mostra o elo com comercial,
-            ordens de serviço e financeiro, e acelera o próximo movimento certo em cada conta.
-          </p>
+      <input
+        ref={inputFileRef}
+        type="file"
+        accept=".xml,.json"
+        className="hidden"
+        onChange={handleArquivoNFe}
+      />
 
-          <div className="mt-5 flex flex-wrap items-center gap-2">
-            <span className="rounded-full border border-white/10 bg-white/8 px-3 py-2 text-xs uppercase tracking-[0.18em] text-white/72">
-              Cadastro → Comercial → OS → Financeiro
-            </span>
-            <span className="rounded-full border border-white/10 bg-white/8 px-3 py-2 text-xs text-white/72">
-              {fmtDate(new Date().toISOString())}
-            </span>
-            {contextoErro && (
-              <span className="rounded-full border border-white/10 bg-[rgba(187,103,80,0.16)] px-3 py-2 text-xs text-white/80">
-                Parte do contexto não carregou
-              </span>
-            )}
+      <section className="amp-rel-terminal">
+        <section className="amp-rel-command">
+          <div className="amp-rel-command-head">
+            <div className="amp-rel-command-copy">
+              <p className="amp-rel-kicker">Relacionamento unificado</p>
+              <h1>Terminal de clientes com leitura comercial, operacional e financeira</h1>
+              <p>
+                A carteira deixa de ser só cadastro. Agora ela mostra prontidão de fluxo, próxima ação,
+                risco fiscal e sinal de caixa para cada conta em um único ledger operacional.
+              </p>
+            </div>
+
+            <div className="amp-rel-command-actions">
+              <button type="button" onClick={() => inputFileRef.current?.click()} className="amp-rel-secondary-btn">
+                Importar NF-e
+              </button>
+              <button type="button" onClick={handleAtualizarTudo} className="amp-rel-secondary-btn">
+                Atualizar carteira
+              </button>
+              <button type="button" onClick={abrirNovo} className="amp-rel-primary-btn">
+                Novo cliente
+              </button>
+            </div>
           </div>
 
-          <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <StatTile icon={IconClients} label="Clientes" value={fmtNumber(clientesEnriquecidos.length)} note="Base ativa carregada" inverse />
-            <StatTile icon={IconQuotes} label="Carteira integrada" value={fmtNumber(stats.ativos)} note="Com vínculo em algum módulo" inverse />
-            <StatTile icon={IconServiceOrder} label="Em movimento" value={fmtNumber(stats.emFluxo)} note="Comercial ou produção em andamento" inverse />
-            <StatTile icon={IconDollar} label="Ponto de atenção" value={fmtNumber(stats.criticos)} note="Cadastro ou cobrança pedindo ação" inverse />
+          <div className="amp-rel-command-tools">
+            <div className="amp-rel-search-shell">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-4.35-4.35m1.85-5.4a7.25 7.25 0 1 1-14.5 0 7.25 7.25 0 0 1 14.5 0Z" />
+              </svg>
+              <input
+                type="text"
+                value={filtro}
+                onChange={(e) => setFiltro(e.target.value)}
+                placeholder="Buscar por nome, documento, contato ou contexto operacional..."
+                className="amp-rel-search-input"
+              />
+              {filtro && (
+                <button type="button" onClick={() => setFiltro("")} className="amp-rel-clear-btn" aria-label="Limpar busca">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.9}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
+            </div>
+
+            <div className="amp-rel-command-meta">
+              <span className="amp-rel-status-chip is-live">Desktop sync</span>
+              <span className="amp-rel-status-chip">Fiscal rastreado</span>
+              <span className="amp-rel-status-chip">{fmtDate(new Date().toISOString())}</span>
+              {carregandoContexto && <span className="amp-rel-status-chip">Sincronizando contexto</span>}
+              {contextoErro && <span className="amp-rel-status-chip is-danger">Parte do contexto não carregou</span>}
+            </div>
+          </div>
+
+          <div className="amp-rel-filter-row">
+            {QUICK_FILTERS.map((item) => {
+              const ativo = filtroRapido === item.id;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setFiltroRapido(item.id)}
+                  className={`amp-rel-filter-chip ${ativo ? "is-active" : ""}`}
+                >
+                  {item.label}
+                  <span>{fmtNumber(contagemFiltros[item.id])}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="amp-rel-kpi-tape">
+            <StatTile
+              icon={IconClients}
+              label="Base ativa"
+              value={fmtNumber(panorama.base)}
+              note={`${fmtNumber(panorama.ativos)} com vínculo operacional`}
+              inverse
+            />
+            <StatTile
+              icon={IconQuotes}
+              label="Cobertura de cadastro"
+              value={`${panorama.cobertura}%`}
+              note={`${fmtNumber(stats.completos)} cadastros completos`}
+              inverse
+            />
+            <StatTile
+              icon={IconServiceOrder}
+              label="Radar comercial"
+              value={fmtNumber(panorama.comerciais)}
+              note={`${fmtNumber(panorama.emFluxo)} contas em movimento`}
+              inverse
+            />
+            <StatTile
+              icon={IconDollar}
+              label="Pendências"
+              value={fmtNumber(panorama.criticos)}
+              note="Cadastro ou cobrança pedindo ação"
+              inverse
+            />
           </div>
         </section>
 
-        <section className="cm-surface rounded-[32px] p-6 xl:col-span-4">
-          <p className="cm-label">Fila de ação</p>
-          <h2 className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-[var(--cm-text)]">Quem pede movimento agora</h2>
-          <p className="mt-2 text-sm leading-6 text-[var(--cm-muted)]">
-            Priorização automática combinando completude de cadastro, proposta em aberto, OS em fluxo e sinais financeiros.
-          </p>
-
-          <div className="mt-5 grid gap-3">
-            {carregandoContexto && !filaPrioritaria.length ? (
-              <div className="rounded-[24px] border border-[color:var(--cm-line)] bg-white/38 px-4 py-10 text-center text-sm text-[var(--cm-muted)]">
-                Consolidando contexto da carteira...
-              </div>
-            ) : filaPrioritaria.length > 0 ? (
-              filaPrioritaria.map((item) => (
-                <PriorityCard key={item.id} item={item} onSelect={setClienteFocoId} />
-              ))
-            ) : (
-              <div className="rounded-[24px] border border-[color:var(--cm-line)] bg-white/38 px-4 py-6 text-sm leading-6 text-[var(--cm-muted)]">
-                A carteira está estável neste recorte. Use a busca, os filtros rápidos ou crie um novo cliente para
-                continuar o fluxo.
-              </div>
-            )}
-          </div>
-
-          <div className="mt-5 grid grid-cols-2 gap-3">
-            <MiniMetric label="Cadastros completos" value={fmtNumber(stats.completos)} />
-            <MiniMetric label="Clientes ativos" value={fmtNumber(stats.ativos)} />
-          </div>
-        </section>
-      </div>
-
-      <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-12">
-        <section className="cm-surface rounded-[32px] p-5 sm:p-6 xl:col-span-8">
-          <div className="flex flex-col gap-5">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div className="amp-rel-grid">
+          <section className="amp-rel-ledger">
+            <div className="amp-rel-ledger-top">
               <div>
-                <p className="cm-label">Carteira operacional</p>
-                <h2 className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-[var(--cm-text)]">Clientes e prontidão de fluxo</h2>
-                <p className="mt-2 text-sm leading-6 text-[var(--cm-muted)]">
-                  Selecione um cliente para focar no detalhe, use filtros rápidos para triagem e preserve todo o fluxo de
-                  importação, edição, exclusão e exportação.
-                </p>
+                <p className="amp-rel-kicker">Ledger principal</p>
+                <h2>Base operacional de relacionamento</h2>
               </div>
 
-              <div className="flex flex-wrap gap-3">
-                <input
-                  ref={inputFileRef}
-                  type="file"
-                  accept=".xml,.json"
-                  className="hidden"
-                  onChange={handleArquivoNFe}
-                />
-                <button
-                  type="button"
-                  onClick={() => inputFileRef.current?.click()}
-                  className="rounded-full border border-[color:var(--cm-line)] bg-white/74 px-5 py-3 text-sm font-semibold text-[var(--cm-text)] transition hover:bg-white"
-                >
-                  Importar NF-e
-                </button>
-                <button
-                  type="button"
-                  onClick={abrirNovo}
-                  className="rounded-full bg-[var(--cm-text)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-92"
-                >
-                  Novo cliente
-                </button>
+              <div className="amp-rel-ledger-flags">
+                <span className="amp-rel-status-chip is-live">{fmtNumber(clientesVisiveis.length)} visível(is)</span>
+                <span className="amp-rel-status-chip">
+                  {selecionados.length > 0 ? `${fmtNumber(selecionados.length)} selecionado(s)` : "Nenhuma seleção"}
+                </span>
               </div>
             </div>
 
-            <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-              <div className="flex min-w-0 flex-1 items-center gap-3 rounded-[24px] border border-[color:var(--cm-line)] bg-white/68 px-4 py-3">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 shrink-0 text-[var(--cm-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.9}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-4.35-4.35m1.85-5.4a7.25 7.25 0 1 1-14.5 0 7.25 7.25 0 0 1 14.5 0Z" />
-                </svg>
-                <input
-                  type="text"
-                  value={filtro}
-                  onChange={(e) => setFiltro(e.target.value)}
-                  placeholder="Buscar por nome, documento ou e-mail..."
-                  className="min-w-0 flex-1 bg-transparent text-sm text-[var(--cm-text)] outline-none placeholder:text-[var(--cm-muted)]"
-                />
-                {filtro && (
-                  <button
-                    type="button"
-                    onClick={() => setFiltro("")}
-                    className="rounded-full p-1 text-[var(--cm-muted)] transition hover:text-[var(--cm-text)]"
-                    aria-label="Limpar busca"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.9}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                )}
-              </div>
-
-              <div className="flex flex-wrap gap-3">
-                <button
-                  type="button"
-                  onClick={handleAtualizarTudo}
-                  className="rounded-full border border-[color:var(--cm-line)] bg-white/74 px-5 py-3 text-sm font-semibold text-[var(--cm-text)] transition hover:bg-white"
-                >
-                  Atualizar carteira
-                </button>
-                {selecionados.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={exportarSelecionados}
-                    className="rounded-full border border-[rgba(180,99,56,0.22)] bg-[rgba(180,99,56,0.12)] px-5 py-3 text-sm font-semibold text-[var(--cm-accent)] transition hover:bg-[rgba(180,99,56,0.16)]"
-                  >
-                    Exportar seleção
-                  </button>
-                )}
-              </div>
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              {QUICK_FILTERS.map((item) => {
-                const ativo = filtroRapido === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => setFiltroRapido(item.id)}
-                    className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] transition ${
-                      ativo
-                        ? "border-[rgba(180,99,56,0.22)] bg-[rgba(180,99,56,0.12)] text-[var(--cm-accent)]"
-                        : "border-[color:var(--cm-line)] bg-white/66 text-[var(--cm-muted)] hover:text-[var(--cm-text)]"
-                    }`}
-                  >
-                    {item.label}
-                    <span className={`rounded-full px-2 py-0.5 text-[10px] ${ativo ? "bg-white/72 text-[var(--cm-accent)]" : "bg-[rgba(37,42,49,0.06)] text-[var(--cm-muted)]"}`}>
-                      {fmtNumber(contagemFiltros[item.id])}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="mt-6 overflow-hidden rounded-[28px] border border-[color:var(--cm-line)] bg-white/34">
-            <div className="hidden lg:grid lg:grid-cols-[auto_minmax(0,2.2fr)_1.15fr_1.2fr_1fr_auto] lg:gap-4 lg:px-4 lg:py-3">
-              <div className="flex items-center">
+            <div className="amp-rel-ledger-head">
+              <div className="amp-rel-ledger-check">
                 <input
                   type="checkbox"
-                  checked={
-                    clientesVisiveis.length > 0 &&
-                    clientesVisiveis.every((item) => selecionados.includes(item.id))
-                  }
+                  checked={todosSelecionados}
                   onChange={toggleTodos}
-                  className="h-4 w-4 rounded border-[color:var(--cm-line)] text-[var(--cm-accent)] focus:ring-[rgba(180,99,56,0.2)]"
-                  aria-label="Selecionar todos os clientes visíveis"
+                  className="h-4 w-4 rounded border-[color:var(--amp-shell-line)] bg-transparent text-[var(--amp-shell-accent)] focus:ring-[rgba(0,212,170,0.2)]"
+                  aria-label="Selecionar todas as contas visíveis"
                 />
               </div>
-              <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--cm-muted)]">Cliente e próxima ação</p>
-              <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--cm-muted)]">Cadastro</p>
-              <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--cm-muted)]">Fluxo conectado</p>
-              <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--cm-muted)]">Contato</p>
-              <p className="text-right text-[11px] uppercase tracking-[0.18em] text-[var(--cm-muted)]">Ações</p>
+              <span>Conta e próxima ação</span>
+              <span>Cadastro</span>
+              <span>Fluxo conectado</span>
+              <span className="text-right">Ações</span>
             </div>
 
             {carregando ? (
-              <div className="flex items-center justify-center px-6 py-20">
-                <div className="h-10 w-10 animate-spin rounded-full border-4 border-black/8 border-t-[var(--cm-accent)]" />
-              </div>
+              <LoadingState />
             ) : !clientesVisiveis.length ? (
-              <EmptyState filtroAtivo={Boolean(filtro || filtroRapido !== "todos")} onNovo={abrirNovo} onImportar={() => inputFileRef.current?.click()} />
+              <EmptyState
+                filtroAtivo={Boolean(filtro || filtroRapido !== "todos")}
+                onNovo={abrirNovo}
+                onImportar={() => inputFileRef.current?.click()}
+              />
             ) : (
-              <div>
-                {clientesVisiveis.map((cliente, index) => (
-                  <article
+              <div className="amp-rel-ledger-body">
+                {clientesVisiveis.map((cliente) => (
+                  <LedgerRow
                     key={cliente.id}
-                    className={`grid gap-4 px-4 py-5 transition lg:grid-cols-[auto_minmax(0,2.2fr)_1.15fr_1.2fr_1fr_auto] ${
-                      index > 0 ? "border-t border-[color:var(--cm-line)]" : ""
-                    } ${
-                      cliente.id === clienteFocoId ? "bg-[rgba(255,255,255,0.52)]" : "bg-transparent hover:bg-white/28"
-                    }`}
-                  >
-                    <div className="flex items-start pt-1">
-                      <input
-                        type="checkbox"
-                        checked={selecionados.includes(cliente.id)}
-                        onChange={() => toggleSelecionado(cliente.id)}
-                        className="mt-1 h-4 w-4 rounded border-[color:var(--cm-line)] text-[var(--cm-accent)] focus:ring-[rgba(180,99,56,0.2)]"
-                        aria-label={`Selecionar ${cliente.nome}`}
-                      />
-                    </div>
-
-                    <div className="min-w-0">
-                      <button
-                        type="button"
-                        onClick={() => setClienteFocoId(cliente.id)}
-                        className="w-full text-left"
-                      >
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="truncate text-lg font-semibold tracking-[-0.03em] text-[var(--cm-text)]">
-                            {cliente.nome}
-                          </span>
-                          <ToneBadge tone={cliente.statusTone}>{cliente.statusLabel}</ToneBadge>
-                        </div>
-                        <div className="mt-3 flex flex-wrap gap-3 text-sm text-[var(--cm-muted)]">
-                          <span>{cliente.documento || "Documento pendente"}</span>
-                          <span>Últ. mov.: {fmtDate(cliente.ultimaMovimentacao)}</span>
-                        </div>
-                        <p className="mt-3 text-sm leading-6 text-[var(--cm-muted)]">{cliente.nextAction}</p>
-                      </button>
-                    </div>
-
-                    <div>
-                      <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--cm-muted)]">Completude</p>
-                      <p className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-[var(--cm-text)]">
-                        {cliente.completude}%
-                      </p>
-                      <ProgressBar
-                        value={cliente.completude}
-                        tone={cliente.cadastroCompleto ? "positive" : cliente.completude >= 50 ? "accent" : "warning"}
-                      />
-                      <p className="mt-3 text-sm text-[var(--cm-muted)]">
-                        {cliente.faltantes.length
-                          ? `Falta: ${cliente.faltantes.join(", ")}`
-                          : "Cadastro pronto para integrações."}
-                      </p>
-                    </div>
-
-                    <div className="space-y-2">
-                      <InfoItem
-                        label="Orçamentos"
-                        value={
-                          canOrcamentos
-                            ? `${fmtNumber(cliente.orcamentos.total)} total · ${fmtNumber(cliente.orcamentos.emDecisao)} em decisão`
-                            : "Sem permissão"
-                        }
-                        subtle={!canOrcamentos}
-                      />
-                      <InfoItem
-                        label="Ordens"
-                        value={
-                          canOS
-                            ? `${fmtNumber(cliente.ordens.emFluxo)} em fluxo · ${fmtNumber(cliente.ordens.concluidas)} concluídas`
-                            : "Sem permissão"
-                        }
-                        subtle={!canOS}
-                      />
-                      <InfoItem
-                        label="Financeiro"
-                        value={
-                          canFinanceiro
-                            ? `${fmtNumber(cliente.financeiro.atrasados)} atraso(s) · ${fmtCurrency(cliente.financeiro.saldoAberto)} aberto`
-                            : "Sem permissão"
-                        }
-                        subtle={!canFinanceiro}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <InfoItem label="Telefone" value={cliente.telefone || "Pendente"} subtle={!cliente.telefone} />
-                      <InfoItem label="E-mail" value={cliente.email || "Pendente"} subtle={!cliente.email} title={cliente.email || ""} />
-                      <InfoItem label="Endereço" value={cliente.endereco || "Pendente"} subtle={!cliente.endereco} title={cliente.endereco || ""} />
-                    </div>
-
-                    <div className="flex flex-wrap items-start justify-end gap-2 lg:flex-col lg:items-end">
-                      <button
-                        type="button"
-                        onClick={() => setClienteFocoId(cliente.id)}
-                        className="rounded-full border border-[color:var(--cm-line)] bg-white/72 px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--cm-text)] transition hover:bg-white"
-                      >
-                        Foco
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => compartilhar(cliente)}
-                        className="rounded-full border border-[color:var(--cm-line)] bg-white/72 px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--cm-text)] transition hover:bg-white"
-                      >
-                        Exportar
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => abrirEdicao(cliente)}
-                        className="rounded-full border border-[color:var(--cm-line)] bg-white/72 px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--cm-text)] transition hover:bg-white"
-                      >
-                        Editar
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setClienteDelete(cliente)}
-                        className="rounded-full border border-[rgba(187,103,80,0.18)] bg-[rgba(187,103,80,0.1)] px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--cm-danger)] transition hover:bg-[rgba(187,103,80,0.14)]"
-                      >
-                        Excluir
-                      </button>
-                    </div>
-                  </article>
+                    cliente={cliente}
+                    selected={selecionados.includes(cliente.id)}
+                    onFocus={setClienteFocoId}
+                    onToggleSelect={toggleSelecionado}
+                    onEdit={abrirEdicao}
+                    onDelete={setClienteDelete}
+                    onShare={compartilhar}
+                    canOrcamentos={canOrcamentos}
+                    canOS={canOS}
+                    canFinanceiro={canFinanceiro}
+                  />
                 ))}
               </div>
             )}
-          </div>
 
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-[var(--cm-muted)]">
-            <p>
-              {fmtNumber(clientesVisiveis.length)} cliente(s) visível(is)
-              {filtro && <span> para &quot;{filtro}&quot;</span>}
-            </p>
-            <p>
-              {selecionados.length > 0
-                ? `${fmtNumber(selecionados.length)} selecionado(s)`
-                : "Nenhum cliente selecionado"}
-            </p>
-          </div>
-        </section>
+            <div className="amp-rel-ledger-footer">
+              <p>
+                {fmtNumber(clientesVisiveis.length)} conta(s) visível(is)
+                {filtro && <span> para &quot;{filtro}&quot;</span>}
+              </p>
+              <p>{selecionados.length > 0 ? `${fmtNumber(selecionados.length)} selecionado(s)` : "Nenhum cliente selecionado"}</p>
+            </div>
+          </section>
 
-        <section className="cm-surface rounded-[32px] p-5 sm:p-6 xl:col-span-4">
-          <p className="cm-label">Cliente em foco</p>
-          {clienteFoco ? (
-            <>
-              <div className="mt-3 flex items-start justify-between gap-4">
-                <div className="min-w-0">
-                  <h2 className="truncate text-2xl font-semibold tracking-[-0.04em] text-[var(--cm-text)]">{clienteFoco.nome}</h2>
-                  <p className="mt-2 text-sm text-[var(--cm-muted)]">Última movimentação em {fmtDate(clienteFoco.ultimaMovimentacao)}</p>
+          <aside className="amp-rel-focus">
+            {clienteFoco ? (
+              <>
+                <div className="amp-rel-focus-card is-primary">
+                  <p className="amp-rel-kicker">Registro em foco</p>
+                  <h3>{clienteFoco.nome}</h3>
+                  <p className="amp-rel-focus-copy">{clienteFoco.nextNote}</p>
                 </div>
-                <div className="rounded-[24px] border border-[color:var(--cm-line)] bg-white/42 px-4 py-3 text-right">
-                  <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--cm-muted)]">Completude</p>
-                  <p className="mt-2 text-3xl font-semibold tracking-[-0.05em] text-[var(--cm-text)]">{clienteFoco.completude}%</p>
+
+                <div className="amp-rel-focus-grid">
+                  <FocusMetric label="Status" value={clienteFoco.statusLabel} note={`Últ. mov.: ${fmtDate(clienteFoco.ultimaMovimentacao)}`} />
+                  <FocusMetric label="Completude" value={`${clienteFoco.completude}%`} note={clienteFoco.cadastroCompleto ? "Cadastro íntegro" : "Cadastro pedindo atenção"} />
+                  <FocusMetric
+                    label="Financeiro"
+                    value={canFinanceiro ? fmtCurrency(clienteFoco.financeiro.saldoAberto) : "—"}
+                    note={
+                      canFinanceiro
+                        ? `${fmtNumber(clienteFoco.financeiro.atrasados)} atraso(s) · ${fmtNumber(clienteFoco.financeiro.receberPendente)} a receber`
+                        : "Sem permissão financeira"
+                    }
+                  />
+                  <FocusMetric
+                    label="Operação"
+                    value={canOS ? fmtNumber(clienteFoco.ordens.emFluxo) : "—"}
+                    note={canOS ? `${fmtNumber(clienteFoco.ordens.concluidas)} concluída(s)` : "Sem permissão operacional"}
+                  />
                 </div>
-              </div>
 
-              <div className="mt-4 flex flex-wrap gap-2">
-                <ToneBadge tone={clienteFoco.statusTone}>{clienteFoco.statusLabel}</ToneBadge>
-                {clienteFoco.carteiraAtiva ? <ToneBadge tone="positive">Carteira ativa</ToneBadge> : <ToneBadge tone="default">Sem vínculo</ToneBadge>}
-                {clienteFoco.aprovadosSemOS && <ToneBadge tone="accent">Aprovado sem OS</ToneBadge>}
-              </div>
+                <div className="amp-rel-next">
+                  <p className="amp-rel-kicker">Próxima melhor ação</p>
+                  <strong>{clienteFoco.nextAction}</strong>
+                  <p>{clienteFoco.nextNote}</p>
+                </div>
 
-              <div className="mt-5 rounded-[24px] border border-[color:var(--cm-line)] bg-white/42 p-4">
-                <p className="cm-label">Próxima melhor ação</p>
-                <p className="mt-3 text-lg font-semibold tracking-[-0.03em] text-[var(--cm-text)]">{clienteFoco.nextAction}</p>
-                <p className="mt-2 text-sm leading-6 text-[var(--cm-muted)]">{clienteFoco.nextNote}</p>
-              </div>
-
-              <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                <FocusMetric
-                  label="Orçamentos"
-                  value={canOrcamentos ? fmtNumber(clienteFoco.orcamentos.total) : "—"}
-                  note={
-                    canOrcamentos
-                      ? `${fmtNumber(clienteFoco.orcamentos.emDecisao)} em decisão · ${fmtCurrency(clienteFoco.orcamentos.valor)} no total`
-                      : "Sem permissão comercial"
-                  }
-                />
-                <FocusMetric
-                  label="Ordens de serviço"
-                  value={canOS ? fmtNumber(clienteFoco.ordens.total) : "—"}
-                  note={
-                    canOS
-                      ? `${fmtNumber(clienteFoco.ordens.emFluxo)} em fluxo · ${fmtNumber(clienteFoco.ordens.concluidas)} concluídas`
-                      : "Sem permissão operacional"
-                  }
-                />
-                <FocusMetric
-                  label="Financeiro"
-                  value={canFinanceiro ? fmtCurrency(clienteFoco.financeiro.saldoAberto) : "—"}
-                  note={
-                    canFinanceiro
-                      ? `${fmtNumber(clienteFoco.financeiro.atrasados)} em atraso · ${fmtNumber(clienteFoco.financeiro.receberPendente)} a receber`
-                      : "Sem permissão financeira"
-                  }
-                />
-                <FocusMetric
-                  label="Cadastro"
-                  value={clienteFoco.documento ? "Documento ok" : "Documento pendente"}
-                  note={clienteFoco.telefone || clienteFoco.email || "Sem canal de contato definido"}
-                />
-              </div>
-
-              <div className="mt-5 rounded-[24px] border border-[color:var(--cm-line)] bg-white/42 p-4">
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="amp-rel-focus-info">
                   <InfoItem label="Telefone" value={clienteFoco.telefone || "Pendente"} subtle={!clienteFoco.telefone} />
                   <InfoItem label="E-mail" value={clienteFoco.email || "Pendente"} subtle={!clienteFoco.email} title={clienteFoco.email || ""} />
                   <InfoItem label="Documento" value={clienteFoco.documento || "Pendente"} subtle={!clienteFoco.documento} />
                   <InfoItem label="Endereço" value={clienteFoco.endereco || "Pendente"} subtle={!clienteFoco.endereco} title={clienteFoco.endereco || ""} />
                 </div>
-              </div>
 
-              <div className="mt-5 flex flex-wrap gap-3">
-                <button
-                  type="button"
-                  onClick={() => abrirEdicao(clienteFoco)}
-                  className="rounded-full bg-[var(--cm-text)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-92"
-                >
-                  Editar cadastro
-                </button>
-                <button
-                  type="button"
-                  onClick={() => compartilhar(clienteFoco)}
-                  className="rounded-full border border-[color:var(--cm-line)] bg-white/74 px-5 py-3 text-sm font-semibold text-[var(--cm-text)] transition hover:bg-white"
-                >
-                  Exportar JSON
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setClienteDelete(clienteFoco)}
-                  className="rounded-full border border-[rgba(187,103,80,0.18)] bg-[rgba(187,103,80,0.1)] px-5 py-3 text-sm font-semibold text-[var(--cm-danger)] transition hover:bg-[rgba(187,103,80,0.14)]"
-                >
-                  Excluir cliente
-                </button>
-              </div>
-            </>
-          ) : (
-            <div className="mt-5 rounded-[24px] border border-[color:var(--cm-line)] bg-white/40 px-4 py-6 text-sm leading-6 text-[var(--cm-muted)]">
-              Selecione um cliente na lista para abrir o painel de foco com próxima ação, completude e vínculos com o resto do sistema.
-            </div>
-          )}
+                <div className="amp-rel-feed">
+                  <div className="amp-rel-feed-head">
+                    <p className="amp-rel-kicker">Leitura viva</p>
+                    <span>Atualizado com os módulos ativos</span>
+                  </div>
+                  {atividadeFoco.map((item) => (
+                    <FeedItem key={`${item.title}-${item.when}`} title={item.title} note={item.note} when={item.when} />
+                  ))}
+                </div>
 
-          {selecionados.length > 0 && (
-            <div className="mt-6 rounded-[24px] border border-[rgba(180,99,56,0.18)] bg-[rgba(180,99,56,0.08)] p-4">
-              <p className="cm-label">Seleção ativa</p>
-              <h3 className="mt-2 text-lg font-semibold tracking-[-0.03em] text-[var(--cm-text)]">
-                {fmtNumber(selecionados.length)} cliente(s) prontos para ação em lote
-              </h3>
-              <p className="mt-2 text-sm leading-6 text-[var(--cm-muted)]">
-                Exporte a seleção atual ou limpe o recorte para voltar à carteira completa.
-              </p>
-              <div className="mt-4 flex flex-wrap gap-3">
-                <button
-                  type="button"
-                  onClick={exportarSelecionados}
-                  className="rounded-full bg-[var(--cm-text)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-92"
-                >
-                  Exportar seleção
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSelecionados([])}
-                  className="rounded-full border border-[color:var(--cm-line)] bg-white/74 px-5 py-3 text-sm font-semibold text-[var(--cm-text)] transition hover:bg-white"
-                >
-                  Limpar seleção
-                </button>
+                <div className="amp-rel-focus-actions">
+                  <button type="button" onClick={() => abrirEdicao(clienteFoco)} className="amp-rel-primary-btn">
+                    Editar cadastro
+                  </button>
+                  <button type="button" onClick={() => compartilhar(clienteFoco)} className="amp-rel-secondary-btn">
+                    Exportar JSON
+                  </button>
+                  <button type="button" onClick={() => setClienteDelete(clienteFoco)} className="amp-rel-ghost-chip is-danger">
+                    Excluir cliente
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="amp-rel-focus-empty">
+                <p className="amp-rel-kicker">Cliente em foco</p>
+                <h3>Selecione uma conta no ledger</h3>
+                <p>Abra um cliente para ver completude, próxima ação e o vínculo com comercial, OS e financeiro.</p>
               </div>
-            </div>
-          )}
-        </section>
-      </div>
+            )}
+
+            {radarSecundario.length > 0 && (
+              <div className="amp-rel-radar">
+                <div className="amp-rel-feed-head">
+                  <p className="amp-rel-kicker">Radar prioritário</p>
+                  <span>Quem pede movimento agora</span>
+                </div>
+                <div className="amp-rel-radar-list">
+                  {radarSecundario.map((item) => (
+                    <PriorityCard key={item.id} item={item} onSelect={setClienteFocoId} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {selecionados.length > 0 && (
+              <SelectionBanner
+                total={selecionados.length}
+                onExportar={exportarSelecionados}
+                onLimpar={() => setSelecionados([])}
+              />
+            )}
+          </aside>
+        </div>
+      </section>
 
       {dadosNFe && (
         <ModalSelecaoNFe

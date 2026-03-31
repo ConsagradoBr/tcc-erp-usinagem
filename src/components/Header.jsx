@@ -1,17 +1,71 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
-import { clearSession, getProfileLabel } from "../auth";
-import { IconMenu, IconPower, LogoMain } from "../assets/assets-map";
-import DesktopWindowControls from "./DesktopWindowControls";
+import { clearSession } from "../auth";
+import { useTheme } from "./ThemeProvider";
 
-export default function Header({ onMenuToggle, user }) {
-  const navigate = useNavigate();
-  const today = new Intl.DateTimeFormat("pt-BR", {
+const ROUTE_META = [
+  {
+    match: "/app/dashboard",
+    kicker: "AMP industrial suite",
+    title: "Dashboard",
+    note: "Mesa analítica de comercial, produção, estoque e caixa.",
+  },
+  {
+    match: "/app/clientes",
+    kicker: "Relacionamento unificado",
+    title: "Clientes e fornecedores",
+    note: "Conta, fiscal e próxima ação em uma só leitura.",
+  },
+  {
+    match: "/app/orcamentos",
+    kicker: "Fluxo comercial",
+    title: "Orçamentos",
+    note: "Propostas, aprovação e ponte para OS e caixa.",
+  },
+  {
+    match: "/app/ordemservico",
+    kicker: "Produção e andamento",
+    title: "Ordem de Serviço",
+    note: "Fila operacional com etapa, prioridade e ritmo.",
+  },
+  {
+    match: "/app/financeiro",
+    kicker: "Titulos, parcelas e caixa",
+    title: "Financeiro",
+    note: "Títulos, parcelas e risco em leitura direta.",
+  },
+  {
+    match: "/app/usuarios",
+    kicker: "Governança interna",
+    title: "Usuarios",
+    note: "Acesso interno e perfis por área.",
+  },
+  {
+    match: "/app/backup",
+    kicker: "Confiabilidade operacional",
+    title: "Backup",
+    note: "Backup local e restauração guiada.",
+  },
+];
+
+function getRouteMeta(pathname) {
+  return ROUTE_META.find((item) => pathname.startsWith(item.match)) || ROUTE_META[0];
+}
+
+function formatToday() {
+  return new Intl.DateTimeFormat("pt-BR", {
     day: "2-digit",
     month: "short",
     year: "numeric",
   }).format(new Date());
+}
+
+export default function Header({ onMenuToggle }) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { theme, setTheme } = useTheme();
+  const meta = React.useMemo(() => getRouteMeta(location.pathname), [location.pathname]);
 
   const handleLogout = () => {
     clearSession();
@@ -19,60 +73,51 @@ export default function Header({ onMenuToggle, user }) {
   };
 
   return (
-    <header className="sticky top-0 z-20 px-3 pt-3 sm:px-4 lg:px-6 lg:pt-5">
-      <div className="cm-surface flex min-h-[82px] items-center justify-between gap-3 rounded-[32px] px-3 py-3 sm:px-4 lg:px-5">
-        <div className="flex min-w-0 items-center gap-3">
-          <button
-            onClick={onMenuToggle}
-            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[20px] border border-white/10 bg-[var(--cm-strong)] text-white shadow-[0_14px_30px_rgba(15,18,22,0.22)] hover:bg-[color:var(--cm-accent)]"
-            aria-label="Abrir menu"
-          >
-            <img src={IconMenu} alt="Menu" className="w-6 sm:w-7 brightness-[3.4]" />
+    <header className="amp-shell-header-wrap">
+      <div className="amp-shell-header">
+        <div className="amp-shell-header-copy">
+          <button type="button" onClick={onMenuToggle} className="amp-shell-control-btn lg:hidden">
+            Menu
           </button>
-
-          <div className="hidden min-w-0 items-center gap-3 md:flex">
-            <div className="flex h-12 w-12 items-center justify-center rounded-[20px] border border-white/12 bg-[var(--cm-strong)] shadow-[0_14px_30px_rgba(15,18,22,0.18)]">
-              <img src={LogoMain} alt="Logo AMP Usinagem" className="h-7 w-7 object-contain brightness-0 invert" />
+          <div className="min-w-0">
+            <p className="amp-shell-kicker">{meta.kicker}</p>
+            <div className="amp-shell-title-row">
+              <h1 className="amp-shell-title">{meta.title}</h1>
+              <span className="amp-shell-pulse">
+                <span className="amp-shell-pulse-dot" />
+                Trader shell ativo
+              </span>
             </div>
-            <div className="min-w-0">
-              <p className="cm-label truncate font-semibold">
-                AMP Industrial
-              </p>
-              <h1 className="truncate text-xl font-bold tracking-[-0.03em] text-[var(--cm-text)]">Painel Operacional</h1>
-            </div>
+            <p className="amp-shell-note">{meta.note}</p>
           </div>
         </div>
 
-        <div className="min-w-0 flex-1 items-center justify-center px-2 lg:flex">
-          {user && (
-            <div className="hidden min-w-0 items-center gap-3 rounded-full border border-[color:var(--cm-line)] bg-white/55 px-4 py-2 lg:flex">
-              <span className="cm-label font-semibold">Ceramic Monolith</span>
-              <div className="h-4 w-px bg-[color:var(--cm-line)]" />
-              <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-[var(--cm-text)]">{user.nome}</p>
-                <p className="truncate text-xs text-[var(--cm-muted)]">
-                  {getProfileLabel(user.perfil)} • {today}
-                </p>
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="flex shrink-0 items-center gap-2">
-          {user && (
-            <div className="hidden h-11 w-11 items-center justify-center rounded-[18px] border border-white/10 bg-[var(--cm-strong)] text-sm font-bold text-white lg:flex">
-              {user.nome?.slice(0, 2).toUpperCase()}
-            </div>
-          )}
-          <div className="rounded-[18px] border border-[color:var(--cm-line)] bg-white/60 px-2 py-1.5">
-            <DesktopWindowControls compact />
+        <div className="amp-shell-header-actions">
+          <div className="amp-shell-theme" role="tablist" aria-label="Tema">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={theme === "light"}
+              className={`amp-shell-theme-btn ${theme === "light" ? "is-active" : ""}`}
+              onClick={() => setTheme("light")}
+            >
+              Light
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={theme === "dark"}
+              className={`amp-shell-theme-btn ${theme === "dark" ? "is-active" : ""}`}
+              onClick={() => setTheme("dark")}
+            >
+              Dark
+            </button>
           </div>
-          <button
-            onClick={handleLogout}
-            className="flex h-11 w-11 items-center justify-center rounded-[18px] border border-[color:var(--cm-line)] bg-white/60 hover:border-[color:var(--cm-accent)] hover:bg-[var(--cm-accent-soft)]"
-            aria-label="Sair"
-          >
-            <img src={IconPower} alt="Logout" className="w-5 sm:w-6" />
+
+          <span className="amp-shell-chip">{formatToday()}</span>
+
+          <button type="button" className="amp-shell-control-btn is-strong" onClick={handleLogout}>
+            Sair
           </button>
         </div>
       </div>

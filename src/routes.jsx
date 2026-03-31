@@ -5,13 +5,13 @@ import ProtectedLayout from "./layouts/ProtectedLayout";
 
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Clientes = lazy(() => import("./pages/Clientes"));
-const Financeiro = lazy(() => import("./pages/Financeiro"));
-const OrdemServico = lazy(() => import("./pages/OrdemServico"));
 const Orcamentos = lazy(() => import("./pages/Orcamentos"));
+const OrdemServico = lazy(() => import("./pages/OrdemServico"));
+const Financeiro = lazy(() => import("./pages/Financeiro"));
 const Home = lazy(() => import("./pages/Home"));
 const AuthPage = lazy(() => import("./pages/AuthPage"));
-const BackupDesktop = lazy(() => import("./pages/BackupDesktop"));
 const Usuarios = lazy(() => import("./pages/Usuarios"));
+const BackupDesktop = lazy(() => import("./pages/BackupDesktop"));
 
 function RouteLoader() {
   return (
@@ -47,11 +47,11 @@ const routes = createBrowserRouter(
         { index: true, element: <Navigate to="dashboard" replace /> },
         { path: "dashboard", element: screen(Dashboard) },
         { path: "clientes", element: screen(Clientes) },
-        { path: "financeiro", element: screen(Financeiro) },
-        { path: "ordemservico", element: screen(OrdemServico) },
         { path: "orcamentos", element: screen(Orcamentos) },
-        { path: "backup", element: screen(BackupDesktop) },
+        { path: "ordemservico", element: screen(OrdemServico) },
+        { path: "financeiro", element: screen(Financeiro) },
         { path: "usuarios", element: screen(Usuarios) },
+        { path: "backup", element: screen(BackupDesktop) },
         { path: "home", element: screen(Home) },
       ],
     },

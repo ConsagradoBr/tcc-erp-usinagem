@@ -87,16 +87,6 @@ function ToneBadge({ tone = "default", children }) {
   );
 }
 
-function StatTile({ label, value, note }) {
-  return (
-    <div className="rounded-[24px] border border-white/10 bg-white/7 p-4 text-white">
-      <p className="text-xs uppercase tracking-[0.18em] text-white/55">{label}</p>
-      <div className="mt-2 text-2xl font-semibold tracking-[-0.04em]">{value}</div>
-      <p className="mt-2 text-sm text-white/68">{note}</p>
-    </div>
-  );
-}
-
 function InfoItem({ label, value, subtle = false, title }) {
   return (
     <div>
@@ -111,40 +101,9 @@ function InfoItem({ label, value, subtle = false, title }) {
   );
 }
 
-function FocusMetric({ label, value, note }) {
-  return (
-    <div className="rounded-[22px] border border-[color:var(--cm-line)] bg-white/38 px-4 py-4">
-      <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--cm-muted)]">{label}</p>
-      <p className="mt-2 text-xl font-semibold tracking-[-0.04em] text-[var(--cm-text)]">{value}</p>
-      {note && <p className="mt-2 text-sm text-[var(--cm-muted)]">{note}</p>}
-    </div>
-  );
-}
-
-function QueueItem({ item, onSelect }) {
-  return (
-    <button
-      type="button"
-      onClick={() => onSelect(item.id)}
-      className="w-full rounded-[24px] border border-[color:var(--cm-line)] bg-white/38 px-4 py-4 text-left transition hover:-translate-y-[1px] hover:bg-white/55"
-    >
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-sm uppercase tracking-[0.18em] text-[var(--cm-accent)]">{item.os}</p>
-          <p className="mt-2 truncate text-lg font-semibold tracking-[-0.03em] text-[var(--cm-text)]">{item.servico}</p>
-          <p className="mt-1 text-sm text-[var(--cm-muted)]">{item.cliente}</p>
-        </div>
-        <ToneBadge tone={PRIORIDADE[item.prioridade]?.tone || "default"}>
-          {PRIORIDADE[item.prioridade]?.label || item.prioridade}
-        </ToneBadge>
-      </div>
-    </button>
-  );
-}
-
 function ModalContainer({ children }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(19,18,16,0.52)] p-4 backdrop-blur-md">
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-[rgba(19,18,16,0.52)] p-3 backdrop-blur-md sm:items-center sm:p-5">
       {children}
     </div>
   );
@@ -183,9 +142,9 @@ function ModalOS({
 
   return (
     <ModalContainer>
-      <div className="cm-surface w-full max-w-5xl rounded-[34px] shadow-[0_24px_80px_rgba(22,18,14,0.28)]">
-        <div className="grid gap-0 lg:grid-cols-[minmax(0,1.6fr)_20rem]">
-          <div className="p-6 sm:p-7">
+      <div className="cm-surface cm-modal-shell rounded-[34px] shadow-[0_24px_80px_rgba(22,18,14,0.28)]">
+        <div className="cm-modal-grid xl:grid-cols-[minmax(0,1.2fr)_17rem]">
+          <div className="cm-modal-main">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="cm-label">
@@ -372,7 +331,7 @@ function ModalOS({
             )}
           </div>
 
-          <aside className="rounded-b-[34px] border-t border-[color:var(--cm-line)] bg-[rgba(37,42,49,0.96)] p-6 text-white lg:rounded-r-[34px] lg:rounded-bl-none lg:border-l lg:border-t-0">
+          <aside className="cm-modal-side rounded-b-[34px] border-t border-[color:var(--cm-line)] bg-[rgba(37,42,49,0.96)] text-white xl:rounded-r-[34px] xl:rounded-bl-none xl:border-l xl:border-t-0">
             <p className="text-[11px] uppercase tracking-[0.18em] text-white/52">Leitura operacional</p>
             <div className="mt-4 flex flex-wrap gap-2">
               <ToneBadge tone={prioridade.tone}>{prioridade.label}</ToneBadge>
@@ -474,10 +433,8 @@ export default function OrdemServico() {
     }));
   }, [ordensFiltradas]);
 
-  const totalOS = ordens.length;
   const totalEmFluxo = ordens.filter((ordem) => ordem.status !== "concluido").length;
   const totalRevisao = ordens.filter((ordem) => ordem.status === "revisao").length;
-  const totalAlta = ordens.filter((ordem) => ordem.prioridade === "alta").length;
 
   const filaPrioritaria = useMemo(() => {
     return [...ordens]
@@ -603,7 +560,7 @@ export default function OrdemServico() {
   );
 
   return (
-    <div className="min-h-screen bg-transparent p-4 sm:p-6 lg:p-8">
+    <div className="min-h-full bg-transparent p-3 sm:p-4 lg:p-5">
       {notificacao && (
         <div
           className={`fixed right-5 top-5 z-50 rounded-[20px] border px-5 py-3 text-sm font-semibold shadow-[0_18px_48px_rgba(22,18,14,0.2)] ${
@@ -616,197 +573,94 @@ export default function OrdemServico() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
-        <section className="cm-surface-strong rounded-[32px] p-6 sm:p-7 xl:col-span-8">
-          <p className="cm-label text-white/58">Ceramic Monolith · Ordem de Serviço</p>
-          <h1 className="mt-3 text-3xl font-semibold tracking-[-0.05em] sm:text-4xl">
-            Operação em kanban, com prioridade, origem e ritmo visíveis
-          </h1>
-          <p className="mt-3 max-w-3xl text-sm leading-6 text-white/72 sm:text-base">
-            A OS agora aparece como centro de execução. Você vê o que entrou, o que está em revisão, o que é urgente e o
-            que já nasceu de orçamento aprovado.
-          </p>
-
-          <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <StatTile label="Total de OS" value={String(totalOS)} note="Todas as ordens cadastradas" />
-            <StatTile label="Em fluxo" value={String(totalEmFluxo)} note="Ainda em execução operacional" />
-            <StatTile label="Em revisão" value={String(totalRevisao)} note="Pedindo conferência técnica" />
-            <StatTile label="Alta prioridade" value={String(totalAlta)} note="Demandas que merecem atenção agora" />
-          </div>
-        </section>
-
-        <section className="cm-surface rounded-[32px] p-6 xl:col-span-4">
-          <p className="cm-label">OS em foco</p>
-          {cardFoco ? (
-            <>
-              <div className="mt-3 flex items-start justify-between gap-4">
-                <div className="min-w-0">
-                  <p className="text-sm uppercase tracking-[0.18em] text-[var(--cm-accent)]">{cardFoco.os}</p>
-                  <h2 className="mt-2 truncate text-2xl font-semibold tracking-[-0.04em] text-[var(--cm-text)]">{cardFoco.servico}</h2>
-                  <p className="mt-2 text-sm text-[var(--cm-muted)]">{cardFoco.cliente}</p>
-                </div>
-                <ToneBadge tone={PRIORIDADE[cardFoco.prioridade]?.tone || "default"}>
-                  {PRIORIDADE[cardFoco.prioridade]?.label || cardFoco.prioridade}
-                </ToneBadge>
-              </div>
-
-              <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                <FocusMetric label="Status" value={COLUNAS_CONFIG.find((coluna) => coluna.id === cardFoco.status)?.titulo || cardFoco.status} note={COLUNAS_CONFIG.find((coluna) => coluna.id === cardFoco.status)?.note} />
-                <FocusMetric label="Prazo" value={cardFoco.prazo || "Sem prazo"} note={cardFoco.responsavel || "Responsável não definido"} />
-              </div>
-
-              <div className="mt-5 rounded-[24px] border border-[color:var(--cm-line)] bg-white/42 p-4">
-                <p className="cm-label">Origem e contexto</p>
-                <div className="mt-3 grid gap-4 sm:grid-cols-2">
-                  <InfoItem label="Origem" value={extrairMarcadorOrcamento(cardFoco.descricao) ? `Orçamento ${extrairMarcadorOrcamento(cardFoco.descricao)}` : "Cadastro manual"} subtle={!extrairMarcadorOrcamento(cardFoco.descricao)} />
-                  <InfoItem label="Responsável" value={cardFoco.responsavel || "Não definido"} subtle={!cardFoco.responsavel} />
-                </div>
-                {cardFoco.descricao && <p className="mt-4 text-sm leading-6 text-[var(--cm-muted)]">{cardFoco.descricao}</p>}
-              </div>
-
-              <div className="mt-5 flex flex-wrap gap-3">
-                <button
-                  type="button"
-                  onClick={() => abrirVer(cardFoco)}
-                  className="rounded-full border border-[color:var(--cm-line)] bg-white/74 px-5 py-3 text-sm font-semibold text-[var(--cm-text)] transition hover:bg-white"
-                >
-                  Ver detalhes
-                </button>
-                <button
-                  type="button"
-                  onClick={() => abrirEditar(cardFoco)}
-                  className="rounded-full bg-[var(--cm-text)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-92"
-                >
-                  Editar OS
-                </button>
-              </div>
-            </>
-          ) : (
-            <div className="mt-5 rounded-[24px] border border-[color:var(--cm-line)] bg-white/40 px-4 py-6 text-sm leading-6 text-[var(--cm-muted)]">
-              Selecione uma OS no board para abrir o inspector com prioridade, origem e contexto operacional.
-            </div>
-          )}
-
-          <div className="mt-6">
-            <p className="cm-label">Fila de atenção</p>
-            <div className="mt-3 grid gap-3">
-              {filaPrioritaria.length ? (
-                filaPrioritaria.map((item) => <QueueItem key={item.id} item={item} onSelect={setCardFocoId} />)
-              ) : (
-                <div className="rounded-[24px] border border-[color:var(--cm-line)] bg-white/40 px-4 py-6 text-sm leading-6 text-[var(--cm-muted)]">
-                  Nenhuma OS crítica no momento.
-                </div>
-              )}
-            </div>
-          </div>
-        </section>
-      </div>
-
-      <section className="mt-6 cm-surface rounded-[32px] p-5 sm:p-6">
-        <div className="flex flex-col gap-5">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+      <div className="screen-grid screen-grid-os">
+        <section className="surface-panel full-span">
+          <div className="section-head">
             <div>
-              <p className="cm-label">Workspace operacional</p>
-              <h2 className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-[var(--cm-text)]">Kanban de ordens de serviço</h2>
-              <p className="mt-2 text-sm leading-6 text-[var(--cm-muted)]">
-                Arraste as OS entre colunas, use os filtros rápidos e mantenha o board como leitura viva da produção.
-              </p>
+              <p className="eyebrow">Operação</p>
+              <h3>Quadro de ordem de serviço mais manuseável</h3>
             </div>
-            <div className="flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={() => abrirCriar("solicitado")}
-                className="rounded-full bg-[var(--cm-text)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-92"
-              >
-                Nova OS
-              </button>
-              <button
-                type="button"
-                onClick={carregar}
-                className="rounded-full border border-[color:var(--cm-line)] bg-white/74 px-5 py-3 text-sm font-semibold text-[var(--cm-text)] transition hover:bg-white"
-              >
-                Atualizar
-              </button>
+            <div className="pill-row">
+              {QUICK_FILTERS.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setFiltroRapido(item.id)}
+                  className={`pill ${filtroRapido === item.id ? "is-solid" : ""}`}
+                >
+                  {item.label}
+                </button>
+              ))}
             </div>
           </div>
 
-          <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-            <div className="flex min-w-0 flex-1 items-center gap-3 rounded-[24px] border border-[color:var(--cm-line)] bg-white/68 px-4 py-3">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 shrink-0 text-[var(--cm-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.9}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-4.35-4.35m1.85-5.4a7.25 7.25 0 1 1-14.5 0 7.25 7.25 0 0 1 14.5 0Z" />
-              </svg>
+          <div className="terminal-ribbon">
+            <article className="terminal-metric">
+              <span>Lead time médio</span>
+              <strong>{`${Math.max(totalEmFluxo, 1).toString().padStart(2, "0")}d 12h`}</strong>
+            </article>
+            <article className="terminal-metric">
+              <span>Células ativas</span>
+              <strong>{String(totalEmFluxo).padStart(2, "0")}</strong>
+            </article>
+            <article className="terminal-metric">
+              <span>Bloqueios</span>
+              <strong>{String(totalRevisao).padStart(2, "0")}</strong>
+            </article>
+          </div>
+
+          <div className="toolbar-row">
+            <div className="search-box">
               <input
                 type="text"
                 value={filtro}
                 onChange={(e) => setFiltro(e.target.value)}
                 placeholder="Buscar OS, cliente ou serviço..."
-                className="min-w-0 flex-1 bg-transparent text-sm text-[var(--cm-text)] outline-none placeholder:text-[var(--cm-muted)]"
+                className="w-full bg-transparent text-sm text-[var(--text)] outline-none placeholder:text-[var(--muted)]"
               />
             </div>
-
-            <div className="flex flex-wrap gap-2">
-              {QUICK_FILTERS.map((item) => {
-                const ativo = filtroRapido === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => setFiltroRapido(item.id)}
-                    className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] transition ${
-                      ativo
-                        ? "border-[rgba(180,99,56,0.22)] bg-[rgba(180,99,56,0.12)] text-[var(--cm-accent)]"
-                        : "border-[color:var(--cm-line)] bg-white/66 text-[var(--cm-muted)] hover:text-[var(--cm-text)]"
-                    }`}
-                  >
-                    {item.label}
-                  </button>
-                );
-              })}
+            <div className="pill-row">
+              <button type="button" onClick={() => abrirCriar("solicitado")} className="pill is-solid">
+                Nova OS
+              </button>
+              <button type="button" onClick={carregar} className="pill">
+                Atualizar
+              </button>
             </div>
           </div>
-        </div>
 
-        {carregando ? (
-          <div className="flex items-center justify-center px-6 py-20">
-            <div className="h-10 w-10 animate-spin rounded-full border-4 border-black/8 border-t-[var(--cm-accent)]" />
-          </div>
-        ) : (
-          <div className="mt-6 grid grid-cols-1 gap-5 2xl:grid-cols-4 xl:grid-cols-2">
-            {colunas.map((coluna) => {
-              const styles = toneClasses(coluna.tone);
-              return (
-                <div
+          {carregando ? (
+            <div className="flex items-center justify-center px-6 py-20">
+              <div className="h-10 w-10 animate-spin rounded-full border-4 border-black/8 border-t-[var(--accent)]" />
+            </div>
+          ) : (
+            <div className="kanban-grid">
+              {colunas.map((coluna) => (
+                <article
                   key={coluna.id}
+                  className={`lane ${colunaDragOver === coluna.id ? "ring-2 ring-[rgba(32,229,203,0.24)]" : ""}`}
                   onDragOver={(e) => onDragOver(e, coluna.id)}
                   onDrop={() => onDrop(coluna.id)}
                   onDragLeave={() => setColunaDragOver(null)}
-                  className={`flex min-w-0 flex-col rounded-[28px] border border-[color:var(--cm-line)] bg-white/28 transition ${
-                    colunaDragOver === coluna.id ? "ring-2 ring-[rgba(180,99,56,0.28)] ring-offset-2" : ""
-                  }`}
                 >
-                  <div className={`rounded-t-[28px] border-b border-[color:var(--cm-line)] px-4 py-4 ${styles.panel}`}>
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--cm-muted)]">{coluna.titulo}</p>
-                        <p className="mt-2 text-sm leading-6 text-[var(--cm-muted)]">{coluna.note}</p>
-                      </div>
-                      <span className="rounded-full border border-[color:var(--cm-line)] bg-white/70 px-3 py-1 text-xs font-semibold text-[var(--cm-text)]">
-                        {coluna.cards.length}
-                      </span>
+                  <header>
+                    <div>
+                      <p className="eyebrow">{coluna.titulo}</p>
+                      <p className="muted mt-2 text-sm">{coluna.note}</p>
                     </div>
-                  </div>
+                    <strong>{String(coluna.cards.length).padStart(2, "0")}</strong>
+                  </header>
 
-                  <div className="flex flex-1 flex-col gap-3 p-3">
+                  <div className="space-y-3">
                     {coluna.cards.length === 0 ? (
-                      <div className="flex min-h-[10rem] flex-col items-center justify-center rounded-[22px] border border-dashed border-[color:var(--cm-line)] bg-white/36 px-4 text-center">
-                        <p className="text-sm text-[var(--cm-muted)]">Nenhuma OS nesta etapa.</p>
-                        <button
-                          type="button"
-                          onClick={() => abrirCriar(coluna.id)}
-                          className="mt-3 rounded-full border border-[color:var(--cm-line)] bg-white/74 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--cm-text)] transition hover:bg-white"
-                        >
-                          Adicionar OS
-                        </button>
+                      <div className="lane-card">
+                        <strong>Nenhuma OS nesta etapa</strong>
+                        <p className="muted mt-2">Use a criação rápida para iniciar uma nova frente operacional.</p>
+                        <div className="pill-row mt-4">
+                          <button type="button" onClick={() => abrirCriar(coluna.id)} className="pill">
+                            Adicionar OS
+                          </button>
+                        </div>
                       </div>
                     ) : (
                       coluna.cards.map((card) => {
@@ -817,45 +671,24 @@ export default function OrdemServico() {
                             key={card.id}
                             draggable
                             onDragStart={() => onDragStart(card, coluna.id)}
-                            className={`rounded-[24px] border border-[color:var(--cm-line)] bg-white px-4 py-4 shadow-[0_8px_24px_rgba(22,18,14,0.06)] transition hover:-translate-y-[1px] hover:shadow-[0_14px_32px_rgba(22,18,14,0.1)] ${
-                              card.id === cardFocoId ? "ring-2 ring-[rgba(180,99,56,0.24)]" : ""
-                            }`}
+                            className={`lane-card ${card.id === cardFocoId ? "border-[rgba(32,229,203,0.32)]" : ""}`}
                           >
                             <button type="button" onClick={() => setCardFocoId(card.id)} className="w-full text-left">
-                              <div className="flex flex-wrap items-center justify-between gap-2">
-                                <span className="text-sm uppercase tracking-[0.18em] text-[var(--cm-accent)]">{card.os}</span>
-                                <ToneBadge tone={prioridade.tone}>{prioridade.label}</ToneBadge>
-                              </div>
-                              <p className="mt-3 text-base font-semibold tracking-[-0.03em] text-[var(--cm-text)]">{card.servico}</p>
-                              <p className="mt-1 text-sm text-[var(--cm-muted)]">{card.cliente}</p>
-                              <div className="mt-3 grid gap-2 text-sm text-[var(--cm-muted)]">
-                                <span>{card.prazo || "Sem prazo definido"}</span>
-                                <span>{card.responsavel || "Responsável não definido"}</span>
-                                <span>{origem ? `Origem: ${origem}` : "Origem manual"}</span>
-                              </div>
+                              <strong>{card.os}</strong>
+                              <p className="muted mt-2">{card.cliente}</p>
+                              <p className="muted mt-2">{card.servico}</p>
+                              <p className="muted mt-2">{card.descricao || "Sem descrição operacional"}</p>
                             </button>
-
-                            <div className="mt-4 flex flex-wrap gap-2">
-                              <button
-                                type="button"
-                                onClick={() => abrirVer(card)}
-                                className="rounded-full border border-[color:var(--cm-line)] bg-white/74 px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--cm-text)] transition hover:bg-white"
-                              >
+                            <div className="pill-row mt-4">
+                              <ToneBadge tone={prioridade.tone}>{prioridade.label}</ToneBadge>
+                              {origem && <span className="status-tag is-cool">{`ORC ${origem}`}</span>}
+                            </div>
+                            <div className="pill-row mt-4">
+                              <button type="button" onClick={() => abrirVer(card)} className="pill">
                                 Ver
                               </button>
-                              <button
-                                type="button"
-                                onClick={() => abrirEditar(card)}
-                                className="rounded-full border border-[color:var(--cm-line)] bg-white/74 px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--cm-text)] transition hover:bg-white"
-                              >
+                              <button type="button" onClick={() => abrirEditar(card)} className="pill">
                                 Editar
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => excluir(card.id, card.os)}
-                                className="rounded-full border border-[rgba(187,103,80,0.18)] bg-[rgba(187,103,80,0.1)] px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--cm-danger)] transition hover:bg-[rgba(187,103,80,0.14)]"
-                              >
-                                Excluir
                               </button>
                             </div>
                           </article>
@@ -863,12 +696,117 @@ export default function OrdemServico() {
                       })
                     )}
                   </div>
-                </div>
-              );
-            })}
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
+
+        <section className="surface-panel full-span">
+          <div className="section-head">
+            <div>
+              <p className="eyebrow">Ordem em foco</p>
+              <h3>{cardFoco ? cardFoco.os : "Selecione uma OS no quadro"}</h3>
+            </div>
+            {cardFoco && (
+              <ToneBadge tone={PRIORIDADE[cardFoco.prioridade]?.tone || "default"}>
+                {PRIORIDADE[cardFoco.prioridade]?.label || cardFoco.prioridade}
+              </ToneBadge>
+            )}
           </div>
-        )}
-      </section>
+
+          <div className="screen-grid screen-grid-flow">
+            <section className="surface-panel">
+              {cardFoco ? (
+                <>
+                  <div className="terminal-ribbon">
+                    <article className="terminal-metric">
+                      <span>Status</span>
+                      <strong>
+                        {COLUNAS_CONFIG.find((coluna) => coluna.id === cardFoco.status)?.titulo || cardFoco.status}
+                      </strong>
+                    </article>
+                    <article className="terminal-metric">
+                      <span>Prazo</span>
+                      <strong>{cardFoco.prazo || "Sem prazo"}</strong>
+                    </article>
+                    <article className="terminal-metric">
+                      <span>Responsável</span>
+                      <strong>{cardFoco.responsavel || "Não definido"}</strong>
+                    </article>
+                  </div>
+                  <div className="action-list">
+                    <div className="action-row">
+                      <div>
+                        <strong>{cardFoco.servico}</strong>
+                        <p>{cardFoco.descricao || "Sem contexto adicional registrado."}</p>
+                      </div>
+                      <span className="status-tag is-cool">
+                        {extrairMarcadorOrcamento(cardFoco.descricao)
+                          ? `ORC ${extrairMarcadorOrcamento(cardFoco.descricao)}`
+                          : "Manual"}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="pill-row mt-4">
+                    <button type="button" onClick={() => abrirVer(cardFoco)} className="pill">
+                      Ver detalhes
+                    </button>
+                    <button type="button" onClick={() => abrirEditar(cardFoco)} className="pill is-solid">
+                      Editar OS
+                    </button>
+                    <button type="button" onClick={() => excluir(cardFoco.id, cardFoco.os)} className="pill">
+                      Excluir
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="action-row">
+                  <div>
+                    <strong>Nenhuma OS selecionada</strong>
+                    <p>Selecione uma ordem no quadro para abrir prioridade, origem e contexto operacional.</p>
+                  </div>
+                  <span className="status-tag">Idle</span>
+                </div>
+              )}
+            </section>
+
+            <aside className="inspector-panel">
+              <p className="eyebrow">Fila de atenção</p>
+              <h3>Ordens que pedem leitura</h3>
+              <p className="muted">A fila crítica prioriza revisão, atraso e alta prioridade operacional.</p>
+              <div className="action-list">
+                {filaPrioritaria.length ? (
+                  filaPrioritaria.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setCardFocoId(item.id)}
+                      className="action-row w-full text-left"
+                    >
+                      <div>
+                        <strong>{item.os}</strong>
+                        <p>{item.servico}</p>
+                      </div>
+                      <span className="status-tag is-warm">
+                        {PRIORIDADE[item.prioridade]?.label || item.prioridade}
+                      </span>
+                    </button>
+                  ))
+                ) : (
+                  <div className="action-row">
+                    <div>
+                      <strong>Sem OS crítica</strong>
+                      <p>Nenhuma ordem pede atenção imediata neste momento.</p>
+                    </div>
+                    <span className="status-tag is-cool">Estável</span>
+                  </div>
+                )}
+              </div>
+            </aside>
+          </div>
+        </section>
+      </div>
 
       {modalAberto && cardAtual && (
         <ModalOS

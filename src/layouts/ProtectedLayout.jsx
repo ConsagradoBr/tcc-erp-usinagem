@@ -9,7 +9,7 @@ import Header from "../components/Header";
 export default function ProtectedLayout() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [open, setOpen] = useState(() => (typeof window !== "undefined" ? window.innerWidth >= 1280 : true));
+  const [open, setOpen] = useState(() => (typeof window !== "undefined" ? window.innerWidth >= 1360 : true));
   const [mobileOpen, setMobileOpen] = useState(false);
   const [user, setUser] = useState(() => getStoredUser());
   const [loading, setLoading] = useState(true);
@@ -74,29 +74,24 @@ export default function ProtectedLayout() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-12 h-12 rounded-full border-4 border-white/50 border-t-[var(--cm-accent)] animate-spin" />
+      <div className="amp-shell-loading">
+        <div className="amp-shell-loader" />
+        <p>Sincronizando a mesa operacional...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen relative overflow-hidden">
-      <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute inset-x-0 top-0 h-56 bg-gradient-to-b from-white/45 to-transparent" />
-        <div className="absolute -left-24 top-10 h-80 w-80 rounded-full bg-white/35 blur-3xl" />
-        <div className="absolute right-[-8rem] top-24 h-96 w-96 rounded-full bg-[rgba(180,99,56,0.18)] blur-3xl" />
-        <div className="absolute bottom-[-12rem] left-1/3 h-[30rem] w-[30rem] rounded-full bg-[rgba(28,33,39,0.16)] blur-3xl" />
-        <div className="absolute inset-y-0 left-[18%] w-px bg-white/20" />
-      </div>
-
+    <div className={`amp-shell-layout amp-ui-scale ${open ? "is-expanded" : "is-collapsed"}`}>
       <Sidebar user={user} open={open} mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
 
-      <div className={`relative min-h-screen flex flex-col transition-all duration-300 ${open ? "lg:pl-72" : "lg:pl-28"}`}>
+      <div className="amp-shell-workspace">
         <Header user={user} onMenuToggle={toggleMenu} />
 
-        <main className="flex-1 min-w-0 overflow-x-hidden px-3 pb-6 pt-2 sm:px-4 lg:px-6 lg:pb-8">
-          <Outlet context={{ user }} />
+        <main className="amp-shell-scroll">
+          <div className="mx-auto w-full max-w-[1760px]">
+            <Outlet context={{ user }} />
+          </div>
         </main>
       </div>
     </div>

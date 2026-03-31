@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+
 import api from "../api";
 
 function bytesToBase64(file) {
@@ -11,6 +12,10 @@ function bytesToBase64(file) {
     reader.onerror = () => reject(new Error("Falha ao ler o arquivo."));
     reader.readAsDataURL(file);
   });
+}
+
+function StatusTag({ tone = "", children }) {
+  return <span className={`status-tag ${tone}`}>{children}</span>;
 }
 
 export default function BackupDesktop() {
@@ -76,7 +81,7 @@ export default function BackupDesktop() {
       });
       setMessage({
         tipo: "sucesso",
-        texto: `${response.data.mensagem} Um backup de seguranca foi salvo antes da restauracao.`,
+        texto: `${response.data.mensagem} Uma copia de seguranca foi salva antes da restauracao.`,
       });
       loadInfo();
     } catch (error) {
@@ -86,105 +91,115 @@ export default function BackupDesktop() {
     }
   };
 
+  const backupDisabled = loading || !info?.suporta_backup_local || backuping || restoring;
+
   return (
-    <div className="min-h-screen bg-slate-50 p-4 sm:p-6 lg:p-8">
-      <div className="max-w-5xl mx-auto space-y-6">
-        <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 sm:p-8">
-          <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
-            <div className="flex items-center gap-4">
-              <div className="flex h-20 w-20 items-center justify-center rounded-[2rem] bg-orange-500 shadow-lg shadow-orange-200">
-                <svg viewBox="0 0 64 64" className="h-11 w-11" aria-hidden="true">
-                  <path d="M32 10 18 24h9v14h10V24h9L32 10Z" fill="#111827" />
-                  <path d="M16 40h32a6 6 0 0 1 6 6v2a6 6 0 0 1-6 6H16a6 6 0 0 1-6-6v-2a6 6 0 0 1 6-6Z" fill="#111827" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-orange-500">Backup local</p>
-                <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 mt-2">Seguranca dos dados do desktop</h1>
-                <p className="text-slate-600 mt-3 max-w-2xl">
-                  Gere uma copia do banco local SQLite do aplicativo desktop e restaure um backup anterior quando precisar.
-                </p>
-              </div>
-            </div>
+    <div className="screen-grid screen-grid-admin">
+      <section className="surface-panel">
+        <div className="section-head">
+          <div>
+            <p className="eyebrow">Confiabilidade</p>
+            <h3>Backup e restauracao com leitura simples</h3>
           </div>
+          <StatusTag tone="is-cool">
+            {info?.suporta_backup_local ? "Saudavel" : "Restrito"}
+          </StatusTag>
         </div>
 
         {message && (
-          <div className={`rounded-2xl px-5 py-4 text-sm font-medium border ${message.tipo === "erro" ? "bg-red-50 text-red-700 border-red-200" : "bg-emerald-50 text-emerald-700 border-emerald-200"}`}>
+          <div className={`amp-terminal-inline-message ${message.tipo === "erro" ? "is-error" : "is-success"}`}>
             {message.texto}
           </div>
         )}
 
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-          <div className="xl:col-span-2 bg-white rounded-3xl shadow-sm border border-slate-200 p-6 sm:p-8 space-y-5">
-            <div>
-              <h2 className="text-xl font-semibold text-slate-900">Estado atual</h2>
-              <p className="text-slate-500 mt-1">Informacoes do banco local usado pelo app desktop.</p>
-            </div>
-
-            {loading ? (
-              <div className="h-36 rounded-2xl bg-slate-100 animate-pulse" />
-            ) : !info?.suporta_backup_local ? (
-              <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-amber-800">
-                {info?.mensagem || "Backup local indisponivel para este modo de banco."}
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 gap-4">
-                <InfoCard label="Modo" value="SQLite local" />
-                <InfoCard label="Banco atual" value={info.caminho_banco} />
-                <InfoCard label="Pasta de backups" value={info.pasta_backups} />
-                <InfoCard label="Ultima atualizacao do banco" value={new Date(info.ultima_atualizacao).toLocaleString("pt-BR")} />
-              </div>
-            )}
+        {loading ? (
+          <div className="amp-shell-loading min-h-[240px]">
+            <div className="amp-shell-loader" />
+            <p>Carregando informacoes do backup...</p>
           </div>
+        ) : (
+          <div className="action-list">
+            <article className="action-row">
+              <div>
+                <strong>Backup local automatico</strong>
+                <p>
+                  {info?.ultima_atualizacao
+                    ? `Ultima geracao em ${new Date(info.ultima_atualizacao).toLocaleString("pt-BR")}.`
+                    : "Sem geracao recente registrada."}
+                </p>
+              </div>
+              <StatusTag tone="is-cool">Saudavel</StatusTag>
+            </article>
 
-          <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 sm:p-8 space-y-5">
-            <div>
-              <h2 className="text-xl font-semibold text-slate-900">Acoes</h2>
-              <p className="text-slate-500 mt-1">Crie uma copia agora ou restaure um arquivo salvo.</p>
-            </div>
+            <article className="action-row">
+              <div>
+                <strong>Exportar copia manual</strong>
+                <p>Fluxo para preservar dados fora do runtime local.</p>
+              </div>
+              <div className="amp-terminal-inline-actions">
+                <StatusTag>Acao</StatusTag>
+                <button
+                  type="button"
+                  onClick={handleBackup}
+                  disabled={backupDisabled}
+                  className="amp-terminal-inline-btn"
+                >
+                  {backuping ? "Gerando..." : "Gerar backup"}
+                </button>
+              </div>
+            </article>
 
-            <button
-              type="button"
-              onClick={handleBackup}
-              disabled={loading || !info?.suporta_backup_local || backuping || restoring}
-              className="w-full rounded-2xl bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 disabled:cursor-not-allowed text-white font-semibold px-5 py-4 transition"
-            >
-              {backuping ? "Gerando backup..." : "Gerar backup agora"}
-            </button>
+            <article className="action-row">
+              <div>
+                <strong>Restauracao guiada</strong>
+                <p>Painel tecnico com foco em seguranca e rastreio.</p>
+              </div>
+              <div className="amp-terminal-inline-actions">
+                <StatusTag>Tecnico</StatusTag>
+                <input
+                  ref={inputRef}
+                  type="file"
+                  accept=".sqlite3,.db,.bak"
+                  className="hidden"
+                  onChange={handleRestoreFile}
+                />
+                <button
+                  type="button"
+                  onClick={() => inputRef.current?.click()}
+                  disabled={backupDisabled}
+                  className="amp-terminal-inline-btn"
+                >
+                  {restoring ? "Restaurando..." : "Restaurar arquivo"}
+                </button>
+              </div>
+            </article>
+          </div>
+        )}
+      </section>
 
-            <input
-              ref={inputRef}
-              type="file"
-              accept=".sqlite3,.db,.bak"
-              className="hidden"
-              onChange={handleRestoreFile}
-            />
+      <aside className="inspector-panel">
+        <p className="eyebrow">Desktop</p>
+        <h3>Confianca operacional</h3>
+        <p className="muted">
+          A tela de backup precisa comunicar que o desktop nativo nao e um modo simplificado, e sim
+          um canal de uso confiavel.
+        </p>
 
-            <button
-              type="button"
-              onClick={() => inputRef.current?.click()}
-              disabled={loading || !info?.suporta_backup_local || backuping || restoring}
-              className="w-full rounded-2xl border border-slate-300 hover:bg-slate-50 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed text-slate-700 font-semibold px-5 py-4 transition"
-            >
-              {restoring ? "Restaurando backup..." : "Restaurar de arquivo"}
-            </button>
-
-            <div className="rounded-2xl bg-slate-50 border border-slate-200 px-4 py-4 text-sm text-slate-600">
-              A restauracao substitui o banco local atual. O sistema salva automaticamente uma copia de seguranca antes de aplicar o arquivo enviado.
-            </div>
+        <div className="balance-stack">
+          <div className="balance-card">
+            <span>Modo</span>
+            <strong>{info?.suporta_backup_local ? "SQLite local" : "Indisponivel"}</strong>
+          </div>
+          <div className="balance-card">
+            <span>Banco atual</span>
+            <strong>{info?.caminho_banco || "Nao identificado"}</strong>
+          </div>
+          <div className="balance-card">
+            <span>Pasta de backups</span>
+            <strong>{info?.pasta_backups || "Nao identificado"}</strong>
           </div>
         </div>
-      </div>
-    </div>
-  );
-}
-
-function InfoCard({ label, value }) {
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4">
-      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{label}</p>
-      <p className="text-sm sm:text-base text-slate-800 mt-2 break-all">{value}</p>
+      </aside>
     </div>
   );
 }

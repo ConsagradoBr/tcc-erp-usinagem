@@ -1,58 +1,44 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
 import api from "../api";
 import { getStoredUser, hasPermission } from "../auth";
-import {
-  IconClients,
-  IconDollar,
-  IconQuotes,
-  IconServiceOrder,
-} from "../assets/assets-map";
-
-const THEME = {
-  accent: "#b46338",
-  accentStrong: "#d07c45",
-  graphite: "#252a31",
-  graphiteSoft: "#40454c",
-  line: "#d8d0c6",
-  muted: "#706a62",
-  positive: "#3f8d72",
-  warning: "#ad7a3e",
-  danger: "#bb6750",
-};
+import { useTheme } from "../components/ThemeProvider";
 
 const MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+const COLORS = {
+  accent: "#00d4aa",
+  blue: "#00aaff",
+  warn: "#ffa940",
+  danger: "#ff4d6d",
+  purple: "#a78bfa",
+};
+
 const OS_STATUS = {
-  solicitado: {
-    color: THEME.accent,
-    label: "Solicitado",
-    note: "Abrir frente e confirmar prioridade.",
-  },
-  em_andamento: {
-    color: THEME.graphiteSoft,
-    label: "Em andamento",
-    note: "Acompanhar ritmo e gargalos do turno.",
-  },
-  revisao: {
-    color: THEME.warning,
-    label: "Em revisão",
-    note: "Validar acabamento e medição final.",
-  },
-  concluido: {
-    color: THEME.positive,
-    label: "Concluído",
-    note: "Pronto para expedição e financeiro.",
-  },
+  solicitado: { label: "Solicitado", short: "Entrada", note: "Triagem e definicao do pedido.", tone: "warn" },
+  em_andamento: { label: "Em andamento", short: "Usinagem", note: "Execucao ativa na operacao.", tone: "pos" },
+  revisao: { label: "Em revisao", short: "Fechamento", note: "Conferencia tecnica e acabamento.", tone: "purple" },
+  concluido: { label: "Concluido", short: "Concluido", note: "Pronto para expedir e receber.", tone: "accent" },
 };
 
 function ultimosMeses(n = 6) {
   const hoje = new Date();
-  return Array.from({ length: n }, (_, i) => {
-    const d = new Date(hoje.getFullYear(), hoje.getMonth() - (n - 1 - i), 1);
+  return Array.from({ length: n }, (_, index) => {
+    const data = new Date(hoje.getFullYear(), hoje.getMonth() - (n - 1 - index), 1);
     return {
-      label: MESES[d.getMonth()],
-      key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`,
+      label: MESES[data.getMonth()],
+      key: `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, "0")}`,
     };
   });
 }
@@ -66,31 +52,92 @@ const fmtCurrency = (value) =>
         maximumFractionDigits: 0,
       });
 
+const fmtCurrencyCompact = (value) => {
+  if (value == null) return "...";
+  const number = Number(value);
+  if (Math.abs(number) >= 1000000) return `R$ ${(number / 1000000).toFixed(1).replace(".", ",")} mi`;
+  if (Math.abs(number) >= 1000) return `R$ ${(number / 1000).toFixed(0)} mil`;
+  return fmtCurrency(number);
+};
+
 const fmtNumber = (value) => (value == null ? "..." : Number(value).toLocaleString("pt-BR"));
 
-const Pulse = ({ className = "" }) => (
-  <span className={`inline-flex h-8 w-20 animate-pulse rounded-full bg-black/8 ${className}`} />
-);
+const fmtShortDate = (value) => {
+  if (!value) return "--";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit" }).format(date);
+};
 
-function TooltipReceita({ active, payload, label }) {
+const fmtLongDate = (value) =>
+  new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short", year: "numeric" }).format(value);
+
+const baseDescricao = (texto) => (texto || "").replace(/\s*\(\d+\/\d+\)$/, "").trim();
+
+const sortNewest = (a, b) => {
+  const left = new Date(a?.created_at || a?.vencimento || 0).getTime();
+  const right = new Date(b?.created_at || b?.vencimento || 0).getTime();
+  return right - left;
+};
+
+function daysUntil(dateValue) {
+  if (!dateValue) return Number.POSITIVE_INFINITY;
+  const date = new Date(dateValue);
+  if (Number.isNaN(date.getTime())) return Number.POSITIVE_INFINITY;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  date.setHours(0, 0, 0, 0);
+  return Math.round((date.getTime() - today.getTime()) / 86400000);
+}
+
+function getShiftLabel(now) {
+  const hour = now.getHours();
+  if (hour < 12) return "Turno 1";
+  if (hour < 18) return "Turno 2";
+  return "Turno 3";
+}
+
+function getToneClass(tone) {
+  if (tone === "pos") return "is-pos";
+  if (tone === "warn") return "is-warn";
+  if (tone === "danger") return "is-neg";
+  if (tone === "purple") return "is-purple";
+  return "";
+}
+
+function LoadingPulse({ className = "" }) {
+  return <span className={`amp-terminal-pulse ${className}`} />;
+}
+
+function ChartTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
+
   return (
-    <div className="cm-surface-soft rounded-[22px] px-4 py-3 text-sm">
-      <p className="font-semibold text-[var(--cm-text)]">{label}</p>
-      <p className="mt-1 text-[var(--cm-positive)]">Recebido: {fmtCurrency(payload[0]?.value)}</p>
-      {payload[1]?.value > 0 && <p className="text-[var(--cm-danger)]">Pago: {fmtCurrency(payload[1]?.value)}</p>}
+    <div className="amp-terminal-tooltip">
+      <p>{label}</p>
+      {payload.map((item) => (
+        <div key={item.dataKey} className="amp-terminal-tooltip-row">
+          <span style={{ color: item.color || item.fill }}>{item.name || item.dataKey}</span>
+          <strong>{typeof item.value === "number" ? fmtCurrency(item.value) : item.value}</strong>
+        </div>
+      ))}
     </div>
   );
 }
 
 export default function Dashboard() {
   const user = getStoredUser();
+  const { isDark } = useTheme();
   const [clientes, setClientes] = useState(null);
   const [resumo, setResumo] = useState(null);
   const [grafico, setGrafico] = useState(null);
-  const [osData, setOsData] = useState(null);
+  const [osResumo, setOsResumo] = useState(null);
+  const [ordens, setOrdens] = useState(null);
+  const [orcamentosResumo, setOrcamentosResumo] = useState(null);
   const [orcamentos, setOrcamentos] = useState(null);
+  const [financeiro, setFinanceiro] = useState(null);
   const [erro, setErro] = useState(false);
+  const [now, setNow] = useState(() => new Date());
 
   const canClientes = hasPermission(user, "clientes");
   const canFinanceiro = hasPermission(user, "financeiro");
@@ -98,49 +145,56 @@ export default function Dashboard() {
   const canOrcamentos = hasPermission(user, "orcamentos");
 
   useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
     const requests = [];
     const meses = ultimosMeses(6);
 
     if (canClientes) {
-      requests.push(
-        api.get("/clientes").then((res) => {
-          setClientes(res.data.length);
-        })
-      );
+      requests.push(api.get("/clientes").then((response) => setClientes(response.data.length)));
     }
 
     if (canFinanceiro) {
       requests.push(
         Promise.all([api.get("/financeiro/resumo"), api.get("/financeiro")]).then(([resResumo, resFinanceiro]) => {
+          const lista = resFinanceiro.data || [];
           setResumo(resResumo.data);
-          const dados = meses.map(({ label, key }) => {
-            const recebido = resFinanceiro.data
-              .filter((item) => item.tipo === "receber" && item.data_pagamento?.startsWith(key))
-              .reduce((sum, item) => sum + item.valor, 0);
-            const pago = resFinanceiro.data
-              .filter((item) => item.tipo === "pagar" && item.data_pagamento?.startsWith(key))
-              .reduce((sum, item) => sum + item.valor, 0);
-            return {
-              month: label,
-              recebido: Math.round(recebido),
-              pago: Math.round(pago),
-            };
-          });
-          setGrafico(dados);
+          setFinanceiro(lista);
+          setGrafico(
+            meses.map(({ label, key }) => {
+              const recebido = lista
+                .filter((item) => item.tipo === "receber" && item.data_pagamento?.startsWith(key))
+                .reduce((sum, item) => sum + Number(item.valor || 0), 0);
+              const pago = lista
+                .filter((item) => item.tipo === "pagar" && item.data_pagamento?.startsWith(key))
+                .reduce((sum, item) => sum + Number(item.valor || 0), 0);
+
+              return {
+                month: label,
+                recebido: Math.round(recebido),
+                pago: Math.round(pago),
+              };
+            })
+          );
         })
       );
     }
 
     if (canOS) {
       requests.push(
-        api.get("/ordens-servico/resumo").then((res) => {
-          setOsData(
+        Promise.all([api.get("/ordens-servico/resumo"), api.get("/ordens-servico")]).then(([resResumo, resOrdens]) => {
+          setOrdens(resOrdens.data || []);
+          setOsResumo(
             Object.entries(OS_STATUS).map(([id, meta]) => ({
               id,
-              name: meta.label,
-              value: res.data[id] || 0,
-              color: meta.color,
+              label: meta.label,
+              short: meta.short,
               note: meta.note,
+              tone: meta.tone,
+              value: resResumo.data[id] || 0,
             }))
           );
         })
@@ -149,8 +203,9 @@ export default function Dashboard() {
 
     if (canOrcamentos) {
       requests.push(
-        api.get("/orcamentos/resumo").then((res) => {
-          setOrcamentos(res.data);
+        Promise.all([api.get("/orcamentos/resumo"), api.get("/orcamentos")]).then(([resResumo, resList]) => {
+          setOrcamentosResumo(resResumo.data);
+          setOrcamentos(resList.data || []);
         })
       );
     }
@@ -158,409 +213,562 @@ export default function Dashboard() {
     Promise.all(requests).catch(() => setErro(true));
   }, [canClientes, canFinanceiro, canOS, canOrcamentos]);
 
-  const totalOrdens = useMemo(() => osData?.reduce((sum, item) => sum + item.value, 0) ?? null, [osData]);
-  const ordensConcluidas = useMemo(() => osData?.find((item) => item.id === "concluido")?.value ?? 0, [osData]);
+  const chartPalette = useMemo(
+    () => ({
+      grid: isDark ? "rgba(0, 212, 170, 0.10)" : "rgba(0, 120, 255, 0.08)",
+      tick: isDark ? "#7f94b2" : "#617691",
+    }),
+    [isDark]
+  );
+
+  const totalOrdens = useMemo(() => osResumo?.reduce((sum, item) => sum + item.value, 0) ?? null, [osResumo]);
+  const ordensConcluidas = useMemo(() => osResumo?.find((item) => item.id === "concluido")?.value ?? 0, [osResumo]);
   const ordensEmFluxo = totalOrdens == null ? null : Math.max(totalOrdens - ordensConcluidas, 0);
   const throughput = totalOrdens ? Math.round((ordensConcluidas / totalOrdens) * 100) : 0;
-  const crescimento = useMemo(() => {
-    if (!grafico?.length) return null;
-    const mesAtual = grafico[grafico.length - 1]?.recebido || 0;
-    const anterior = grafico[grafico.length - 2]?.recebido || 0;
-    if (!anterior) return null;
-    return (((mesAtual - anterior) / anterior) * 100).toFixed(1);
-  }, [grafico]);
+  const openQuotes = orcamentosResumo ? (orcamentosResumo.rascunho || 0) + (orcamentosResumo.enviado || 0) : null;
+  const approvedValue = orcamentosResumo?.valor_aprovado_ativo ?? orcamentosResumo?.valor_aprovado ?? null;
+  const ticketPorOs = totalOrdens ? Math.round((approvedValue || 0) / totalOrdens) : null;
 
-  const heroStats = [
+  const kpis = [
     canClientes && {
       label: "Clientes ativos",
-      value: clientes == null ? <Pulse /> : fmtNumber(clientes),
-      tone: "text-[var(--cm-text)]",
-      icon: IconClients,
-    },
-    canOS && {
-      label: "Ordens em fluxo",
-      value: totalOrdens == null ? <Pulse /> : fmtNumber(ordensEmFluxo),
-      tone: "text-white",
-      icon: IconServiceOrder,
+      value: clientes == null ? <LoadingPulse className="w-20" /> : fmtNumber(clientes),
+      delta: clientes == null ? "Base sincronizando" : "Carteira viva na operacao",
+      tone: "accent",
     },
     canFinanceiro && {
-      label: "A receber",
-      value: resumo == null ? <Pulse /> : fmtCurrency(resumo.a_receber),
-      tone: "text-white",
-      icon: IconDollar,
+      label: "Recebido MTD",
+      value: resumo == null ? <LoadingPulse className="w-24" /> : fmtCurrency(resumo.recebido_mes),
+      delta: resumo == null ? "Lendo caixa" : `${fmtNumber(resumo.atrasados || 0)} atraso(s) sensivel(is)`,
+      tone: "pos",
     },
     canOrcamentos && {
-      label: "Valor aprovado",
-      value: orcamentos == null ? <Pulse /> : fmtCurrency(orcamentos.valor_aprovado),
-      tone: "text-white",
-      icon: IconQuotes,
+      label: "Aprovado ativo",
+      value: orcamentosResumo == null ? <LoadingPulse className="w-24" /> : fmtCurrency(approvedValue),
+      delta: orcamentosResumo == null ? "Lendo pipeline" : `${fmtNumber(openQuotes || 0)} proposta(s) em decisao`,
+      tone: "warn",
+    },
+    (canOS || canOrcamentos) && {
+      label: "Ticket por OS",
+      value:
+        canOS && canOrcamentos && ticketPorOs != null
+          ? fmtCurrency(ticketPorOs)
+          : totalOrdens == null
+            ? <LoadingPulse className="w-20" />
+            : `${throughput}%`,
+      delta:
+        canOS && canOrcamentos && ticketPorOs != null
+          ? `${fmtNumber(totalOrdens)} ordem(ns) no ciclo`
+          : totalOrdens == null
+            ? "Lendo producao"
+            : `${fmtNumber(ordensConcluidas)} concluida(s)`,
+      tone: "purple",
     },
   ].filter(Boolean);
 
-  const actionItems = useMemo(() => {
+  const tickerItems = useMemo(() => {
     const items = [];
 
+    if (canOS && totalOrdens != null) {
+      items.push({
+        label: "Backlog",
+        value: `${fmtNumber(ordensEmFluxo)} OS`,
+        tone: ordensEmFluxo > 0 ? "warn" : "pos",
+      });
+    }
+
+    if (canOrcamentos && openQuotes != null) {
+      items.push({
+        label: "Comercial aberto",
+        value: `${fmtNumber(openQuotes)} proposta(s)`,
+        tone: openQuotes > 0 ? "accent" : "pos",
+      });
+    }
+
     if (canFinanceiro && resumo) {
-      items.push(
-        resumo.atrasados > 0
-          ? {
-              title: "Cobrança e renegociação",
-              value: `${resumo.atrasados} título(s) em atraso`,
-              note: "Priorize contatos e remova travas do fluxo financeiro.",
-              tone: "danger",
-            }
-          : {
-              title: "Fluxo financeiro estável",
-              value: "Sem títulos vencidos",
-              note: "Mantenha o ritmo de recebimento previsto para o mês.",
-              tone: "positive",
-            }
-      );
-    }
-
-    if (canOrcamentos && orcamentos) {
-      const emDecisao = (orcamentos.rascunho || 0) + (orcamentos.enviado || 0);
-      items.push({
-        title: "Orçamentos em decisão",
-        value: `${emDecisao} oportunidade(s) abertas`,
-        note:
-          emDecisao > 0
-            ? "Conecte follow-up comercial direto à geração de OS."
-            : "Pipeline comercial sem pendências de decisão no momento.",
-        tone: emDecisao > 0 ? "warning" : "positive",
-      });
-    }
-
-    if (canOS && osData) {
-      const solicitadas = osData.find((item) => item.id === "solicitado")?.value ?? 0;
-      const revisao = osData.find((item) => item.id === "revisao")?.value ?? 0;
-      const emAtencao = solicitadas + revisao;
-      items.push({
-        title: "Fila operacional",
-        value: `${emAtencao} OS pedindo ação`,
-        note:
-          emAtencao > 0
-            ? "Ataque revisão, setup e liberação para aumentar throughput."
-            : "Fila de OS controlada e sem gargalo crítico visível.",
-        tone: emAtencao > 0 ? "warning" : "positive",
-      });
+      items.push({ label: "A receber", value: fmtCurrencyCompact(resumo.a_receber), tone: "pos" });
+      items.push({ label: "A pagar", value: fmtCurrencyCompact(resumo.a_pagar), tone: "danger" });
     }
 
     if (canClientes && clientes != null) {
+      items.push({ label: "Base ativa", value: `${fmtNumber(clientes)} conta(s)`, tone: "accent" });
+    }
+
+    return items.slice(0, 5);
+  }, [canClientes, canFinanceiro, canOS, canOrcamentos, clientes, openQuotes, ordensEmFluxo, resumo, totalOrdens]);
+
+  const cashBreakdown = useMemo(() => {
+    if (!resumo) return [];
+    const saldo = Number(resumo.a_receber || 0) - Number(resumo.a_pagar || 0);
+    return [
+      { label: "Entradas previstas", value: Number(resumo.a_receber || 0), tone: "pos" },
+      { label: "Saidas compromissadas", value: Number(resumo.a_pagar || 0), tone: "danger" },
+      { label: "Saldo projetado", value: saldo, tone: saldo >= 0 ? "accent" : "danger" },
+    ];
+  }, [resumo]);
+
+  const donutData = useMemo(
+    () =>
+      resumo
+        ? [
+            { name: "A receber", value: Number(resumo.a_receber || 0), color: COLORS.accent },
+            { name: "A pagar", value: Number(resumo.a_pagar || 0), color: COLORS.danger },
+          ]
+        : [],
+    [resumo]
+  );
+
+  const sensitiveReceivables = useMemo(() => {
+    if (!financeiro?.length) return [];
+    return [...financeiro]
+      .filter((item) => item.tipo === "receber" && item.status !== "pago")
+      .map((item) => {
+        const dueIn = daysUntil(item.vencimento);
+        return {
+          ...item,
+          dueIn,
+          tone: dueIn < 0 || item.status === "atrasado" ? "danger" : dueIn <= 5 ? "warn" : "pos",
+        };
+      })
+      .sort((a, b) => a.dueIn - b.dueIn)
+      .slice(0, 5);
+  }, [financeiro]);
+
+  const pipelineRows = useMemo(() => {
+    if (!orcamentosResumo) return [];
+    const rows = [
+      { label: "Rascunho", value: orcamentosResumo.rascunho || 0, tone: "blue" },
+      { label: "Enviado", value: orcamentosResumo.enviado || 0, tone: "warn" },
+      { label: "Aprovado", value: orcamentosResumo.aprovado || 0, tone: "pos" },
+    ];
+    const maxValue = Math.max(...rows.map((row) => row.value), 1);
+    return rows.map((row) => ({ ...row, width: `${Math.max((row.value / maxValue) * 100, row.value ? 18 : 0)}%` }));
+  }, [orcamentosResumo]);
+
+  const orderLanes = useMemo(() => {
+    if (!ordens?.length) {
+      return [
+        { title: "Entrada", tone: "warn", items: [] },
+        { title: "Usinagem", tone: "pos", items: [] },
+        { title: "Fechamento", tone: "purple", items: [] },
+      ];
+    }
+
+    return [
+      { title: "Entrada", tone: "warn", items: ordens.filter((item) => item.status === "solicitado").sort(sortNewest).slice(0, 4) },
+      {
+        title: "Usinagem",
+        tone: "pos",
+        items: ordens.filter((item) => item.status === "em_andamento").sort(sortNewest).slice(0, 4),
+      },
+      { title: "Fechamento", tone: "purple", items: ordens.filter((item) => item.status === "revisao").sort(sortNewest).slice(0, 4) },
+    ];
+  }, [ordens]);
+
+  const productionLoad = useMemo(() => {
+    if (!osResumo?.length) return [];
+    return osResumo
+      .filter((item) => item.id !== "concluido")
+      .map((item) => ({
+        etapa: item.short,
+        carga: item.value,
+        alvo: Math.max(item.value + (item.id === "em_andamento" ? 2 : 1), item.id === "em_andamento" ? 6 : 4),
+      }));
+  }, [osResumo]);
+
+  const revenueByClient = useMemo(() => {
+    if (!financeiro?.length) return [];
+    const grouped = new Map();
+
+    financeiro
+      .filter((item) => item.tipo === "receber")
+      .forEach((item) => {
+        const key = item.cliente_nome || baseDescricao(item.descricao) || "Sem cliente";
+        grouped.set(key, (grouped.get(key) || 0) + Number(item.valor_total || item.valor || 0));
+      });
+
+    const values = [...grouped.entries()]
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 4);
+    const maxValue = Math.max(...values.map((item) => item.value), 1);
+    return values.map((item) => ({ ...item, width: `${(item.value / maxValue) * 100}%` }));
+  }, [financeiro]);
+
+  const overdueOrders = useMemo(() => {
+    if (!ordens?.length) return 0;
+    return ordens.filter((item) => item.status !== "concluido" && daysUntil(item.prazo) < 0).length;
+  }, [ordens]);
+
+  const quoteRadar = useMemo(() => {
+    if (!orcamentos?.length) return [];
+    return [...orcamentos]
+      .filter((item) => item.status !== "cancelado")
+      .sort(sortNewest)
+      .slice(0, 4)
+      .map((item) => ({
+        ...item,
+        tone: item.status === "aprovado" ? "pos" : item.status === "enviado" ? "warn" : "accent",
+      }));
+  }, [orcamentos]);
+
+  const alertRail = useMemo(() => {
+    const items = [];
+
+    if (resumo) {
       items.push({
-        title: "Relacionamento ativo",
-        value: `${fmtNumber(clientes)} cliente(s) na base`,
-        note: "Use histórico e contexto para ligar comercial, operação e financeiro.",
-        tone: "accent",
+        title: resumo.atrasados > 0 ? "Cobrancas vencidas pedem acao" : "Caixa sem titulos vencidos",
+        detail: resumo.atrasados > 0 ? `${fmtNumber(resumo.atrasados)} atraso(s) na mesa financeira` : "Financeiro abriu sem urgencia critica",
+        tone: resumo.atrasados > 0 ? "danger" : "pos",
       });
     }
 
-    return items.slice(0, 4);
-  }, [canClientes, canFinanceiro, canOS, canOrcamentos, clientes, osData, orcamentos, resumo]);
+    if (ordensEmFluxo != null) {
+      items.push({
+        title: ordensEmFluxo > 0 ? "Fila de producao segue viva" : "Sem backlog relevante em OS",
+        detail: `${fmtNumber(ordensEmFluxo || 0)} ordem(ns) fora da etapa concluida`,
+        tone: ordensEmFluxo > 0 ? "warn" : "pos",
+      });
+    }
 
-  const flowSteps = [
-    canClientes && {
-      title: "Clientes",
-      value: clientes == null ? <Pulse className="w-16" /> : fmtNumber(clientes),
-      note: "Base ativa para relacionamento, histórico e priorização.",
-    },
-    canOrcamentos && {
-      title: "Orçamentos",
-      value:
-        orcamentos == null ? (
-          <Pulse className="w-16" />
-        ) : (
-          fmtNumber((orcamentos.rascunho || 0) + (orcamentos.enviado || 0) + (orcamentos.aprovado || 0))
-        ),
-      note: "Ponte entre oportunidade comercial e carga de produção.",
-    },
-    canOS && {
-      title: "Ordens de serviço",
-      value: totalOrdens == null ? <Pulse className="w-16" /> : fmtNumber(ordensEmFluxo),
-      note: "Execução real com status, revisão e conclusão vinculadas.",
-    },
-    canFinanceiro && {
-      title: "Financeiro",
-      value: resumo == null ? <Pulse className="w-20" /> : fmtCurrency(resumo.a_receber),
-      note: "Fechamento do fluxo em cobrança, caixa e saúde do recebimento.",
-    },
-  ].filter(Boolean);
+    if (openQuotes != null) {
+      items.push({
+        title: openQuotes > 0 ? "Pipeline comercial ainda aberto" : "Comercial sem gargalo no ciclo",
+        detail: `${fmtNumber(openQuotes || 0)} proposta(s) ainda em decisao`,
+        tone: openQuotes > 0 ? "accent" : "pos",
+      });
+    }
 
-  const resumoFinanceiro = canFinanceiro
-    ? [
-        { label: "Recebido no mês", value: resumo == null ? <Pulse /> : fmtCurrency(resumo.recebido_mes), tone: "positive" },
-        { label: "A pagar", value: resumo == null ? <Pulse /> : fmtCurrency(resumo.a_pagar), tone: "default" },
-        { label: "Títulos em atraso", value: resumo == null ? <Pulse /> : fmtNumber(resumo.atrasados), tone: resumo?.atrasados > 0 ? "danger" : "positive" },
-      ]
-    : [];
+    return items.slice(0, 3);
+  }, [openQuotes, ordensEmFluxo, resumo]);
+
+  const timeLabel = new Intl.DateTimeFormat("pt-BR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  }).format(now);
 
   return (
-    <div className="min-h-screen bg-transparent p-4 sm:p-6 lg:p-8">
-      <div className="mb-8 grid grid-cols-1 gap-6 xl:grid-cols-12">
-        <section className="cm-surface-strong rounded-[32px] p-6 sm:p-7 xl:col-span-6">
-          <p className="cm-label text-white/60">Ceramic Monolith</p>
-          <h1 className="mt-3 text-3xl font-bold tracking-[-0.04em] sm:text-4xl">Centro de comando operacional</h1>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-white/72 sm:text-base">
-            Uma leitura mais estrutural do sistema, conectando clientes, comercial, ordens de serviço e financeiro em uma
-            mesma superfície de decisão.
-          </p>
+    <div className="amp-terminal-view">
+      <section className="amp-terminal-intro">
+        <div className="amp-terminal-intro-copy">
+          <p className="amp-terminal-kicker">AMP trader board</p>
+          <h2>Centro analitico industrial</h2>
+          <p>Mesa única de decisão para comercial, OS e caixa.</p>
+        </div>
 
-          <div className="mt-5 flex flex-wrap items-center gap-2">
-            <span className="rounded-full border border-white/10 bg-white/8 px-3 py-2 text-xs uppercase tracking-[0.18em] text-white/72">
-              Cliente → Orçamento → OS → Financeiro
-            </span>
-            <span className="rounded-full border border-white/10 bg-white/8 px-3 py-2 text-xs text-white/72">
-              {new Intl.DateTimeFormat("pt-BR", {
-                day: "2-digit",
-                month: "long",
-                year: "numeric",
-              }).format(new Date())}
-            </span>
+        <div className="amp-terminal-intro-meta">
+          <div className="amp-terminal-live-chip">
+            <span className="amp-terminal-live-dot" />
+            Operacao em curso
           </div>
-
-          <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {heroStats.map((item) => (
-              <div key={item.label} className="rounded-[24px] border border-white/10 bg-white/6 p-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-[16px] border border-white/8 bg-white/6">
-                    <img src={item.icon} alt="" className="w-6 brightness-[3.6]" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-xs uppercase tracking-[0.18em] text-white/50">{item.label}</p>
-                    <div className={`mt-2 text-2xl font-bold tracking-[-0.04em] ${item.tone}`}>{item.value}</div>
-                  </div>
-                </div>
-              </div>
-            ))}
+          <div className="amp-terminal-meta-widget">
+            <span>Campinas / SP</span>
+            <strong>{timeLabel}</strong>
+            <small>{fmtLongDate(now)}</small>
           </div>
+          <div className="amp-terminal-meta-widget">
+            <span>Contexto do turno</span>
+            <strong>{getShiftLabel(now)}</strong>
+            <small>Cliente → Orcamento → OS → Financeiro</small>
+          </div>
+        </div>
+      </section>
 
-          {erro && (
-            <div className="mt-5 rounded-[20px] border border-white/10 bg-[rgba(187,103,80,0.16)] px-4 py-3 text-sm text-white/80">
-              Parte dos dados não foi carregada. Ainda assim, o painel segue mostrando o que já conseguiu consolidar.
+      <section className="amp-terminal-ticker" aria-label="Resumo operacional">
+        {tickerItems.length === 0 ? (
+          <div className="amp-terminal-ticker-item">
+            <span className="amp-terminal-ticker-label">Status</span>
+            <span className="amp-terminal-ticker-value">Carregando base operacional...</span>
+          </div>
+        ) : (
+          tickerItems.map((item) => (
+            <div key={item.label} className="amp-terminal-ticker-item">
+              <span className="amp-terminal-ticker-label">{item.label}</span>
+              <span className={`amp-terminal-ticker-value ${getToneClass(item.tone)}`}>{item.value}</span>
             </div>
+          ))
+        )}
+      </section>
+
+      <section className="amp-terminal-kpis">
+        {kpis.map((item) => (
+          <KpiCard key={item.label} item={item} />
+        ))}
+      </section>
+
+      <section className="amp-terminal-grid">
+        <div className="amp-terminal-column">
+          {canFinanceiro && (
+            <>
+              <TerminalPanel title="Faturamento mensal" footer={`Total vendas: ${fmtCurrencyCompact(grafico?.reduce((sum, item) => sum + item.recebido, 0) || 0)}`}>
+                <div className="amp-terminal-chart-shell">
+                  {grafico == null ? (
+                    <div className="amp-terminal-chart-loading">
+                      <div className="amp-shell-loader" />
+                    </div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={grafico} margin={{ left: -12, right: 8, top: 6, bottom: 0 }}>
+                        <XAxis dataKey="month" tick={{ fill: chartPalette.tick, fontSize: 10 }} axisLine={false} tickLine={false} />
+                        <YAxis tick={{ fill: chartPalette.tick, fontSize: 10 }} axisLine={false} tickLine={false} />
+                        <Tooltip content={<ChartTooltip />} cursor={{ fill: "rgba(255,255,255,0.02)" }} />
+                        <Bar dataKey="recebido" name="Recebido" radius={[5, 5, 0, 0]}>
+                          {grafico.map((entry, index) => (
+                            <Cell
+                              key={`${entry.month}-${index}`}
+                              fill={index === grafico.length - 1 ? COLORS.accent : COLORS.blue}
+                              fillOpacity={index === grafico.length - 1 ? 0.9 : 0.62}
+                            />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  )}
+                </div>
+              </TerminalPanel>
+
+              <TerminalPanel title="Fluxo de caixa">
+                {resumo == null ? (
+                  <div className="amp-terminal-empty">Lendo estrutura de caixa...</div>
+                ) : (
+                  <>
+                    <div className="amp-terminal-fluxo-value">{fmtCurrencyCompact((resumo.a_receber || 0) - (resumo.a_pagar || 0))}</div>
+                    <div className="amp-terminal-donut-wrap">
+                      <div className="amp-terminal-donut-shell">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Tooltip content={<ChartTooltip />} />
+                            <Pie data={donutData} dataKey="value" nameKey="name" innerRadius={30} outerRadius={43} stroke="none">
+                              {donutData.map((item) => (
+                                <Cell key={item.name} fill={item.color} />
+                              ))}
+                            </Pie>
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+                      <div className="amp-terminal-breakdown">
+                        {cashBreakdown.map((item) => (
+                          <div key={item.label} className="amp-terminal-break-row">
+                            <span>{item.label}</span>
+                            <strong className={getToneClass(item.tone)}>{fmtCurrencyCompact(item.value)}</strong>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </TerminalPanel>
+
+              <TerminalPanel title="Recebimentos sensiveis" grow>
+                {sensitiveReceivables.length === 0 ? (
+                  <div className="amp-terminal-empty">Sem titulos sensiveis na abertura.</div>
+                ) : (
+                  <table className="amp-terminal-table">
+                    <thead>
+                      <tr>
+                        <th>Cliente</th>
+                        <th>Valor</th>
+                        <th>Venc.</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sensitiveReceivables.map((item) => (
+                        <tr key={item.id}>
+                          <td>{item.cliente_nome || baseDescricao(item.descricao) || "Sem cliente"}</td>
+                          <td className={`is-mono ${getToneClass(item.tone)}`}>{fmtCurrency(item.valor_total || item.valor)}</td>
+                          <td className={getToneClass(item.tone)}>{fmtShortDate(item.vencimento)}</td>
+                          <td>
+                            <span className={`amp-terminal-badge ${getToneClass(item.tone)}`}>
+                              {item.dueIn < 0 || item.status === "atrasado" ? "Atrasado" : item.dueIn <= 5 ? "Vence" : "Ok"}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </TerminalPanel>
+            </>
           )}
-        </section>
+        </div>
 
-        {canFinanceiro && (
-          <section className="cm-surface rounded-[30px] p-5 sm:p-6 xl:col-span-4">
-            <p className="cm-label">Receita x pagamento</p>
-            <h2 className="mt-3 text-2xl font-semibold tracking-[-0.03em] text-[var(--cm-text)]">Ritmo dos últimos 6 meses</h2>
-            <p className="mt-2 text-sm leading-6 text-[var(--cm-muted)]">
-              Leitura financeira principal para saber se a operação está convertendo em caixa com consistência.
-            </p>
-
-            <div className="mt-5 h-[18rem] rounded-[26px] border border-[color:var(--cm-line)] bg-white/30 px-3 py-4">
-              {grafico == null ? (
-                <div className="flex h-full items-center justify-center">
-                  <div className="h-9 w-9 animate-spin rounded-full border-4 border-black/8 border-t-[var(--cm-accent)]" />
-                </div>
+        <div className="amp-terminal-column">
+          {canOrcamentos && (
+            <TerminalPanel title="Pipeline comercial">
+              {pipelineRows.length === 0 ? (
+                <div className="amp-terminal-empty">Sem atividade comercial no ciclo.</div>
               ) : (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={grafico} barGap={6}>
-                    <CartesianGrid strokeDasharray="4 4" stroke={THEME.line} vertical={false} />
-                    <XAxis dataKey="month" tick={{ fill: THEME.muted, fontSize: 12 }} axisLine={false} tickLine={false} />
-                    <YAxis
-                      tick={{ fill: THEME.muted, fontSize: 11 }}
-                      tickFormatter={(value) => (value >= 1000 ? `${(value / 1000).toFixed(0)}k` : value)}
-                      axisLine={false}
-                      tickLine={false}
-                    />
-                    <Tooltip content={<TooltipReceita />} cursor={{ fill: "rgba(180,99,56,0.05)" }} />
-                    <Bar dataKey="recebido" fill={THEME.positive} radius={[8, 8, 0, 0]} />
-                    <Bar dataKey="pago" fill={THEME.accent} radius={[8, 8, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              )}
-            </div>
-
-            {crescimento !== null && (
-              <div className="mt-4 flex items-center justify-between rounded-[20px] border border-[color:var(--cm-line)] bg-white/36 px-4 py-3">
-                <span className="text-sm text-[var(--cm-muted)]">Variação do mês atual</span>
-                <span className={`text-sm font-semibold ${Number(crescimento) >= 0 ? "text-[var(--cm-positive)]" : "text-[var(--cm-danger)]"}`}>
-                  {Number(crescimento) >= 0 ? "▲" : "▼"} {Math.abs(Number(crescimento)).toFixed(1)}%
-                </span>
-              </div>
-            )}
-          </section>
-        )}
-
-        {canOS && (
-          <section className="cm-surface rounded-[30px] p-5 sm:p-6 xl:col-span-2">
-            <p className="cm-label">Throughput</p>
-            <h2 className="mt-3 text-2xl font-semibold tracking-[-0.03em] text-[var(--cm-text)]">Produção concluída</h2>
-            <div className="mt-5 flex justify-center" style={{ "--ring-progress": throughput }}>
-              <div className="cm-ring">
-                <span className="cm-ring-value">{totalOrdens == null ? "..." : `${throughput}%`}</span>
-              </div>
-            </div>
-            <p className="mt-4 text-center text-sm leading-6 text-[var(--cm-muted)]">
-              {totalOrdens == null
-                ? "Aguardando consolidação de ordens."
-                : `${fmtNumber(ordensConcluidas)} concluída(s) de ${fmtNumber(totalOrdens)} ordem(ns) no ciclo atual.`}
-            </p>
-          </section>
-        )}
-      </div>
-
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
-        <section className="cm-surface rounded-[30px] p-5 sm:p-6 xl:col-span-4">
-          <p className="cm-label">Próximas ações</p>
-          <h2 className="mt-3 text-2xl font-semibold tracking-[-0.03em] text-[var(--cm-text)]">Acionamentos prioritários</h2>
-          <div className="mt-5 grid gap-3">
-            {actionItems.length === 0 ? (
-              <div className="rounded-[22px] border border-[color:var(--cm-line)] bg-white/34 px-4 py-4 text-sm text-[var(--cm-muted)]">
-                Sem dados suficientes para priorizar ações ainda.
-              </div>
-            ) : (
-              actionItems.map((item) => <ActionItem key={item.title} item={item} />)
-            )}
-          </div>
-        </section>
-
-        {canOS && (
-          <section className="cm-surface rounded-[30px] p-5 sm:p-6 xl:col-span-5">
-            <p className="cm-label">Estado da produção</p>
-            <h2 className="mt-3 text-2xl font-semibold tracking-[-0.03em] text-[var(--cm-text)]">Matriz de status da OS</h2>
-            <div className="mt-5 grid gap-3">
-              {osData == null ? (
-                <div className="flex h-56 items-center justify-center rounded-[24px] border border-[color:var(--cm-line)] bg-white/28">
-                  <div className="h-9 w-9 animate-spin rounded-full border-4 border-black/8 border-t-[var(--cm-accent)]" />
-                </div>
-              ) : (
-                osData.map((status) => <StatusRow key={status.id} item={status} total={totalOrdens || 0} />)
-              )}
-            </div>
-          </section>
-        )}
-
-        {canFinanceiro && (
-          <section className="cm-surface rounded-[30px] p-5 sm:p-6 xl:col-span-3">
-            <p className="cm-label">Caixa e saúde</p>
-            <h2 className="mt-3 text-2xl font-semibold tracking-[-0.03em] text-[var(--cm-text)]">Síntese financeira</h2>
-            <div className="mt-5 grid gap-3">
-              {resumoFinanceiro.map((item) => (
-                <div key={item.label} className="rounded-[22px] border border-[color:var(--cm-line)] bg-white/34 px-4 py-4">
-                  <p className="text-sm text-[var(--cm-muted)]">{item.label}</p>
-                  <div
-                    className={`mt-2 text-2xl font-bold tracking-[-0.04em] ${
-                      item.tone === "positive"
-                        ? "text-[var(--cm-positive)]"
-                        : item.tone === "danger"
-                          ? "text-[var(--cm-danger)]"
-                          : "text-[var(--cm-text)]"
-                    }`}
-                  >
-                    {item.value}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
-        <section className="cm-surface rounded-[30px] p-5 sm:p-6 xl:col-span-7">
-          <p className="cm-label">Fluxo principal</p>
-          <h2 className="mt-3 text-2xl font-semibold tracking-[-0.03em] text-[var(--cm-text)]">Cadeia operacional conectada</h2>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--cm-muted)]">
-            O painel passa a tratar os módulos como uma sequência viva: relacionamento, decisão comercial, execução e caixa.
-          </p>
-
-          <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-4">
-            {flowSteps.map((step, index) => (
-              <FlowStep key={step.title} step={step} highlight={index === flowSteps.length - 1} />
-            ))}
-          </div>
-        </section>
-
-        {canOrcamentos && (
-          <section className="cm-surface rounded-[30px] p-5 sm:p-6 xl:col-span-5">
-            <p className="cm-label">Panorama comercial</p>
-            <h2 className="mt-3 text-2xl font-semibold tracking-[-0.03em] text-[var(--cm-text)]">Conversão e decisão</h2>
-            {orcamentos == null ? (
-              <div className="mt-5 flex h-64 items-center justify-center rounded-[24px] border border-[color:var(--cm-line)] bg-white/28">
-                <div className="h-9 w-9 animate-spin rounded-full border-4 border-black/8 border-t-[var(--cm-accent)]" />
-              </div>
-            ) : (
-              <>
-                <div className="mt-5 grid grid-cols-2 gap-3">
-                  {[
-                    ["Rascunho", orcamentos.rascunho],
-                    ["Enviado", orcamentos.enviado],
-                    ["Aprovado", orcamentos.aprovado],
-                    ["Reprovado", orcamentos.reprovado],
-                  ].map(([label, value]) => (
-                    <div key={label} className="rounded-[22px] border border-[color:var(--cm-line)] bg-white/34 px-4 py-4">
-                      <p className="text-sm text-[var(--cm-muted)]">{label}</p>
-                      <p className="mt-2 text-2xl font-bold tracking-[-0.04em] text-[var(--cm-text)]">{fmtNumber(value)}</p>
+                <div className="amp-terminal-pipeline">
+                  {pipelineRows.map((item) => (
+                    <div key={item.label} className="amp-terminal-pipe-row">
+                      <span className="amp-terminal-pipe-label">{item.label}</span>
+                      <div className="amp-terminal-pipe-track">
+                        <div className={`amp-terminal-pipe-fill ${getToneClass(item.tone)}`} style={{ width: item.width }} />
+                      </div>
+                      <span className="amp-terminal-pipe-number">{fmtNumber(item.value)}</span>
                     </div>
                   ))}
                 </div>
+              )}
+            </TerminalPanel>
+          )}
 
-                <div className="mt-4 rounded-[22px] border border-[color:var(--cm-line)] bg-[rgba(180,99,56,0.08)] px-4 py-4">
-                  <p className="text-sm text-[var(--cm-muted)]">Valor aprovado no ciclo</p>
-                  <p className="mt-2 text-3xl font-bold tracking-[-0.04em] text-[var(--cm-text)]">
-                    {fmtCurrency(orcamentos.valor_aprovado)}
-                  </p>
-                  <p className="mt-2 text-sm leading-6 text-[var(--cm-muted)]">
-                    Tudo o que for aprovado precisa empurrar naturalmente para ordem de serviço e previsão financeira.
-                  </p>
+          {canOS && (
+            <>
+              <TerminalPanel title="Fila de OS">
+                <div className="amp-terminal-board">
+                  {orderLanes.map((lane) => (
+                    <div key={lane.title} className="amp-terminal-board-col">
+                      <div className="amp-terminal-board-head">{lane.title}</div>
+                      {lane.items.length === 0 ? (
+                        <div className="amp-terminal-board-empty">Sem ordem nesta etapa</div>
+                      ) : (
+                        lane.items.map((item) => (
+                          <div key={item.id} className={`amp-terminal-order ${getToneClass(lane.tone)}`}>
+                            <strong>{item.numero || "OS"}</strong>
+                            <span>{item.servico || item.cliente}</span>
+                            <small>{item.cliente}</small>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  ))}
                 </div>
-              </>
+              </TerminalPanel>
+
+              <TerminalPanel title="Carga x capacidade de producao" grow>
+                {productionLoad.length === 0 ? (
+                  <div className="amp-terminal-empty">Sem leitura de producao para montar carga.</div>
+                ) : (
+                  <div className="amp-terminal-chart-shell amp-terminal-chart-grow">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={productionLoad} margin={{ left: -16, right: 6, top: 8, bottom: 0 }}>
+                        <CartesianGrid stroke={chartPalette.grid} vertical={false} />
+                        <XAxis dataKey="etapa" tick={{ fill: chartPalette.tick, fontSize: 10 }} axisLine={false} tickLine={false} />
+                        <YAxis tick={{ fill: chartPalette.tick, fontSize: 10 }} axisLine={false} tickLine={false} />
+                        <Tooltip content={<ChartTooltip />} />
+                        <Bar dataKey="carga" name="Carga" fill={COLORS.accent} radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="alvo" name="Capacidade" fill={COLORS.blue} fillOpacity={0.42} radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+              </TerminalPanel>
+            </>
+          )}
+
+          {canFinanceiro && (
+            <TerminalPanel title="Receita por cliente" footer={`Valor total: ${fmtCurrencyCompact(revenueByClient.reduce((sum, item) => sum + item.value, 0))}`}>
+              {revenueByClient.length === 0 ? (
+                <div className="amp-terminal-empty">Sem carteira financeira suficiente para ranking.</div>
+              ) : (
+                <div className="amp-terminal-revenue-list">
+                  {revenueByClient.map((item) => (
+                    <div key={item.name} className="amp-terminal-revenue-row">
+                      <span className="amp-terminal-revenue-label">{item.name}</span>
+                      <div className="amp-terminal-revenue-track">
+                        <div className="amp-terminal-revenue-fill" style={{ width: item.width }} />
+                      </div>
+                      <span className="amp-terminal-revenue-value">{fmtCurrencyCompact(item.value)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </TerminalPanel>
+          )}
+        </div>
+
+        <div className="amp-terminal-column">
+          {canOS && (
+            <TerminalPanel title="Ordens em atraso - mes">
+              <div className="amp-terminal-overdue">
+                <div className="amp-terminal-overdue-big">{fmtNumber(overdueOrders)}</div>
+                <div>
+                  <div className="amp-terminal-overdue-info">ordens fora do prazo</div>
+                  <div className="amp-terminal-overdue-sub">
+                    Ciclo: <span>{`${MESES[now.getMonth()].toUpperCase()}/${String(now.getFullYear()).slice(-2)}`}</span>
+                  </div>
+                </div>
+              </div>
+            </TerminalPanel>
+          )}
+
+          {canOS && (
+            <TerminalPanel title="Throughput operacional">
+              <div className="amp-terminal-gauge-wrap">
+                <div className="amp-terminal-ring" style={{ "--amp-terminal-ring": `${throughput}%` }}>
+                  <span>{totalOrdens == null ? "..." : `${throughput}%`}</span>
+                </div>
+                <p className="amp-terminal-gauge-note">
+                  {totalOrdens == null ? "Aguardando consolidacao de OS." : `${fmtNumber(ordensConcluidas)} concluida(s) de ${fmtNumber(totalOrdens)} ordem(ns).`}
+                </p>
+              </div>
+            </TerminalPanel>
+          )}
+
+          {canOrcamentos && (
+            <TerminalPanel title="Radar comercial">
+              {quoteRadar.length === 0 ? (
+                <div className="amp-terminal-empty">Sem orcamentos recentes nesta mesa.</div>
+              ) : (
+                <div className="amp-terminal-feed">
+                  {quoteRadar.map((item) => (
+                    <div key={item.id} className={`amp-terminal-feed-row ${getToneClass(item.tone)}`}>
+                      <div>
+                        <strong>{item.titulo || "Orcamento"}</strong>
+                        <span>{item.cliente_nome || "Cliente"} • {item.status}</span>
+                      </div>
+                      <em>{fmtCurrency(item.valor)}</em>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </TerminalPanel>
+          )}
+
+          <TerminalPanel title="Mesa de alertas" grow>
+            {alertRail.length === 0 ? (
+              <div className="amp-terminal-empty">Sem alertas relevantes no momento.</div>
+            ) : (
+              <div className="amp-terminal-alert-list">
+                {alertRail.map((item) => (
+                  <div key={item.title} className={`amp-terminal-alert ${getToneClass(item.tone)}`}>
+                    <strong>{item.title}</strong>
+                    <span>{item.detail}</span>
+                  </div>
+                ))}
+              </div>
             )}
-          </section>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function ActionItem({ item }) {
-  const toneClasses =
-    item.tone === "danger"
-      ? "bg-[rgba(187,103,80,0.1)] text-[var(--cm-danger)]"
-      : item.tone === "warning"
-        ? "bg-[rgba(173,122,62,0.1)] text-[var(--cm-warning)]"
-        : item.tone === "positive"
-          ? "bg-[rgba(63,141,114,0.1)] text-[var(--cm-positive)]"
-          : "bg-[var(--cm-accent-soft)] text-[var(--cm-accent)]";
-
-  return (
-    <div className="rounded-[22px] border border-[color:var(--cm-line)] bg-white/34 px-4 py-4">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-base font-semibold text-[var(--cm-text)]">{item.title}</p>
-          <p className="mt-1 text-sm text-[var(--cm-muted)]">{item.note}</p>
+            {erro && (
+              <div className="amp-terminal-error">
+                Parte da base nao carregou por completo; o painel segue usando o que ja foi consolidado.
+              </div>
+            )}
+          </TerminalPanel>
         </div>
-        <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${toneClasses}`}>{item.value}</span>
-      </div>
+      </section>
     </div>
   );
 }
 
-function StatusRow({ item, total }) {
-  const width = total > 0 ? `${Math.max((item.value / total) * 100, item.value ? 10 : 0)}%` : "0%";
+function KpiCard({ item }) {
   return (
-    <div className="rounded-[22px] border border-[color:var(--cm-line)] bg-white/34 px-4 py-4">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-base font-semibold text-[var(--cm-text)]">{item.name}</p>
-          <p className="mt-1 text-sm text-[var(--cm-muted)]">{item.note}</p>
-        </div>
-        <span className="text-2xl font-bold tracking-[-0.04em] text-[var(--cm-text)]">{fmtNumber(item.value)}</span>
-      </div>
-      <div className="mt-3 h-2 rounded-full bg-black/6">
-        <div className="h-2 rounded-full" style={{ width, backgroundColor: item.color }} />
-      </div>
-    </div>
+    <article className="amp-terminal-kpi">
+      <div className="amp-terminal-kpi-label">{item.label}</div>
+      <div className="amp-terminal-kpi-value">{item.value}</div>
+      <div className={`amp-terminal-kpi-delta ${getToneClass(item.tone)}`}>{item.delta}</div>
+    </article>
   );
 }
 
-function FlowStep({ step, highlight }) {
+function TerminalPanel({ title, footer, grow = false, children }) {
   return (
-    <div className={`rounded-[24px] px-4 py-4 ${highlight ? "cm-surface-strong" : "border border-[color:var(--cm-line)] bg-white/34"}`}>
-      <p className={`text-xs uppercase tracking-[0.18em] ${highlight ? "text-white/58" : "text-[var(--cm-soft)]"}`}>{step.title}</p>
-      <div className={`mt-3 text-3xl font-bold tracking-[-0.04em] ${highlight ? "text-white" : "text-[var(--cm-text)]"}`}>{step.value}</div>
-      <p className={`mt-2 text-sm leading-6 ${highlight ? "text-white/72" : "text-[var(--cm-muted)]"}`}>{step.note}</p>
-    </div>
+    <section className={`amp-terminal-panel ${grow ? "is-grow" : ""}`}>
+      <div className="amp-terminal-panel-title">{title}</div>
+      <div className={`amp-terminal-panel-body ${grow ? "is-grow" : ""}`}>{children}</div>
+      {footer ? <div className="amp-terminal-panel-foot">{footer}</div> : null}
+    </section>
   );
 }

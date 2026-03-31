@@ -197,6 +197,10 @@ def test_clientes_e_orcamentos_flow(client):
     assert financeiro.get_json()[0]["tipo"] == "receber"
     assert "[ORC:" in financeiro.get_json()[0]["descricao"]
 
+    resumo_atualizado = client.get("/orcamentos/resumo", headers=headers)
+    assert resumo_atualizado.status_code == 200
+    assert resumo_atualizado.get_json()["valor_aprovado_ativo"] == 8500.0
+
 
 def test_reaprovar_orcamento_nao_duplica_os_ou_financeiro(client):
     headers = auth_headers(client)
@@ -272,6 +276,47 @@ def test_financeiro_summary_e_parcelamento(client):
     assert resumo.status_code == 200
     assert data["a_receber"] >= 1500.0
     assert data["a_pagar"] == 0
+
+
+def test_edicao_de_lancamento_permite_reparcelar_recebimento(client):
+    headers = auth_headers(client)
+
+    criado = client.post(
+        "/financeiro",
+        headers=headers,
+        json={
+            "tipo": "receber",
+            "descricao": "Receita da OS-15",
+            "vencimento": "2026-03-25",
+            "valor": 2000.0,
+        },
+    )
+    assert criado.status_code == 201
+    item_id = criado.get_json()["id"]
+
+    editado = client.put(
+        f"/financeiro/{item_id}",
+        headers=headers,
+        json={
+            "descricao": "Receita da OS-15",
+            "vencimento": "2026-03-25",
+            "valor": 2000.0,
+            "parcelas": 4,
+            "prazo_dias": 30,
+        },
+    )
+    assert editado.status_code == 200
+    assert editado.get_json()["parcelas"] == 4
+
+    financeiro = client.get("/financeiro", headers=headers)
+    assert financeiro.status_code == 200
+    grupo = [
+        item
+        for item in financeiro.get_json()
+        if item["descricao"].startswith("Receita da OS-15")
+    ]
+    assert len(grupo) == 4
+    assert sum(item["valor"] for item in grupo) == 2000.0
 
 
 def test_criacao_manual_de_os_permanece_funcional(client):

@@ -1,11 +1,10 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 
 import api from "../api";
 import { getDefaultAppRoute, getStoredToken, persistSession } from "../auth";
-import { LogoMain, AuthSideImg } from "../assets/assets-map";
-import DesktopWindowControls from "../components/DesktopWindowControls";
+import LoginLogoMotion from "../../docs/design/amp-v2-local/amp-login-motion.svg";
 
 const initialForm = { nome: "", email: "", senha: "" };
 
@@ -88,93 +87,125 @@ export default function AuthPage() {
   };
 
   const isBootstrap = bootstrapRequired;
+  const heading = loadingBootstrap
+    ? "Carregando acesso"
+    : isBootstrap
+      ? "Configuracao inicial"
+      : "Acesse o sistema";
+  const description = loadingBootstrap
+    ? "Estamos preparando o ambiente do sistema."
+    : isBootstrap
+      ? "Crie o primeiro administrador."
+      : "Use sua conta AMP.";
 
   return (
-    <div className="relative min-h-screen w-full flex bg-gradient-to-b from-[#E68216] from-0% via-white/0 via-60% to-white/0 to-100%">
-      <DesktopWindowControls className="absolute right-4 top-4 z-20" />
-
-      <div className="hidden lg:flex flex-1 items-center justify-center bg-white relative overflow-hidden">
-        <img src={AuthSideImg} alt="Ilustracao" className="max-w-[520px] drop-shadow-2xl" />
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-600/10 to-transparent" />
-      </div>
-
-      <div className="w-full lg:w-[32%] flex items-center justify-center p-8 lg:p-16">
-        <div className="w-full max-w-[440px]">
-          <div className="flex justify-center mb-10">
-            <img src={LogoMain} alt="AMP Usinagem" className="h-16" />
-          </div>
-
-          <div className="text-center mb-10">
-            <h1 className="text-4xl font-bold text-gray-900 tracking-tight">
-              {loadingBootstrap ? "Carregando acesso" : isBootstrap ? "Configuracao inicial" : "Acesso ao sistema"}
-            </h1>
-            <p className="text-gray-600 mt-3 text-lg">
-              {loadingBootstrap
-                ? "Estamos preparando o ambiente do sistema."
-                : isBootstrap
-                  ? "Crie o primeiro usuario administrador para iniciar a operacao."
-                  : "Entre com um usuario ja liberado pela administracao."}
-            </p>
-          </div>
-
-          {loadingBootstrap ? (
-            <div className="rounded-3xl bg-white border border-gray-200 p-10 shadow-sm flex items-center justify-center">
-              <div className="w-10 h-10 rounded-full border-4 border-orange-200 border-t-orange-500 animate-spin" />
+    <div className="login-shell amp-ui-scale">
+      <section className="login-scene">
+        <header className="login-scene-bar">
+          <div className="login-scene-brand">
+            <span className="login-scene-brand-mark" aria-hidden="true">
+              <object className="h-10 w-10 border-0" type="image/svg+xml" data={LoginLogoMotion}>
+                Logo AMP
+              </object>
+            </span>
+            <div>
+              <p className="eyebrow">AMP industrial access</p>
+              <strong>AMP Usinagem</strong>
             </div>
-          ) : (
-            <form onSubmit={isBootstrap ? handleBootstrap : handleLogin} className="space-y-6">
-              {isBootstrap && (
-                <div>
-                  <input
-                    type="text"
-                    placeholder="Nome do administrador"
-                    value={form.nome}
-                    onChange={updateField("nome")}
-                    required
-                    className="w-full px-5 py-4 bg-white border border-gray-200 rounded-2xl focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all text-lg"
-                  />
-                </div>
-              )}
-
-              <div>
-                <input
-                  type="email"
-                  placeholder="E-mail"
-                  value={form.email}
-                  onChange={updateField("email")}
-                  required
-                  className="w-full px-5 py-4 bg-white border border-gray-200 rounded-2xl focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all text-lg"
-                />
-              </div>
-
-              <div>
-                <input
-                  type="password"
-                  placeholder={isBootstrap ? "Crie uma senha" : "Senha"}
-                  value={form.senha}
-                  onChange={updateField("senha")}
-                  required
-                  className="w-full px-5 py-4 bg-white border border-gray-200 rounded-2xl focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all text-lg"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={submitting}
-                className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-70 text-white font-semibold py-4 rounded-2xl text-xl transition-all active:scale-[0.985] shadow-lg shadow-blue-500/30"
-              >
-                {submitting ? "Processando..." : isBootstrap ? "Criar Administrador" : "Entrar no Sistema"}
-              </button>
-            </form>
-          )}
-
-          <div className="mt-8 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-800 leading-6">
-            {isBootstrap
-              ? "O primeiro usuario criado recebe acesso total como administrador. Depois disso, novos usuarios so podem ser criados pela tela de administracao interna."
-              : "O cadastro publico foi desabilitado. Novos usuarios devem ser criados e liberados por um administrador do sistema."}
           </div>
+
+          <nav className="login-scene-nav" aria-label="Contexto">
+            <span>Desktop</span>
+            <span>Operacao</span>
+            <span>{isBootstrap ? "Bootstrap" : "Suporte"}</span>
+          </nav>
+
+          <div className="login-scene-status">{isBootstrap ? "Bootstrap inicial" : "Acesso corporativo"}</div>
+        </header>
+
+        <div className="login-center-stage">
+          <div className="login-logo-stage" aria-hidden="true">
+            <object className="login-logo-object" type="image/svg+xml" data={LoginLogoMotion}>
+              Logo AMP Usinagem
+            </object>
+          </div>
+
+          <section className="login-auth-card">
+            <p className="eyebrow">{isBootstrap ? "Bootstrap" : "Entrar"}</p>
+            <h3>{heading}</h3>
+            <p className="muted">{description}</p>
+
+            {loadingBootstrap ? (
+              <div className="amp-shell-loading login-loading-state">
+                <div className="amp-shell-loader" />
+                <p>Preparando o ambiente...</p>
+              </div>
+            ) : (
+              <form onSubmit={isBootstrap ? handleBootstrap : handleLogin}>
+                {isBootstrap && (
+                  <label className="login-field">
+                    <span>Administrador</span>
+                    <input
+                      type="text"
+                      value={form.nome}
+                      onChange={updateField("nome")}
+                      placeholder="Nome do administrador"
+                      required
+                    />
+                  </label>
+                )}
+
+                <label className="login-field">
+                  <span>E-mail</span>
+                  <input
+                    type="email"
+                    value={form.email}
+                    onChange={updateField("email")}
+                    placeholder="usuario@ampusinagem.com"
+                    required
+                  />
+                </label>
+
+                <label className="login-field">
+                  <span>{isBootstrap ? "Crie uma senha" : "Senha"}</span>
+                  <input
+                    type="password"
+                    value={form.senha}
+                    onChange={updateField("senha")}
+                    placeholder={isBootstrap ? "Defina a senha inicial" : "Digite sua senha"}
+                    required
+                  />
+                </label>
+
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className={`primary-button login-submit ${submitting ? "is-loading" : ""}`}
+                >
+                  {submitting ? "Processando..." : isBootstrap ? "Criar administrador" : "Entrar no sistema"}
+                </button>
+              </form>
+            )}
+
+            <p className="helper-note">
+              {isBootstrap
+                ? "Primeiro acesso com perfil total."
+                : "Acesso interno liberado pela administracao."}
+            </p>
+          </section>
         </div>
-      </div>
+
+        <div className="login-scenery" aria-hidden="true">
+          <span className="login-cloud cloud-a" />
+          <span className="login-cloud cloud-b" />
+          <span className="login-star-field" />
+          <span className="login-range range-back" />
+          <span className="login-range range-front" />
+          <span className="login-tree-line trees-left" />
+          <span className="login-tree-line trees-right" />
+          <span className="login-water-line" />
+        </div>
+      </section>
     </div>
   );
 }

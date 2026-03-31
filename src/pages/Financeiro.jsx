@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import api from "../api";
-import { IconDollar, IconQuotes } from "../assets/assets-map";
 
 const STATUS_META = {
   pago: { label: "Pago", tone: "positive" },
@@ -73,133 +72,85 @@ function useNotif() {
 function toneClasses(tone) {
   switch (tone) {
     case "danger":
-      return {
-        badge:
-          "border-[rgba(187,103,80,0.22)] bg-[rgba(187,103,80,0.12)] text-[var(--cm-danger)]",
-        dot: "bg-[var(--cm-danger)]",
-      };
+      return "is-danger";
     case "warning":
-      return {
-        badge:
-          "border-[rgba(173,122,62,0.22)] bg-[rgba(173,122,62,0.12)] text-[var(--cm-warning)]",
-        dot: "bg-[var(--cm-warning)]",
-      };
+      return "is-warning";
     case "positive":
-      return {
-        badge:
-          "border-[rgba(63,141,114,0.22)] bg-[rgba(63,141,114,0.12)] text-[var(--cm-positive)]",
-        dot: "bg-[var(--cm-positive)]",
-      };
+      return "is-positive";
     case "accent":
-      return {
-        badge:
-          "border-[rgba(180,99,56,0.22)] bg-[rgba(180,99,56,0.12)] text-[var(--cm-accent)]",
-        dot: "bg-[var(--cm-accent)]",
-      };
+      return "is-accent";
     default:
-      return {
-        badge: "border-[color:var(--cm-line)] bg-white/70 text-[var(--cm-text)]",
-        dot: "bg-[var(--cm-text)]",
-      };
+      return "is-default";
   }
 }
 
 function ToneBadge({ tone = "default", children }) {
-  const styles = toneClasses(tone);
+  const toneClass = toneClasses(tone);
   return (
-    <span className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] ${styles.badge}`}>
-      <span className={`h-1.5 w-1.5 rounded-full ${styles.dot}`} />
+    <span className={`amp-fin-badge ${toneClass}`}>
+      <span className="amp-fin-badge-dot" />
       {children}
     </span>
   );
 }
 
-function StatTile({ icon, label, value, note, inverse = false }) {
-  return (
-    <div
-      className={`rounded-[24px] border p-4 ${
-        inverse
-          ? "border-white/10 bg-white/7 text-white"
-          : "border-[color:var(--cm-line)] bg-white/38 text-[var(--cm-text)]"
-      }`}
-    >
-      <div className="flex items-start gap-3">
-        <div
-          className={`flex h-11 w-11 items-center justify-center rounded-[16px] border ${
-            inverse ? "border-white/10 bg-white/8" : "border-[color:var(--cm-line)] bg-[rgba(37,42,49,0.04)]"
-          }`}
-        >
-          <img src={icon} alt="" className={`w-6 ${inverse ? "brightness-[3.4]" : ""}`} />
-        </div>
-        <div className="min-w-0">
-          <p className={`text-xs uppercase tracking-[0.18em] ${inverse ? "text-white/55" : "text-[var(--cm-muted)]"}`}>{label}</p>
-          <div className="mt-2 text-2xl font-semibold tracking-[-0.04em]">{value}</div>
-          {note && <p className={`mt-2 text-sm ${inverse ? "text-white/68" : "text-[var(--cm-muted)]"}`}>{note}</p>}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function MiniMetric({ label, value }) {
-  return (
-    <div className="rounded-[22px] border border-[color:var(--cm-line)] bg-white/36 px-4 py-4">
-      <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--cm-muted)]">{label}</p>
-      <p className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-[var(--cm-text)]">{value}</p>
-    </div>
-  );
-}
-
 function InfoItem({ label, value, subtle = false, title }) {
   return (
-    <div>
-      <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--cm-muted)]">{label}</p>
-      <p
-        className={`mt-1 text-sm ${subtle ? "text-[var(--cm-muted)]" : "font-medium text-[var(--cm-text)]"}`}
-        title={title}
-      >
+    <div className="amp-fin-info-item">
+      <p>{label}</p>
+      <strong className={subtle ? "is-subtle" : ""} title={title}>
         {value}
-      </p>
+      </strong>
     </div>
   );
 }
 
-function FocusMetric({ label, value, note }) {
+function SelectionBanner({ count, total, onExport, onClear }) {
   return (
-    <div className="rounded-[22px] border border-[color:var(--cm-line)] bg-white/38 px-4 py-4">
-      <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--cm-muted)]">{label}</p>
-      <p className="mt-2 text-xl font-semibold tracking-[-0.04em] text-[var(--cm-text)]">{value}</p>
-      {note && <p className="mt-2 text-sm text-[var(--cm-muted)]">{note}</p>}
+    <section className="amp-fin-selection">
+      <div>
+        <p className="amp-terminal-kicker">Seleção ativa</p>
+        <h3>{count} título(s) no lote</h3>
+        <p>{total} preparados para exportação e conferência financeira.</p>
+      </div>
+      <div className="amp-fin-selection-actions">
+        <button type="button" onClick={onExport} className="amp-rel-primary-btn">
+          Exportar seleção
+        </button>
+        <button type="button" onClick={onClear} className="amp-rel-secondary-btn">
+          Limpar seleção
+        </button>
+      </div>
+    </section>
+  );
+}
+
+function LoadingState() {
+  return (
+    <div className="amp-rel-loading">
+      <div className="amp-rel-loader" />
     </div>
   );
 }
 
-function QueueItem({ item, onSelect }) {
+function EmptyState({ onCreate }) {
   return (
-    <button
-      type="button"
-      onClick={() => onSelect(item.id)}
-      className="w-full rounded-[24px] border border-[color:var(--cm-line)] bg-white/38 px-4 py-4 text-left transition hover:-translate-y-[1px] hover:bg-white/55"
-    >
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="min-w-0">
-          <p className="truncate text-base font-semibold tracking-[-0.03em] text-[var(--cm-text)]">{item.descricao}</p>
-          <p className="mt-1 text-sm text-[var(--cm-muted)]">{item.cliente_nome || "Sem cliente vinculado"}</p>
-        </div>
-        <ToneBadge tone={item.statusTone}>{item.statusLabel}</ToneBadge>
+    <div className="amp-rel-empty">
+      <div className="amp-rel-empty-icon">$</div>
+      <h3>Nenhum lançamento encontrado</h3>
+      <p>Ajuste os filtros ou cadastre um novo título para reacender a leitura do caixa.</p>
+      <div className="amp-rel-empty-actions">
+        <button type="button" onClick={onCreate} className="amp-rel-primary-btn">
+          Novo lançamento
+        </button>
       </div>
-      <div className="mt-3 flex flex-wrap gap-2 text-xs text-[var(--cm-muted)]">
-        <span>{TIPO_META[item.tipo]?.label || item.tipo}</span>
-        <span>{fmt(item.valor_total)}</span>
-        <span>{fmtD(item.vencimento)}</span>
-      </div>
-    </button>
+    </div>
   );
 }
 
 function ModalContainer({ children }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(19,18,16,0.52)] p-4 backdrop-blur-md">
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-[rgba(19,18,16,0.52)] p-3 backdrop-blur-md sm:items-center sm:p-5">
       {children}
     </div>
   );
@@ -212,6 +163,18 @@ function baseDescricaoParcelas(descricao = "") {
 function extrairMarcadorOrcamento(texto = "") {
   const match = String(texto).match(/\[ORC:([^\]]+)\]/);
   return match?.[1] || "";
+}
+
+function groupKey(item) {
+  if (!(item.parcelas > 1)) return `single-${item.id}`;
+  return [
+    "parcelado",
+    item.tipo,
+    item.cliente_id || "sem-cliente",
+    item.parcelas,
+    item.nfe || "sem-nfe",
+    baseDescricaoParcelas(item.descricao),
+  ].join("|");
 }
 
 function diasParaVencimento(iso) {
@@ -294,9 +257,9 @@ function ModalBoleto({ clientes, onClose, onSalvo }) {
 
   return (
     <ModalContainer>
-      <div className="cm-surface w-full max-w-3xl rounded-[34px] shadow-[0_24px_80px_rgba(22,18,14,0.28)]">
-        <div className="grid gap-0 lg:grid-cols-[minmax(0,1.4fr)_18rem]">
-          <div className="p-6 sm:p-7">
+      <div className="cm-surface cm-modal-shell rounded-[34px] shadow-[0_24px_80px_rgba(22,18,14,0.28)]">
+        <div className="cm-modal-grid xl:grid-cols-[minmax(0,1.35fr)_17rem]">
+          <div className="cm-modal-main">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="cm-label">Importação de boleto</p>
@@ -495,7 +458,7 @@ function ModalBoleto({ clientes, onClose, onSalvo }) {
             )}
           </div>
 
-          <aside className="rounded-b-[34px] border-t border-[color:var(--cm-line)] bg-[rgba(37,42,49,0.96)] p-6 text-white lg:rounded-r-[34px] lg:rounded-bl-none lg:border-l lg:border-t-0">
+          <aside className="cm-modal-side rounded-b-[34px] border-t border-[color:var(--cm-line)] bg-[rgba(37,42,49,0.96)] text-white xl:rounded-r-[34px] xl:rounded-bl-none xl:border-l xl:border-t-0">
             <p className="text-[11px] uppercase tracking-[0.18em] text-white/52">Leitura do fluxo</p>
             <div className="mt-4 flex flex-wrap gap-2">
               <ToneBadge tone={tipo === "receber" ? "positive" : "danger"}>
@@ -519,22 +482,26 @@ function ModalBoleto({ clientes, onClose, onSalvo }) {
 
 function ModalLancamento({ item, clientes, onClose, onSalvo }) {
   const editando = Boolean(item?.id);
+  const valorInicial =
+    editando && item?.parcelas > 1
+      ? [item, ...(item.irmas || [])].reduce((sum, parcela) => sum + Number(parcela.valor || 0), 0)
+      : item?.valor ?? "";
   const [form, setForm] = useState(
     editando
       ? {
           tipo: item.tipo,
           cliente_id: String(item.cliente_id || ""),
-          descricao: item.descricao,
+          descricao: item.parcelas > 1 ? baseDescricaoParcelas(item.descricao) : item.descricao,
           nfe: item.nfe || "",
           prazo_dias: item.prazo_dias || "",
           vencimento: item.vencimento,
-          valor: item.valor,
+          valor: valorInicial,
           forma_pagamento: item.forma_pagamento || "",
           observacao: item.observacao || "",
         }
       : { ...FORM_VAZIO }
   );
-  const [parcelas, setParcelas] = useState(1);
+  const [parcelas, setParcelas] = useState(editando ? Number(item.parcelas || 1) : 1);
   const [salvando, setSalvando] = useState(false);
   const [notif, show] = useNotif();
   const idBase = editando ? `financeiro-edit-${item.id}` : "financeiro-create";
@@ -587,12 +554,13 @@ function ModalLancamento({ item, clientes, onClose, onSalvo }) {
         ...form,
         cliente_id: form.cliente_id ? Number(form.cliente_id) : null,
         prazo_dias: form.prazo_dias || null,
+        parcelas,
       };
 
       if (editando) {
         await api.put(`/financeiro/${item.id}`, payload);
       } else {
-        await api.post("/financeiro", { ...payload, parcelas });
+        await api.post("/financeiro", payload);
       }
       onSalvo();
       onClose();
@@ -605,9 +573,9 @@ function ModalLancamento({ item, clientes, onClose, onSalvo }) {
 
   return (
     <ModalContainer>
-      <div className="cm-surface w-full max-w-5xl rounded-[34px] shadow-[0_24px_80px_rgba(22,18,14,0.28)]">
-        <div className="grid gap-0 lg:grid-cols-[minmax(0,1.55fr)_20rem]">
-          <div className="p-6 sm:p-7">
+      <div className="cm-surface cm-modal-shell rounded-[34px] shadow-[0_24px_80px_rgba(22,18,14,0.28)]">
+        <div className="cm-modal-grid xl:grid-cols-[minmax(0,1.22fr)_17rem]">
+          <div className="cm-modal-main">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="cm-label">{editando ? "Editar lançamento" : "Novo lançamento"}</p>
@@ -763,23 +731,21 @@ function ModalLancamento({ item, clientes, onClose, onSalvo }) {
                     required
                   />
                 </div>
-                {!editando && (
-                  <div>
-                    <label htmlFor={`${idBase}-parcelas`} className={LABEL_BASE}>Parcelas</label>
-                    <select
-                      id={`${idBase}-parcelas`}
-                      value={parcelas}
-                      onChange={(e) => setParcelas(Number(e.target.value))}
-                      className={INPUT_BASE}
-                    >
-                      {Array.from({ length: 12 }, (_, index) => index + 1).map((numero) => (
-                        <option key={numero} value={numero}>
-                          {numero === 1 ? "À vista" : `${numero}x`}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
+                <div>
+                  <label htmlFor={`${idBase}-parcelas`} className={LABEL_BASE}>Parcelas</label>
+                  <select
+                    id={`${idBase}-parcelas`}
+                    value={parcelas}
+                    onChange={(e) => setParcelas(Number(e.target.value))}
+                    className={INPUT_BASE}
+                  >
+                    {Array.from({ length: 12 }, (_, index) => index + 1).map((numero) => (
+                      <option key={numero} value={numero}>
+                        {numero === 1 ? "À vista" : `${numero}x`}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               {previewParcelas && (
@@ -827,13 +793,13 @@ function ModalLancamento({ item, clientes, onClose, onSalvo }) {
             </form>
           </div>
 
-          <aside className="rounded-b-[34px] border-t border-[color:var(--cm-line)] bg-[rgba(37,42,49,0.96)] p-6 text-white lg:rounded-r-[34px] lg:rounded-bl-none lg:border-l lg:border-t-0">
+          <aside className="cm-modal-side rounded-b-[34px] border-t border-[color:var(--cm-line)] bg-[rgba(37,42,49,0.96)] text-white xl:rounded-r-[34px] xl:rounded-bl-none xl:border-l xl:border-t-0">
             <p className="text-[11px] uppercase tracking-[0.18em] text-white/52">Prontidão do título</p>
             <div className="mt-4 flex flex-wrap gap-2">
               <ToneBadge tone={form.tipo === "receber" ? "positive" : "danger"}>
                 {TIPO_META[form.tipo].label}
               </ToneBadge>
-              {!editando && parcelas > 1 && <ToneBadge tone="accent">{parcelas} parcelas</ToneBadge>}
+              {parcelas > 1 && <ToneBadge tone="accent">{parcelas} parcelas</ToneBadge>}
             </div>
 
             <div className="mt-5 space-y-3 rounded-[24px] border border-white/10 bg-white/6 p-4">
@@ -1062,28 +1028,31 @@ export default function Financeiro() {
     return () => clearTimeout(timer);
   }, [carregar]);
 
-  const registrosPais = useMemo(() => {
-    return dados.filter((item) => !(item.parcelas > 1 && item.parcela_num > 1));
-  }, [dados]);
-
   const dadosEnriquecidos = useMemo(() => {
-    return registrosPais.map((item) => {
-      const baseDescricao = baseDescricaoParcelas(item.descricao);
-      const irmas =
-        item.parcelas > 1
-          ? dados
-              .filter(
-                (registro) =>
-                  registro.id !== item.id &&
-                  registro.parcelas === item.parcelas &&
-                  baseDescricaoParcelas(registro.descricao) === baseDescricao
-              )
-              .sort((a, b) => a.parcela_num - b.parcela_num)
-          : [];
+    const grupos = new Map();
+    dados.forEach((item) => {
+      const key = groupKey(item);
+      const bucket = grupos.get(key) || [];
+      bucket.push(item);
+      grupos.set(key, bucket);
+    });
+
+    return [...grupos.values()].map((grupo) => {
+      const ordenado = [...grupo].sort((a, b) => {
+        if ((a.parcela_num || 1) !== (b.parcela_num || 1)) {
+          return (a.parcela_num || 1) - (b.parcela_num || 1);
+        }
+        return new Date(a.vencimento).getTime() - new Date(b.vencimento).getTime();
+      });
+
+      const item =
+        ordenado.find((registro) => registro.status !== "pago") ||
+        ordenado[0];
+      const irmas = ordenado.filter((registro) => registro.id !== item.id);
       const dias = diasParaVencimento(item.vencimento);
       const marcadorOrcamento = extrairMarcadorOrcamento(item.descricao);
       const semVinculo = !item.cliente_id;
-      const parcelado = item.parcelas > 1;
+      const parcelado = ordenado.length > 1;
 
       let statusTone = STATUS_META[item.status]?.tone || "default";
       let statusLabel = STATUS_META[item.status]?.label || item.status;
@@ -1131,7 +1100,7 @@ export default function Financeiro() {
         prioridade,
       };
     });
-  }, [dados, registrosPais]);
+  }, [dados]);
 
   const dadosVisiveis = useMemo(() => {
     return dadosEnriquecidos.filter((item) => {
@@ -1157,6 +1126,8 @@ export default function Financeiro() {
     return { totalReceber, totalPagar, totalJuros };
   }, [dados]);
 
+  const saldoProjetado = totaisLista.totalReceber - totaisLista.totalPagar;
+
   const filaPrioritaria = useMemo(() => {
     return [...dadosEnriquecidos]
       .sort((a, b) => {
@@ -1177,6 +1148,33 @@ export default function Financeiro() {
       sem_vinculo: dadosEnriquecidos.filter((item) => item.semVinculo).length,
     };
   }, [dadosEnriquecidos]);
+
+  const recebimentosSensiveis = useMemo(
+    () =>
+      dadosEnriquecidos
+        .filter(
+          (item) =>
+            item.tipo === "receber" &&
+            item.status !== "pago" &&
+            (item.status === "atrasado" || (item.dias != null && item.dias <= 5))
+        )
+        .sort((a, b) => {
+          if ((a.dias ?? 9999) !== (b.dias ?? 9999)) return (a.dias ?? 9999) - (b.dias ?? 9999);
+          return Number(b.valor_total) - Number(a.valor_total);
+        })
+        .slice(0, 4),
+    [dadosEnriquecidos]
+  );
+
+  const titulosSelecionados = useMemo(
+    () => dadosVisiveis.filter((item) => selecionados.includes(item.id)),
+    [dadosVisiveis, selecionados]
+  );
+
+  const totalSelecionado = useMemo(
+    () => titulosSelecionados.reduce((sum, item) => sum + Number(item.valor_total || 0), 0),
+    [titulosSelecionados]
+  );
 
   useEffect(() => {
     const idsVisiveis = new Set(dadosVisiveis.map((item) => item.id));
@@ -1199,12 +1197,6 @@ export default function Financeiro() {
     setSelecionados((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]));
   };
 
-  const toggleTodos = () => {
-    const ids = dadosVisiveis.map((item) => item.id);
-    const todosSelecionados = ids.length > 0 && ids.every((id) => selecionados.includes(id));
-    setSelecionados(todosSelecionados ? [] : ids);
-  };
-
   const excluir = async (modo = "unico") => {
     try {
       await api.delete(`/financeiro/${itemDel.id}?modo=${modo}`);
@@ -1214,19 +1206,6 @@ export default function Financeiro() {
     } catch {
       show("Erro ao excluir.", "erro");
     }
-  };
-
-  const exportarCSV = (item) => {
-    const cab = "Tipo,Status,Cliente,Descrição,NF-e,Vencimento,Valor,Juros,Total,Forma Pagamento\n";
-    const lin = `${item.tipo},${item.status},${item.cliente_nome || ""},${item.descricao},${item.nfe || ""},${item.vencimento},${item.valor},${item.juros},${item.valor_total},${item.forma_pagamento || ""}\n`;
-    const blob = new Blob([cab + lin], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `lancamento_${item.id}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-    show("CSV exportado!");
   };
 
   const exportarSelecionados = () => {
@@ -1260,326 +1239,219 @@ export default function Financeiro() {
   };
 
   return (
-    <div className="min-h-screen bg-transparent p-4 sm:p-6 lg:p-8">
-      {notif && (
-        <div
-          className={`fixed right-5 top-5 z-50 rounded-[20px] border px-5 py-3 text-sm font-semibold shadow-[0_18px_48px_rgba(22,18,14,0.2)] ${
-            notif.tipo === "erro"
-              ? "border-[rgba(187,103,80,0.2)] bg-[rgba(255,244,240,0.94)] text-[var(--cm-danger)]"
-              : "border-[rgba(63,141,114,0.2)] bg-[rgba(246,255,251,0.95)] text-[var(--cm-positive)]"
-          }`}
-        >
-          {notif.msg}
-        </div>
-      )}
+    <div className="amp-fin-page">
+      {notif && <div className={`amp-rel-notice ${notif.tipo === "erro" ? "is-error" : "is-success"}`}>{notif.msg}</div>}
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
-        <section className="cm-surface-strong rounded-[32px] p-6 sm:p-7 xl:col-span-8">
-          <p className="cm-label text-white/58">Ceramic Monolith · Financeiro</p>
-          <h1 className="mt-3 text-3xl font-semibold tracking-[-0.05em] sm:text-4xl">
-            Caixa, risco e parcelas sob a mesma leitura operacional
-          </h1>
-          <p className="mt-3 max-w-3xl text-sm leading-6 text-white/72 sm:text-base">
-            O financeiro fecha a cadeia do sistema. Agora ele mostra o que entra, o que sai, o que venceu, o que está parcelado e o que ainda precisa de vínculo com o fluxo comercial.
-          </p>
-
-          <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <StatTile icon={IconDollar} label="A receber" value={fmt(totaisLista.totalReceber)} note="Considerando a listagem atual" inverse />
-            <StatTile icon={IconDollar} label="A pagar" value={fmt(totaisLista.totalPagar)} note="Saídas ainda em aberto" inverse />
-            <StatTile icon={IconQuotes} label="Juros em aberto" value={fmt(totaisLista.totalJuros)} note="Custo adicional visível" inverse />
-            <StatTile icon={IconQuotes} label="Títulos em atraso" value={String(resumo?.atrasados ?? 0)} note="Resumo geral do financeiro" inverse />
-          </div>
-        </section>
-
-        <section className="cm-surface rounded-[32px] p-6 xl:col-span-4">
-          <p className="cm-label">Fila de ação</p>
-          <h2 className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-[var(--cm-text)]">Títulos que pedem movimento</h2>
-          <p className="mt-2 text-sm leading-6 text-[var(--cm-muted)]">
-            Priorização automática com base em atraso, vencimento próximo, vínculo ausente e peso financeiro.
-          </p>
-
-          <div className="mt-5 grid gap-3">
-            {filaPrioritaria.length ? (
-              filaPrioritaria.map((item) => <QueueItem key={item.id} item={item} onSelect={setItemFocoId} />)
-            ) : (
-              <div className="rounded-[24px] border border-[color:var(--cm-line)] bg-white/38 px-4 py-6 text-sm leading-6 text-[var(--cm-muted)]">
-                Nenhum título crítico neste recorte.
-              </div>
-            )}
+      <div className="screen-grid screen-grid-fin">
+        <section className="surface-panel">
+          <div className="section-head">
+            <div>
+              <p className="eyebrow">Financeiro</p>
+              <h3>Títulos e parcelas com espinha dorsal em tabela</h3>
+            </div>
+            <div className="pill-row">
+              <button type="button" onClick={() => setFiltroRapido("receber")} className={`pill ${filtroRapido === "receber" ? "is-solid" : ""}`}>
+                A receber
+              </button>
+              <button type="button" onClick={() => setFiltroRapido("pagar")} className={`pill ${filtroRapido === "pagar" ? "is-solid" : ""}`}>
+                A pagar
+              </button>
+              <button type="button" onClick={() => setFiltroRapido("parcelado")} className={`pill ${filtroRapido === "parcelado" ? "is-solid" : ""}`}>
+                Parcelados
+              </button>
+            </div>
           </div>
 
-          <div className="mt-5 grid grid-cols-2 gap-3">
-            <MiniMetric label="Recebido no mês" value={fmt(resumo?.recebido_mes)} />
-            <MiniMetric label="Atrasados" value={String(resumo?.atrasados ?? 0)} />
+          <div className="terminal-ribbon">
+            <article className="terminal-metric">
+              <span>D+7 recebimento</span>
+              <strong>{fmt(totaisLista.totalReceber)}</strong>
+            </article>
+            <article className="terminal-metric">
+              <span>D+7 pagamento</span>
+              <strong>{fmt(totaisLista.totalPagar)}</strong>
+            </article>
+            <article className="terminal-metric">
+              <span>Inadimplência</span>
+              <strong>{`${(((resumo?.atrasados ?? 0) / Math.max(dadosVisiveis.length, 1)) * 100).toFixed(1)}%`}</strong>
+            </article>
           </div>
-        </section>
-      </div>
 
-      <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-12">
-        <section className="cm-surface rounded-[32px] p-5 sm:p-6 xl:col-span-8">
-          <div className="flex flex-col gap-5">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-              <div>
-                <p className="cm-label">Workspace financeiro</p>
-                <h2 className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-[var(--cm-text)]">Títulos e parcelas</h2>
-                <p className="mt-2 text-sm leading-6 text-[var(--cm-muted)]">
-                  Filtre por tipo, status e situação. Cada linha já traz o contexto de vencimento, juros, vínculo e origem quando houver.
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-3">
+          <div className="overview-strip finance-overview">
+            <article className="overview-chip">
+              <p className="eyebrow">Recebido no mês</p>
+              <strong>{fmt(resumo?.recebido_mes)}</strong>
+              <span className="muted">Fluxo saudável</span>
+            </article>
+            <article className="overview-chip">
+              <p className="eyebrow">A receber</p>
+              <strong>{fmt(totaisLista.totalReceber)}</strong>
+              <span className="muted">Janela de 7 dias</span>
+            </article>
+            <article className="overview-chip">
+              <p className="eyebrow">Atrasado</p>
+              <strong className="is-warm-text">{fmt(resumo?.valor_atrasado ?? 0)}</strong>
+              <span className="muted">Precisa ação</span>
+            </article>
+          </div>
+
+          <div className="toolbar-row">
+            <div className="search-box">
+              <input
+                type="text"
+                value={filtro}
+                onChange={(e) => setFiltro(e.target.value)}
+                placeholder="Buscar cliente, descrição ou NF-e"
+                className="w-full bg-transparent text-sm text-[var(--text)] outline-none placeholder:text-[var(--muted)]"
+              />
+            </div>
+            <div className="pill-row">
+              {QUICK_FILTERS.map((item) => (
                 <button
+                  key={item.id}
                   type="button"
-                  onClick={abrirNovo}
-                  className="rounded-full bg-[var(--cm-text)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-92"
+                  onClick={() => setFiltroRapido(item.id)}
+                  className={`pill ${filtroRapido === item.id ? "is-solid" : ""}`}
                 >
-                  Novo lançamento
+                  {item.label}
+                  <span>{contagemFiltros[item.id]}</span>
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setModalBoleto(true)}
-                  className="rounded-full border border-[color:var(--cm-line)] bg-white/74 px-5 py-3 text-sm font-semibold text-[var(--cm-text)] transition hover:bg-white"
-                >
-                  Importar boleto
-                </button>
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-              <div className="flex min-w-0 flex-1 items-center gap-3 rounded-[24px] border border-[color:var(--cm-line)] bg-white/68 px-4 py-3">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 shrink-0 text-[var(--cm-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.9}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-4.35-4.35m1.85-5.4a7.25 7.25 0 1 1-14.5 0 7.25 7.25 0 0 1 14.5 0Z" />
-                </svg>
-                <input
-                  type="text"
-                  value={filtro}
-                  onChange={(e) => setFiltro(e.target.value)}
-                  placeholder="Buscar por cliente, descrição ou NF-e..."
-                  className="min-w-0 flex-1 bg-transparent text-sm text-[var(--cm-text)] outline-none placeholder:text-[var(--cm-muted)]"
-                />
-              </div>
-
-              <div className="flex flex-wrap gap-3">
-                <select
-                  value={filtroTipo}
-                  onChange={(e) => setFiltroTipo(e.target.value)}
-                  className="rounded-full border border-[color:var(--cm-line)] bg-white/74 px-4 py-3 text-sm text-[var(--cm-text)] outline-none transition hover:bg-white"
-                  aria-label="Filtrar por tipo"
-                >
-                  <option value="">Todos os tipos</option>
-                  <option value="receber">A receber</option>
-                  <option value="pagar">A pagar</option>
-                </select>
-                <select
-                  value={filtroStatus}
-                  onChange={(e) => setFiltroStatus(e.target.value)}
-                  className="rounded-full border border-[color:var(--cm-line)] bg-white/74 px-4 py-3 text-sm text-[var(--cm-text)] outline-none transition hover:bg-white"
-                  aria-label="Filtrar por status"
-                >
-                  <option value="">Todos os status</option>
-                  <option value="pendente">Pendente</option>
-                  <option value="atrasado">Atrasado</option>
-                  <option value="pago">Pago</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              {QUICK_FILTERS.map((item) => {
-                const ativo = filtroRapido === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => setFiltroRapido(item.id)}
-                    className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] transition ${
-                      ativo
-                        ? "border-[rgba(180,99,56,0.22)] bg-[rgba(180,99,56,0.12)] text-[var(--cm-accent)]"
-                        : "border-[color:var(--cm-line)] bg-white/66 text-[var(--cm-muted)] hover:text-[var(--cm-text)]"
-                    }`}
-                  >
-                    {item.label}
-                    <span className={`rounded-full px-2 py-0.5 text-[10px] ${ativo ? "bg-white/72 text-[var(--cm-accent)]" : "bg-[rgba(37,42,49,0.06)] text-[var(--cm-muted)]"}`}>
-                      {contagemFiltros[item.id]}
-                    </span>
-                  </button>
-                );
-              })}
+              ))}
             </div>
           </div>
 
-          <div className="mt-6 overflow-hidden rounded-[28px] border border-[color:var(--cm-line)] bg-white/34">
-            <div className="hidden lg:grid lg:grid-cols-[auto_1fr_1fr_1fr_auto] lg:gap-4 lg:px-4 lg:py-3">
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  checked={
-                    dadosVisiveis.length > 0 &&
-                    dadosVisiveis.every((item) => selecionados.includes(item.id))
-                  }
-                  onChange={toggleTodos}
-                  className="h-4 w-4 rounded border-[color:var(--cm-line)] text-[var(--cm-accent)] focus:ring-[rgba(180,99,56,0.2)]"
-                  aria-label="Selecionar todos os títulos visíveis"
-                />
-              </div>
-              <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--cm-muted)]">Título</p>
-              <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--cm-muted)]">Vencimento e valor</p>
-              <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--cm-muted)]">Contexto</p>
-              <p className="text-right text-[11px] uppercase tracking-[0.18em] text-[var(--cm-muted)]">Ações</p>
+          <div className="toolbar-row">
+            <div className="pill-row">
+              <select value={filtroTipo} onChange={(e) => setFiltroTipo(e.target.value)} className="pill" aria-label="Filtrar por tipo">
+                <option value="">Todos os tipos</option>
+                <option value="receber">A receber</option>
+                <option value="pagar">A pagar</option>
+              </select>
+              <select value={filtroStatus} onChange={(e) => setFiltroStatus(e.target.value)} className="pill" aria-label="Filtrar por status">
+                <option value="">Todos os status</option>
+                <option value="pendente">Pendente</option>
+                <option value="atrasado">Atrasado</option>
+                <option value="pago">Pago</option>
+              </select>
+            </div>
+            <div className="pill-row">
+              <button type="button" onClick={() => setModalBoleto(true)} className="pill">
+                Importar boleto
+              </button>
+              <button type="button" onClick={abrirNovo} className="pill is-solid">
+                Novo lançamento
+              </button>
+            </div>
+          </div>
+
+          {selecionados.length > 0 && (
+            <SelectionBanner
+              count={selecionados.length}
+              total={fmt(totalSelecionado)}
+              onExport={exportarSelecionados}
+              onClear={() => setSelecionados([])}
+            />
+          )}
+
+          <div className="table-shell">
+            <div className="table-head table-grid-fin">
+              <span>Título</span>
+              <span>Vencimento</span>
+              <span>Valor</span>
+              <span>Contexto</span>
+              <span>Status</span>
             </div>
 
             {carregando ? (
-              <div className="flex items-center justify-center px-6 py-20">
-                <div className="h-10 w-10 animate-spin rounded-full border-4 border-black/8 border-t-[var(--cm-accent)]" />
-              </div>
+              <LoadingState />
             ) : !dadosVisiveis.length ? (
-              <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
-                <h3 className="text-2xl font-semibold tracking-[-0.04em] text-[var(--cm-text)]">Nenhum lançamento encontrado</h3>
-                <p className="mt-3 max-w-xl text-sm leading-6 text-[var(--cm-muted)]">
-                  Ajuste os filtros ou crie um novo título para voltar a enxergar o fluxo financeiro.
-                </p>
-              </div>
+              <EmptyState onCreate={abrirNovo} />
             ) : (
-              <div>
-                {dadosVisiveis.map((item, index) => {
+              <div className="table-body">
+                {dadosVisiveis.map((item) => {
                   const aberto = expandido === item.id;
                   const tipoTone = TIPO_META[item.tipo]?.tone || "default";
                   return (
                     <div key={item.id}>
-                      <article
-                        className={`grid gap-4 px-4 py-5 transition lg:grid-cols-[auto_1fr_1fr_1fr_auto] ${
-                          index > 0 ? "border-t border-[color:var(--cm-line)]" : ""
-                        } ${
-                          item.id === itemFocoId ? "bg-[rgba(255,255,255,0.52)]" : "bg-transparent hover:bg-white/28"
-                        }`}
-                      >
-                        <div className="flex items-start pt-1">
-                          <input
-                            type="checkbox"
-                            checked={selecionados.includes(item.id)}
-                            onChange={() => toggleSel(item.id)}
-                            className="mt-1 h-4 w-4 rounded border-[color:var(--cm-line)] text-[var(--cm-accent)] focus:ring-[rgba(180,99,56,0.2)]"
-                            aria-label={`Selecionar ${item.descricao}`}
-                          />
-                        </div>
-
-                        <div className="min-w-0">
-                          <button type="button" onClick={() => setItemFocoId(item.id)} className="w-full text-left">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <ToneBadge tone={item.statusTone}>{item.statusLabel}</ToneBadge>
-                              <ToneBadge tone={tipoTone}>{TIPO_META[item.tipo]?.short || item.tipo}</ToneBadge>
-                              {item.parcelado && <ToneBadge tone="accent">{item.parcelas}x</ToneBadge>}
-                            </div>
-                            <p className="mt-3 text-base font-semibold tracking-[-0.03em] text-[var(--cm-text)]">{item.descricao}</p>
-                            <p className="mt-1 text-sm text-[var(--cm-muted)]">{item.cliente_nome || "Sem cliente vinculado"}</p>
+                      <div className={`table-row table-grid-fin ${item.id === itemFocoId ? "is-selected" : ""}`}>
+                        <div>
+                          <label className="mr-3 inline-flex items-center">
+                            <input
+                              type="checkbox"
+                              checked={selecionados.includes(item.id)}
+                              onChange={() => toggleSel(item.id)}
+                              aria-label={`Selecionar ${item.descricao}`}
+                            />
+                          </label>
+                          <button type="button" onClick={() => setItemFocoId(item.id)} className="inline text-left">
+                            <strong className="text-[var(--text)]">{item.descricao}</strong>
+                            <p className="muted mt-2 text-sm">{item.cliente_nome || "Sem cliente vinculado"}</p>
                           </button>
                         </div>
-
+                        <span>{fmtD(item.vencimento)}</span>
+                        <span>{fmt(item.valor_total)}</span>
+                        <span>
+                          {item.marcadorOrcamento ? `ORC ${item.marcadorOrcamento}` : "Manual"}
+                          <br />
+                          <small className="muted">{item.forma_pagamento || "Forma aberta"}</small>
+                        </span>
                         <div className="space-y-2">
-                          <InfoItem label="Vencimento" value={fmtD(item.vencimento)} />
-                          <InfoItem label="Valor" value={fmt(item.valor)} />
-                          <InfoItem label="Total" value={fmt(item.valor_total)} />
-                        </div>
-
-                        <div className="space-y-2">
-                          <InfoItem
-                            label="Situação"
-                            value={
-                              item.dias == null
-                                ? "Sem prazo"
-                                : item.dias < 0
-                                ? `${Math.abs(item.dias)} dia(s) em atraso`
-                                : `${item.dias} dia(s) para vencer`
-                            }
-                            subtle={item.dias == null}
-                          />
-                          <InfoItem label="Origem" value={item.marcadorOrcamento ? `Orçamento ${item.marcadorOrcamento}` : "Lançamento manual"} subtle={!item.marcadorOrcamento} />
-                          <InfoItem label="NF-e" value={item.nfe || "Sem NF-e"} subtle={!item.nfe} />
-                        </div>
-
-                        <div className="flex flex-wrap items-start justify-end gap-2 lg:flex-col lg:items-end">
-                          {item.status !== "pago" && (
-                            <button
-                              type="button"
-                              onClick={() => setItemPagar(item)}
-                              className="rounded-full border border-[rgba(63,141,114,0.18)] bg-[rgba(63,141,114,0.1)] px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--cm-positive)] transition hover:bg-[rgba(63,141,114,0.14)]"
-                            >
-                              Marcar pago
+                          <div className="flex flex-wrap gap-2">
+                            <ToneBadge tone={item.statusTone}>{item.statusLabel}</ToneBadge>
+                            <ToneBadge tone={tipoTone}>{TIPO_META[item.tipo]?.short || item.tipo}</ToneBadge>
+                            {item.parcelado && <span className="status-tag is-cool">{`${item.parcelas}x`}</span>}
+                          </div>
+                          <div className="pill-row">
+                            {item.status !== "pago" && (
+                              <button type="button" onClick={() => setItemPagar(item)} className="pill">
+                                Marcar pago
+                              </button>
+                            )}
+                            {item.parcelado && (
+                              <button type="button" onClick={() => setExpandido(aberto ? null : item.id)} className="pill">
+                                {aberto ? "Ocultar" : "Parcelas"}
+                              </button>
+                            )}
+                            <button type="button" onClick={() => abrirEdicao(item)} className="pill">
+                              Editar
                             </button>
-                          )}
-                          {item.parcelado && (
-                            <button
-                              type="button"
-                              onClick={() => setExpandido(aberto ? null : item.id)}
-                              className="rounded-full border border-[color:var(--cm-line)] bg-white/72 px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--cm-text)] transition hover:bg-white"
-                            >
-                              {aberto ? "Ocultar parcelas" : "Ver parcelas"}
-                            </button>
-                          )}
-                          <button
-                            type="button"
-                            onClick={() => exportarCSV(item)}
-                            className="rounded-full border border-[color:var(--cm-line)] bg-white/72 px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--cm-text)] transition hover:bg-white"
-                          >
-                            Exportar
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => abrirEdicao(item)}
-                            className="rounded-full border border-[color:var(--cm-line)] bg-white/72 px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--cm-text)] transition hover:bg-white"
-                          >
-                            Editar
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setItemDel(item)}
-                            className="rounded-full border border-[rgba(187,103,80,0.18)] bg-[rgba(187,103,80,0.1)] px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--cm-danger)] transition hover:bg-[rgba(187,103,80,0.14)]"
-                          >
-                            Excluir
-                          </button>
+                          </div>
                         </div>
-                      </article>
+                      </div>
 
                       {item.parcelado && aberto && (
-                        <div className="border-t border-[color:var(--cm-line)] bg-[rgba(180,99,56,0.06)] px-6 py-4">
-                          <p className="cm-label">Parcelas</p>
-                          <div className="mt-3 overflow-x-auto">
-                            <table className="min-w-[720px] w-full text-sm">
+                        <div className="amp-fin-expansion">
+                          <p className="amp-terminal-kicker">Parcelas vinculadas</p>
+                          <div className="amp-fin-expansion-table">
+                            <table className="amp-fin-subtable">
                               <thead>
-                                <tr className="border-b border-[color:var(--cm-line)] text-left text-[11px] uppercase tracking-[0.18em] text-[var(--cm-muted)]">
-                                  <th className="py-2 font-semibold">Parcela</th>
-                                  <th className="py-2 font-semibold">Status</th>
-                                  <th className="py-2 font-semibold">Vencimento</th>
-                                  <th className="py-2 font-semibold">Valor</th>
-                                  <th className="py-2 font-semibold">Total</th>
-                                  <th className="py-2 font-semibold text-right">Ações</th>
+                                <tr>
+                                  <th>Parcela</th>
+                                  <th>Status</th>
+                                  <th>Vencimento</th>
+                                  <th>Valor</th>
+                                  <th>Total</th>
+                                  <th className="is-right">Ações</th>
                                 </tr>
                               </thead>
                               <tbody>
                                 {[item, ...item.irmas]
                                   .sort((a, b) => a.parcela_num - b.parcela_num)
                                   .map((parcela) => (
-                                    <tr key={parcela.id} className="border-b border-[rgba(37,42,49,0.06)]">
-                                      <td className="py-3 text-[var(--cm-text)]">{parcela.parcela_num}/{parcela.parcelas}</td>
-                                      <td className="py-3"><ToneBadge tone={STATUS_META[parcela.status]?.tone}>{STATUS_META[parcela.status]?.label}</ToneBadge></td>
-                                      <td className="py-3 text-[var(--cm-muted)]">{fmtD(parcela.vencimento)}</td>
-                                      <td className="py-3 text-[var(--cm-text)]">{fmt(parcela.valor)}</td>
-                                      <td className="py-3 font-semibold text-[var(--cm-text)]">{fmt(parcela.valor_total)}</td>
-                                      <td className="py-3 text-right">
-                                        <div className="flex justify-end gap-2">
+                                    <tr key={parcela.id}>
+                                      <td>{parcela.parcela_num}/{parcela.parcelas}</td>
+                                      <td><ToneBadge tone={STATUS_META[parcela.status]?.tone}>{STATUS_META[parcela.status]?.label}</ToneBadge></td>
+                                      <td>{fmtD(parcela.vencimento)}</td>
+                                      <td>{fmt(parcela.valor)}</td>
+                                      <td>{fmt(parcela.valor_total)}</td>
+                                      <td className="is-right">
+                                        <div className="amp-fin-subtable-actions">
                                           {parcela.status !== "pago" && (
-                                            <button
-                                              type="button"
-                                              onClick={() => setItemPagar(parcela)}
-                                              className="rounded-full border border-[rgba(63,141,114,0.18)] bg-[rgba(63,141,114,0.1)] px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--cm-positive)] transition hover:bg-[rgba(63,141,114,0.14)]"
-                                            >
+                                            <button type="button" onClick={() => setItemPagar(parcela)} className="amp-fin-action-btn is-positive">
                                               Pagar
                                             </button>
                                           )}
-                                          <button
-                                            type="button"
-                                            onClick={() => setItemDel(parcela)}
-                                            className="rounded-full border border-[rgba(187,103,80,0.18)] bg-[rgba(187,103,80,0.1)] px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--cm-danger)] transition hover:bg-[rgba(187,103,80,0.14)]"
-                                          >
+                                          <button type="button" onClick={() => setItemDel(parcela)} className="amp-fin-action-btn is-danger">
                                             Excluir
                                           </button>
                                         </div>
@@ -1597,99 +1469,91 @@ export default function Financeiro() {
               </div>
             )}
           </div>
+        </section>
 
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-[var(--cm-muted)]">
-            <p>{dadosVisiveis.length} registro(s) visível(is)</p>
-            <div className="flex flex-wrap gap-3">
-              {selecionados.length > 0 && (
-                <button
-                  type="button"
-                  onClick={exportarSelecionados}
-                  className="rounded-full border border-[rgba(180,99,56,0.22)] bg-[rgba(180,99,56,0.12)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--cm-accent)] transition hover:bg-[rgba(180,99,56,0.16)]"
-                >
-                  Exportar seleção
-                </button>
-              )}
-              <span>
-                {selecionados.length > 0
-                  ? `${selecionados.length} selecionado(s)`
-                  : "Nenhum selecionado"}
-              </span>
+        <aside className="inspector-panel finance-side">
+          <p className="eyebrow">Receita x pagamento</p>
+          <h3>Leitura limpa do caixa</h3>
+
+          <div className="balance-stack">
+            <div className="balance-card">
+              <span>Receita recorrente</span>
+              <strong>{fmt(resumo?.receita_recorrente ?? 0)}</strong>
+            </div>
+            <div className="balance-card">
+              <span>Parcelas abertas</span>
+              <strong>{String(contagemFiltros.parcelado)}</strong>
+            </div>
+            <div className="balance-card">
+              <span>Sem vínculo</span>
+              <strong>{String(contagemFiltros.sem_vinculo)}</strong>
+            </div>
+            <div className="balance-card">
+              <span>Saldo projetado</span>
+              <strong>{fmt(saldoProjetado)}</strong>
             </div>
           </div>
-        </section>
 
-        <section className="cm-surface rounded-[32px] p-5 sm:p-6 xl:col-span-4">
-          <p className="cm-label">Título em foco</p>
-          {itemFoco ? (
-            <>
-              <div className="mt-3 flex items-start justify-between gap-4">
-                <div className="min-w-0">
-                  <h2 className="truncate text-2xl font-semibold tracking-[-0.04em] text-[var(--cm-text)]">{itemFoco.descricao}</h2>
-                  <p className="mt-2 text-sm text-[var(--cm-muted)]">{itemFoco.cliente_nome || "Sem cliente vinculado"}</p>
+          <p className="muted inspector-summary">
+            O lado direito não compete com a tabela. Ele orienta leitura, risco e prioridade financeira.
+          </p>
+
+          <div className="action-list">
+            {recebimentosSensiveis.slice(0, 2).map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setItemFocoId(item.id)}
+                className="action-row w-full text-left"
+              >
+                <div>
+                  <strong>{item.cliente_nome || "Sem cliente"}</strong>
+                  <p>{item.descricao}</p>
                 </div>
-                <ToneBadge tone={itemFoco.statusTone}>{itemFoco.statusLabel}</ToneBadge>
-              </div>
+                <span className={`status-tag ${item.status === "atrasado" ? "is-warm" : ""}`}>
+                  {item.status === "atrasado" ? `${Math.abs(item.dias ?? 0)}d atraso` : `${item.dias ?? 0}d`}
+                </span>
+              </button>
+            ))}
 
-              <div className="mt-4 flex flex-wrap gap-2">
-                <ToneBadge tone={TIPO_META[itemFoco.tipo]?.tone}>{TIPO_META[itemFoco.tipo]?.label}</ToneBadge>
-                {itemFoco.parcelado && <ToneBadge tone="accent">{itemFoco.parcelas} parcelas</ToneBadge>}
-                {itemFoco.marcadorOrcamento && <ToneBadge tone="accent">Origem {itemFoco.marcadorOrcamento}</ToneBadge>}
-              </div>
-
-              <div className="mt-5 rounded-[24px] border border-[color:var(--cm-line)] bg-white/42 p-4">
-                <p className="cm-label">Próxima melhor ação</p>
-                <p className="mt-3 text-lg font-semibold tracking-[-0.03em] text-[var(--cm-text)]">{itemFoco.nextAction}</p>
-                <p className="mt-2 text-sm leading-6 text-[var(--cm-muted)]">
-                  {itemFoco.status === "pago"
-                    ? "Título encerrado e pronto para histórico."
-                    : itemFoco.status === "atrasado"
-                    ? "Vale agir agora para recuperar caixa ou evitar desgaste com fornecedor."
-                    : itemFoco.semVinculo
-                    ? "Vincular esse título ajuda a fechar o fluxo entre comercial, operação e caixa."
-                    : "Mantenha o monitoramento até a liquidação."}
-                </p>
-              </div>
-
-              <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                <FocusMetric label="Valor" value={fmt(itemFoco.valor)} note={`Total com juros: ${fmt(itemFoco.valor_total)}`} />
-                <FocusMetric label="Vencimento" value={fmtD(itemFoco.vencimento)} note={itemFoco.dias == null ? "Sem prazo definido." : itemFoco.dias < 0 ? `${Math.abs(itemFoco.dias)} dia(s) de atraso` : `${itemFoco.dias} dia(s) para vencer`} />
-                <FocusMetric label="Forma" value={itemFoco.forma_pagamento || "Não definida"} note={itemFoco.status === "pago" ? "Pagamento registrado." : "Pode ser preenchida na baixa."} />
-                <FocusMetric label="NF-e" value={itemFoco.nfe || "Sem NF-e"} note={itemFoco.marcadorOrcamento ? `Origem comercial ${itemFoco.marcadorOrcamento}.` : "Sem marcador de orçamento."} />
-              </div>
-
-              <div className="mt-5 rounded-[24px] border border-[color:var(--cm-line)] bg-white/42 p-4">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <InfoItem label="Cliente" value={itemFoco.cliente_nome || "Sem vínculo"} subtle={!itemFoco.cliente_nome} />
-                  <InfoItem label="Observação" value={itemFoco.observacao || "Sem observação"} subtle={!itemFoco.observacao} title={itemFoco.observacao || ""} />
+            {itemFoco && (
+              <div className="action-row">
+                <div>
+                  <strong>{itemFoco.nextAction}</strong>
+                  <p>
+                    {itemFoco.cliente_nome || "Sem vínculo"} · {fmt(itemFoco.valor_total)}
+                  </p>
                 </div>
-              </div>
-
-              <div className="mt-5 flex flex-wrap gap-3">
-                {itemFoco.status !== "pago" && (
-                  <button
-                    type="button"
-                    onClick={() => setItemPagar(itemFoco)}
-                    className="rounded-full bg-[var(--cm-positive)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-92"
-                  >
-                    Marcar pago
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => abrirEdicao(itemFoco)}
-                  className="rounded-full border border-[color:var(--cm-line)] bg-white/74 px-5 py-3 text-sm font-semibold text-[var(--cm-text)] transition hover:bg-white"
+                <span
+                  className={`status-tag ${
+                    itemFoco.statusTone === "danger"
+                      ? "is-warm"
+                      : itemFoco.statusTone === "positive"
+                      ? "is-cool"
+                      : ""
+                  }`}
                 >
-                  Editar lançamento
-                </button>
+                  {itemFoco.statusLabel}
+                </span>
               </div>
-            </>
-          ) : (
-            <div className="mt-5 rounded-[24px] border border-[color:var(--cm-line)] bg-white/40 px-4 py-6 text-sm leading-6 text-[var(--cm-muted)]">
-              Selecione um título na listagem para abrir o inspector com vencimento, risco e origem.
-            </div>
-          )}
-        </section>
+            )}
+
+            {filaPrioritaria.slice(0, 2).map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setItemFocoId(item.id)}
+                className="action-row w-full text-left"
+              >
+                <div>
+                  <strong>{item.descricao}</strong>
+                  <p>{item.nextAction}</p>
+                </div>
+                <span className="status-tag is-cool">{TIPO_META[item.tipo]?.short || item.tipo}</span>
+              </button>
+            ))}
+          </div>
+        </aside>
       </div>
 
       {modalBoleto && (
