@@ -6,10 +6,17 @@ import { canAccessPath, clearSession, getDefaultAppRoute, getStoredToken, getSto
 import Sidebar from "../components/Sidebar";
 import Header from "../components/Header";
 
+const mobileBreakpoint = 1024;
+const expandedSidebarBreakpoint = 1480;
+
+function shouldExpandSidebar() {
+  return typeof window !== "undefined" ? window.innerWidth >= expandedSidebarBreakpoint : true;
+}
+
 export default function ProtectedLayout() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [open, setOpen] = useState(() => (typeof window !== "undefined" ? window.innerWidth >= 1360 : true));
+  const [open, setOpen] = useState(() => shouldExpandSidebar());
   const [mobileOpen, setMobileOpen] = useState(false);
   const [user, setUser] = useState(() => getStoredUser());
   const [loading, setLoading] = useState(true);
@@ -55,17 +62,21 @@ export default function ProtectedLayout() {
 
   useEffect(() => {
     const onResize = () => {
-      if (window.innerWidth < 1024) {
+      if (window.innerWidth < mobileBreakpoint) {
         setMobileOpen(false);
+        return;
       }
+
+      setOpen(shouldExpandSidebar());
     };
 
+    onResize();
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
   const toggleMenu = () => {
-    if (window.innerWidth < 1024) {
+    if (window.innerWidth < mobileBreakpoint) {
       setMobileOpen((prev) => !prev);
       return;
     }
@@ -82,7 +93,7 @@ export default function ProtectedLayout() {
   }
 
   return (
-    <div className={`amp-shell-layout amp-ui-scale ${open ? "is-expanded" : "is-collapsed"}`}>
+    <div className={`amp-shell-layout ${open ? "is-expanded" : "is-collapsed"}`}>
       <Sidebar user={user} open={open} mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
 
       <div className="amp-shell-workspace">

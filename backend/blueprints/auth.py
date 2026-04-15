@@ -1,4 +1,5 @@
 import logging
+import re
 
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import create_access_token, verify_jwt_in_request
@@ -11,6 +12,12 @@ from backend.security import (PERFIS_SISTEMA, get_current_usuario,
                               serializar_usuario, usuario_tem_permissoes)
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
+
+EMAIL_RE = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
+NOME_MIN_LENGTH = 3
+NOME_MAX_LENGTH = 120
+EMAIL_MAX_LENGTH = 120
+PASSWORD_MIN_LENGTH = 8
 
 
 def _payload_json():
@@ -27,20 +34,81 @@ def _coerce_bool(value, default=True):
     return bool(value)
 
 
+def _normalizar_email(value):
+    return (value or "").strip().lower()
+
+
+def _resposta_erro(mensagem, status=400):
+    return jsonify({"erro": mensagem}), status
+
+
+def _validar_nome(nome):
+    if not nome:
+        return "Nome e obrigatorio."
+    if len(nome) < NOME_MIN_LENGTH:
+        return f"Nome precisa ter pelo menos {NOME_MIN_LENGTH} caracteres."
+    if len(nome) > NOME_MAX_LENGTH:
+        return f"Nome nao pode ultrapassar {NOME_MAX_LENGTH} caracteres."
+    return None
+
+
+def _validar_email(email):
+    if not email:
+        return "E-mail e obrigatorio."
+    if len(email) > EMAIL_MAX_LENGTH:
+        return f"E-mail nao pode ultrapassar {EMAIL_MAX_LENGTH} caracteres."
+    if not EMAIL_RE.match(email):
+        return "Informe um e-mail valido."
+    return None
+
+
+def _validar_senha(senha):
+    if not senha:
+        return "Senha e obrigatoria."
+    if len(senha) < PASSWORD_MIN_LENGTH:
+        return f"Senha precisa ter pelo menos {PASSWORD_MIN_LENGTH} caracteres."
+    if not any(char.isupper() for char in senha):
+        return "Senha precisa ter ao menos uma letra maiuscula."
+    if not any(char.islower() for char in senha):
+        return "Senha precisa ter ao menos uma letra minuscula."
+    if not any(char.isdigit() for char in senha):
+        return "Senha precisa ter ao menos um numero."
+    return None
+
+
 def _validar_campos_usuario(data, permitir_senha_vazia=False):
     nome = (data.get("nome") or "").strip()
-    email = (data.get("email") or "").strip().lower()
+    email = _normalizar_email(data.get("email"))
     senha = (data.get("senha") or "").strip()
-    if not nome or not email:
-        return (
-            None,
-            None,
-            None,
-            (jsonify({"erro": "Nome e e-mail sao obrigatorios."}), 400),
-        )
-    if not permitir_senha_vazia and not senha:
-        return None, None, None, (jsonify({"erro": "Senha e obrigatoria."}), 400)
+
+    erro_nome = _validar_nome(nome)
+    if erro_nome:
+        return None, None, None, _resposta_erro(erro_nome)
+
+    erro_email = _validar_email(email)
+    if erro_email:
+        return None, None, None, _resposta_erro(erro_email)
+
+    if not permitir_senha_vazia or senha:
+        erro_senha = _validar_senha(senha)
+        if erro_senha:
+            return None, None, None, _resposta_erro(erro_senha)
+
     return nome, email, senha, None
+
+
+def _validar_credenciais_login(data):
+    email = _normalizar_email(data.get("email"))
+    senha = (data.get("senha") or "").strip()
+
+    erro_email = _validar_email(email)
+    if erro_email:
+        return None, None, _resposta_erro(erro_email)
+
+    if not senha:
+        return None, None, _resposta_erro("Senha e obrigatoria.")
+
+    return email, senha, None
 
 
 def _contar_administradores_ativos(excluir_id=None):
@@ -83,7 +151,8 @@ def criar_usuario():
         try:
             verify_jwt_in_request()
         except JWTExtendedException as exc:
-            return jsonify({"erro": str(exc)}), 401
+            logging.info(f"JWT invalido ao criar usuario: {exc}")
+            return jsonify({"erro": "Sessao invalida ou expirada."}), 401
 
         usuario_atual = get_current_usuario()
         if not usuario_tem_permissoes(usuario_atual, "usuarios"):
@@ -137,14 +206,16 @@ def editar_usuario(usuario_id):
         data = _payload_json()
         if "nome" in data:
             nome = (data.get("nome") or "").strip()
-            if not nome:
-                return jsonify({"erro": "Nome e obrigatorio."}), 400
+            erro_nome = _validar_nome(nome)
+            if erro_nome:
+                return jsonify({"erro": erro_nome}), 400
             usuario.nome = nome
 
         if "email" in data:
-            email = (data.get("email") or "").strip().lower()
-            if not email:
-                return jsonify({"erro": "E-mail e obrigatorio."}), 400
+            email = _normalizar_email(data.get("email"))
+            erro_email = _validar_email(email)
+            if erro_email:
+                return jsonify({"erro": erro_email}), 400
             outro = Usuario.query.filter(
                 Usuario.email == email, Usuario.id != usuario.id
             ).first()
@@ -180,6 +251,9 @@ def editar_usuario(usuario_id):
 
         senha = (data.get("senha") or "").strip()
         if senha:
+            erro_senha = _validar_senha(senha)
+            if erro_senha:
+                return jsonify({"erro": erro_senha}), 400
             usuario.set_password(senha)
 
         db.session.commit()
@@ -219,8 +293,9 @@ def listar_perfis():
 def login():
     try:
         data = _payload_json()
-        email = (data.get("email") or "").strip().lower()
-        senha = (data.get("senha") or "").strip()
+        email, senha, erro = _validar_credenciais_login(data)
+        if erro:
+            return erro
         usuario = Usuario.query.filter_by(email=email).first()
         if not usuario or not usuario.check_password(senha):
             return jsonify({"erro": "Credenciais invalidas."}), 401

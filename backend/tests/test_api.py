@@ -31,7 +31,7 @@ def client():
         db.drop_all()
 
 
-def criar_admin_inicial(client, nome="Teste", email="teste@amp.com", senha="123456"):
+def criar_admin_inicial(client, nome="Teste", email="teste@amp.com", senha="Senha123"):
     response = client.post(
         "/auth/usuarios", json={"nome": nome, "email": email, "senha": senha}
     )
@@ -39,7 +39,7 @@ def criar_admin_inicial(client, nome="Teste", email="teste@amp.com", senha="1234
     return response.get_json()["user"]
 
 
-def login(client, email="teste@amp.com", senha="123456"):
+def login(client, email="teste@amp.com", senha="Senha123"):
     response = client.post("/auth/login", json={"email": email, "senha": senha})
     assert response.status_code == 200
     return response.get_json()
@@ -95,7 +95,7 @@ def test_cadastro_publico_fica_bloqueado_apos_primeiro_usuario(client):
 
     bloqueado = client.post(
         "/auth/usuarios",
-        json={"nome": "Intruso", "email": "intruso@amp.com", "senha": "123456"},
+        json={"nome": "Intruso", "email": "intruso@amp.com", "senha": "Senha123"},
     )
     assert bloqueado.status_code == 401
 
@@ -105,7 +105,7 @@ def test_cadastro_publico_fica_bloqueado_apos_primeiro_usuario(client):
         json={
             "nome": "Financeiro",
             "email": "fin@amp.com",
-            "senha": "123456",
+            "senha": "Senha123",
             "perfil": "financeiro",
             "ativo": True,
         },
@@ -122,7 +122,7 @@ def test_admin_cria_usuario_e_financeiro_tem_acesso_parcial(client):
         json={
             "nome": "Financeiro",
             "email": "fin@amp.com",
-            "senha": "123456",
+            "senha": "Senha123",
             "perfil": "financeiro",
             "ativo": True,
         },
@@ -155,6 +155,49 @@ def test_auth_profile_flow(client):
     payload = response.get_json()["user"]
     assert payload["perfil"] == "administrador"
     assert "dashboard" in payload["permissoes"]
+
+
+def test_bootstrap_rejeita_email_invalido_e_senha_fraca(client):
+    email_invalido = client.post(
+        "/auth/usuarios",
+        json={"nome": "Admin Local", "email": "admin-local", "senha": "Senha123"},
+    )
+    assert email_invalido.status_code == 400
+    assert email_invalido.get_json()["erro"] == "Informe um e-mail valido."
+
+    senha_fraca = client.post(
+        "/auth/usuarios",
+        json={"nome": "Admin Local", "email": "admin@amp.com", "senha": "123456"},
+    )
+    assert senha_fraca.status_code == 400
+    assert "Senha precisa ter pelo menos" in senha_fraca.get_json()["erro"]
+
+    sem_maiuscula = client.post(
+        "/auth/usuarios",
+        json={"nome": "Admin Local", "email": "admin@amp.com", "senha": "senha123"},
+    )
+    assert sem_maiuscula.status_code == 400
+    assert sem_maiuscula.get_json()["erro"] == (
+        "Senha precisa ter ao menos uma letra maiuscula."
+    )
+
+
+def test_login_exige_campos_validos(client):
+    criar_admin_inicial(client)
+
+    sem_email = client.post("/auth/login", json={"senha": "Senha123"})
+    assert sem_email.status_code == 400
+    assert sem_email.get_json()["erro"] == "E-mail e obrigatorio."
+
+    email_invalido = client.post(
+        "/auth/login", json={"email": "admin-amp", "senha": "Senha123"}
+    )
+    assert email_invalido.status_code == 400
+    assert email_invalido.get_json()["erro"] == "Informe um e-mail valido."
+
+    sem_senha = client.post("/auth/login", json={"email": "teste@amp.com"})
+    assert sem_senha.status_code == 400
+    assert sem_senha.get_json()["erro"] == "Senha e obrigatoria."
 
 
 def test_clientes_e_orcamentos_flow(client):

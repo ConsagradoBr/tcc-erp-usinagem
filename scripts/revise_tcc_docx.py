@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 from pathlib import Path
 
 from docx import Document
@@ -7,8 +8,8 @@ from docx.oxml.ns import qn
 from docx.shared import Pt
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE_DOC = Path(r"D:\Download\TCC-Word.docx")
-OUTPUT_DOC = ROOT / "output" / "doc" / "TCC-Word-alinhado.docx"
+DEFAULT_SOURCE_DOC = Path(r"D:\Download\TCC-Word.docx")
+DEFAULT_OUTPUT_DOC = ROOT / "output" / "doc" / "TCC-Word-alinhado.docx"
 
 
 def replace_paragraph_text(paragraph, text: str) -> None:
@@ -105,9 +106,30 @@ def normalize_body_paragraph(paragraph, index: int) -> None:
         )
 
 
+def cleanup_artifact_paragraphs(doc: Document) -> None:
+    for paragraph in list(doc.paragraphs):
+        text = paragraph.text.strip()
+        if text.startswith("Pronto") and "GitHub mostra hoje" in text:
+            delete_paragraph(paragraph)
+
+    while doc.paragraphs and not doc.paragraphs[-1].text.strip():
+        delete_paragraph(doc.paragraphs[-1])
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Revisa e alinha o .docx do TCC.")
+    parser.add_argument("--source", type=Path, default=DEFAULT_SOURCE_DOC)
+    parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT_DOC)
+    return parser.parse_args()
+
+
 def main() -> None:
-    OUTPUT_DOC.parent.mkdir(parents=True, exist_ok=True)
-    doc = Document(SOURCE_DOC)
+    args = parse_args()
+    source_doc = args.source
+    output_doc = args.output
+
+    output_doc.parent.mkdir(parents=True, exist_ok=True)
+    doc = Document(source_doc)
     paragraphs = doc.paragraphs
 
     replacements = {
@@ -342,11 +364,10 @@ def main() -> None:
             continue
         normalize_body_paragraph(paragraph, index)
 
-    while doc.paragraphs and not doc.paragraphs[-1].text.strip():
-        delete_paragraph(doc.paragraphs[-1])
+    cleanup_artifact_paragraphs(doc)
 
-    doc.save(OUTPUT_DOC)
-    print(f"Saved revised document to: {OUTPUT_DOC}")
+    doc.save(output_doc)
+    print(f"Saved revised document to: {output_doc}")
 
 
 if __name__ == "__main__":

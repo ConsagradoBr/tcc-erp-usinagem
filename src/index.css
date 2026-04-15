@@ -544,8 +544,8 @@ button {
   height: 100vh;
   display: grid;
   grid-template-columns: 272px minmax(0, 1fr);
-  gap: 22px;
-  padding: 22px;
+  gap: clamp(12px, 1.1vw, 22px);
+  padding: clamp(12px, 1.1vw, 22px);
   background: var(--amp-shell-page-bg);
   color: var(--amp-shell-ink);
   font-family: var(--amp-shell-sans);
@@ -553,7 +553,7 @@ button {
 }
 
 .amp-shell-layout.is-collapsed {
-  grid-template-columns: 104px minmax(0, 1fr);
+  grid-template-columns: 96px minmax(0, 1fr);
 }
 
 .amp-shell-workspace {
@@ -598,6 +598,7 @@ button {
 
 .amp-shell-header {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-start;
   justify-content: space-between;
   gap: 18px;
@@ -612,6 +613,7 @@ button {
 .amp-shell-header-copy {
   min-width: 0;
   display: flex;
+  flex: 1 1 360px;
   align-items: flex-start;
   gap: 14px;
 }
@@ -649,9 +651,11 @@ button {
 
 .amp-shell-header-actions {
   display: flex;
+  flex: 1 1 320px;
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 10px;
+  min-width: 0;
 }
 
 .amp-shell-pulse {
@@ -730,6 +734,7 @@ button {
   font-size: 0.82rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .amp-shell-control-btn:hover,
@@ -745,7 +750,8 @@ button {
 .amp-shell-sidebar {
   position: relative;
   min-height: 0;
-  height: calc(100vh - 44px);
+  height: auto;
+  align-self: stretch;
   width: 100%;
   max-width: none;
   overflow-y: auto;
@@ -1075,6 +1081,7 @@ button {
   gap: 16px;
   padding: 4px 0 0;
   color: var(--amp-shell-ink);
+  min-width: 0;
 }
 
 .amp-terminal-intro,
@@ -1089,10 +1096,16 @@ button {
 
 .amp-terminal-intro {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   gap: 18px;
   padding: 18px 20px;
   border-radius: 24px;
+}
+
+.amp-terminal-intro-copy {
+  flex: 1 1 360px;
+  min-width: 0;
 }
 
 .amp-terminal-intro-copy h2,
@@ -1124,10 +1137,12 @@ button {
 }
 
 .amp-terminal-intro-meta {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
+  display: grid;
+  flex: 1 1 360px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  justify-content: end;
   gap: 10px;
+  min-width: 0;
 }
 
 .amp-terminal-live-chip,
@@ -1141,6 +1156,7 @@ button {
   border-radius: 18px;
   border: 1px solid var(--amp-shell-line);
   background: var(--amp-shell-surface-strong);
+  min-width: 0;
 }
 
 .amp-terminal-live-chip {
@@ -1168,6 +1184,7 @@ button {
 
 .amp-terminal-ticker {
   display: flex;
+  flex-wrap: wrap;
   gap: 20px;
   align-items: center;
   overflow: hidden;
@@ -1220,7 +1237,7 @@ button {
 
 .amp-terminal-kpis {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 14px;
 }
 
@@ -1267,7 +1284,7 @@ button {
 
 .amp-terminal-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr 0.92fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
 }
 
@@ -1359,6 +1376,7 @@ button {
 
 .amp-terminal-donut-wrap {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 14px;
 }
@@ -1558,6 +1576,15 @@ button {
 .amp-terminal-table {
   width: 100%;
   border-collapse: collapse;
+  display: block;
+  overflow-x: auto;
+}
+
+.amp-terminal-table thead,
+.amp-terminal-table tbody {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
 }
 
 .amp-terminal-table th {
@@ -1664,7 +1691,7 @@ button {
   }
 }
 
-@media (max-width: 1440px) {
+@media (max-width: 1520px) {
   .amp-terminal-grid {
     grid-template-columns: 1fr 1fr;
   }
@@ -1674,14 +1701,20 @@ button {
   }
 }
 
+@media (max-width: 1320px) {
+  .amp-shell-header-actions {
+    justify-content: flex-start;
+  }
+
+  .amp-terminal-intro-meta {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
+}
+
 @media (max-width: 1180px) {
   .amp-shell-header,
   .amp-terminal-intro {
     flex-direction: column;
-  }
-
-  .amp-terminal-kpis {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .amp-terminal-grid {
@@ -4534,6 +4567,27 @@ body[data-theme="light"] .login-scene-bar {
   text-transform: uppercase;
 }
 
+.login-scene-copy {
+  position: relative;
+  z-index: 3;
+  max-width: 29rem;
+  margin: 86px 0 0 34px;
+  color: #fffaf3;
+}
+
+.login-scene-copy h3 {
+  max-width: 16ch;
+  color: #fffaf2;
+  text-shadow: 0 10px 24px rgba(7, 11, 22, 0.26);
+}
+
+.login-scene-copy .muted {
+  margin-top: 18px;
+  max-width: 30rem;
+  color: rgba(246, 245, 244, 0.8);
+  line-height: 1.7;
+}
+
 .login-center-stage {
   position: relative;
   z-index: 3;
@@ -4541,7 +4595,7 @@ body[data-theme="light"] .login-scene-bar {
   grid-template-columns: minmax(420px, 1fr) minmax(252px, 288px);
   align-items: center;
   gap: 42px;
-  width: min(100%, 1080px);
+  width: min(100%, 980px);
   margin: 108px auto 0;
   padding: 0 22px 0 10px;
 }
@@ -4566,13 +4620,66 @@ body[data-theme="light"] .login-scene-bar {
 
 .login-logo-object {
   position: relative;
-  z-index: 1;
+  z-index: 3;
   width: min(100%, 560px);
   height: auto;
   aspect-ratio: 297 / 210;
   border: 0;
   background: transparent;
   filter: drop-shadow(0 24px 38px rgba(10, 14, 24, 0.22));
+}
+
+.login-logo-animated {
+  opacity: 0;
+  will-change: transform, opacity;
+  transform-style: preserve-3d;
+}
+
+.login-logo-metal {
+  position: absolute;
+  inset: 15% 10% 17%;
+  z-index: 1;
+  border-radius: 28px;
+  border: 1px solid rgba(231, 240, 255, 0.18);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.03) 28%, rgba(9, 17, 30, 0.18) 72%, rgba(255, 255, 255, 0.12)),
+    linear-gradient(180deg, rgba(12, 20, 34, 0.2), rgba(12, 20, 34, 0.06));
+  box-shadow:
+    0 28px 56px rgba(6, 10, 18, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.34),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(18px) saturate(1.12);
+}
+
+.login-logo-glow {
+  position: absolute;
+  inset: 14% 12%;
+  z-index: 0;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle, rgba(217, 131, 22, 0.28), rgba(217, 131, 22, 0.06) 46%, rgba(217, 131, 22, 0) 72%);
+  filter: blur(20px);
+  opacity: 0.72;
+  pointer-events: none;
+}
+
+.login-logo-sheen {
+  position: absolute;
+  inset: 12% 16%;
+  z-index: 2;
+  border-radius: 999px;
+  background: linear-gradient(120deg, rgba(255, 255, 255, 0.68), rgba(255, 255, 255, 0.12) 24%, rgba(255, 255, 255, 0.02) 52%, rgba(255, 255, 255, 0.28) 100%);
+  filter: blur(18px);
+  opacity: 0.34;
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+
+.login-logo-animated svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
 }
 
 .login-auth-card {
@@ -4618,6 +4725,22 @@ body[data-theme="light"] .login-field input::placeholder {
   line-height: 1.6;
 }
 
+.login-form-alert {
+  margin-top: 16px;
+  padding: 11px 13px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 214, 214, 0.28);
+  background: rgba(122, 17, 28, 0.18);
+  color: #fff6f6;
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+
+body[data-theme="light"] .login-form-alert {
+  border-color: rgba(255, 255, 255, 0.4);
+  background: rgba(122, 17, 28, 0.16);
+}
+
 .login-field {
   display: grid;
   gap: 7px;
@@ -4639,8 +4762,35 @@ body[data-theme="light"] .login-field input::placeholder {
   letter-spacing: 0.01em;
 }
 
+.login-field input[aria-invalid="true"] {
+  color: #fff5f5;
+}
+
 .login-field input::placeholder {
   color: rgba(255, 250, 243, 0.68);
+}
+
+.login-field-hint,
+.login-field-error {
+  display: block;
+  font-size: 0.74rem;
+  line-height: 1.45;
+}
+
+.login-field-hint {
+  color: rgba(246, 245, 244, 0.66);
+}
+
+.login-field-error {
+  color: #ffe1e1;
+}
+
+body[data-theme="light"] .login-field-hint {
+  color: rgba(254, 248, 239, 0.72);
+}
+
+body[data-theme="light"] .login-field-error {
+  color: #fff0f0;
 }
 
 .primary-button.login-submit {
@@ -4881,6 +5031,15 @@ body[data-theme="light"] .login-field input::placeholder {
     padding-inline: 20px;
   }
 
+  .login-scene-copy {
+    margin: 54px 20px 0;
+    max-width: 34rem;
+  }
+
+  .login-scene-copy h3 {
+    max-width: 20ch;
+  }
+
   .login-logo-stage {
     min-height: 260px;
   }
@@ -4932,5 +5091,10 @@ body[data-theme="light"] .login-field input::placeholder {
   .login-scene-nav {
     justify-self: start;
     flex-wrap: wrap;
+  }
+
+  .login-scene-copy {
+    margin: 36px 0 0 10px;
+    max-width: 26rem;
   }
 }
