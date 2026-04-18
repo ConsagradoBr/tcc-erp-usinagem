@@ -148,28 +148,33 @@ def criar_usuario():
                 201,
             )
 
+        usuario_atual = None
         try:
             verify_jwt_in_request()
-        except JWTExtendedException as exc:
-            logging.info(f"JWT invalido ao criar usuario: {exc}")
-            return jsonify({"erro": "Sessao invalida ou expirada."}), 401
+            usuario_atual = get_current_usuario()
+        except JWTExtendedException:
+            usuario_atual = None
 
-        usuario_atual = get_current_usuario()
-        if not usuario_tem_permissoes(usuario_atual, "usuarios"):
-            return (
-                jsonify({"erro": "Apenas administradores podem criar novos usuarios."}),
-                403,
-            )
+        if usuario_atual is None:
+            perfil = "comercial"
+            ativo = True
+        else:
+            if not usuario_tem_permissoes(usuario_atual, "usuarios"):
+                return (
+                    jsonify({"erro": "Apenas administradores podem criar novos usuarios."}),
+                    403,
+                )
 
-        perfil = normalizar_perfil(data.get("perfil"))
-        if not perfil:
-            return jsonify({"erro": "Perfil invalido."}), 400
+            perfil = normalizar_perfil(data.get("perfil"))
+            if not perfil:
+                return jsonify({"erro": "Perfil invalido."}), 400
+            ativo = _coerce_bool(data.get("ativo"), default=True)
 
         novo = Usuario(
             nome=nome,
             email=email,
             perfil=perfil,
-            ativo=_coerce_bool(data.get("ativo"), default=True),
+            ativo=ativo,
         )
         novo.set_password(senha)
         db.session.add(novo)
