@@ -10,8 +10,7 @@ const OrdemServico = lazy(() => import("./pages/OrdemServico"));
 const Financeiro = lazy(() => import("./pages/Financeiro"));
 const Home = lazy(() => import("./pages/Home"));
 const AuthPage = lazy(() => import("./pages/AuthPage"));
-const LoginPreview = lazy(() => import("./pages/Login"));
-const SignUp = lazy(() => import("./pages/SignUp"));
+const LoginPreview = lazy(() => import("./pages/LoginPreview"));
 const Usuarios = lazy(() => import("./pages/Usuarios"));
 const BackupDesktop = lazy(() => import("./pages/BackupDesktop"));
 
@@ -38,9 +37,9 @@ const routes = createBrowserRouter(
       element: <PublicLayout />,
       children: [
         { index: true, element: <Navigate to="/login" replace /> },
-        { path: "login", element: screen(LoginPreview) },
+        { path: "login", element: screen(AuthPage) },
         { path: "login-preview", element: screen(LoginPreview) },
-        { path: "signup", element: screen(SignUp) },
+        { path: "signup", element: <Navigate to="/login" replace /> },
       ],
     },
     {
