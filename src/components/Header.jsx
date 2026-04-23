@@ -61,9 +61,27 @@ function formatToday() {
   }).format(new Date());
 }
 
+/* Ícone hambúrguer SVG simples */
+function HamburgerIcon() {
+  return (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 20 20"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <rect x="2" y="4"  width="16" height="2" rx="1" fill="currentColor" />
+      <rect x="2" y="9"  width="16" height="2" rx="1" fill="currentColor" />
+      <rect x="2" y="14" width="16" height="2" rx="1" fill="currentColor" />
+    </svg>
+  );
+}
+
 export default function Header({ onMenuToggle }) {
-  const navigate = useNavigate();
-  const location = useLocation();
+  const navigate   = useNavigate();
+  const location   = useLocation();
   const { theme, setTheme } = useTheme();
   const meta = React.useMemo(() => getRouteMeta(location.pathname), [location.pathname]);
 
@@ -75,23 +93,33 @@ export default function Header({ onMenuToggle }) {
   return (
     <header className="amp-shell-header-wrap">
       <div className="amp-shell-header">
+
+        {/* ── Esquerda: botão menu + títulos ── */}
         <div className="amp-shell-header-copy">
-          <button type="button" onClick={onMenuToggle} className="amp-shell-control-btn lg:hidden">
-            Menu
+          {/* Botão hambúrguer — oculto em desktop ≥ 1024px via CSS responsivo */}
+          <button
+            type="button"
+            onClick={onMenuToggle}
+            aria-label="Abrir menu lateral"
+            className="amp-shell-menu-btn amp-shell-control-btn"
+          >
+            <HamburgerIcon />
           </button>
+
           <div className="min-w-0">
             <p className="amp-shell-kicker">{meta.kicker}</p>
             <div className="amp-shell-title-row">
               <h1 className="amp-shell-title">{meta.title}</h1>
               <span className="amp-shell-pulse">
                 <span className="amp-shell-pulse-dot" />
-                Trader shell ativo
+                <span className="amp-shell-pulse-label">Trader shell ativo</span>
               </span>
             </div>
             <p className="amp-shell-note">{meta.note}</p>
           </div>
         </div>
 
+        {/* ── Direita: tema + data + sair ── */}
         <div className="amp-shell-header-actions">
           <div className="amp-shell-theme" role="tablist" aria-label="Tema">
             <button
@@ -114,12 +142,17 @@ export default function Header({ onMenuToggle }) {
             </button>
           </div>
 
-          <span className="amp-shell-chip">{formatToday()}</span>
+          <span className="amp-shell-chip amp-shell-chip--date">{formatToday()}</span>
 
-          <button type="button" className="amp-shell-control-btn is-strong" onClick={handleLogout}>
+          <button
+            type="button"
+            className="amp-shell-control-btn is-strong"
+            onClick={handleLogout}
+          >
             Sair
           </button>
         </div>
+
       </div>
     </header>
   );

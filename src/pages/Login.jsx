@@ -128,7 +128,7 @@ export default function Login() {
                 d="M27.5 4 26.4 9.8a19 19 0 0 0-4.2 1.7l-5-3.4-6.6 6.6 3.4 5a19 19 0 0 0-1.7 4.2L6.5 25v9.8l5.8 1.1a19 19 0 0 0 1.7 4.2l-3.4 5 6.6 6.6 5-3.4a19 19 0 0 0 4.2 1.7l1.1 5.8h9.8L38.4 50a19 19 0 0 0 4.2-1.7l5 3.4 6.6-6.6-3.4-5a19 19 0 0 0 1.7-4.2l5.8-1.1V25l-5.8-1.1a19 19 0 0 0-1.7-4.2l3.4-5-6.6-6.6-5 3.4A19 19 0 0 0 38.4 9.8L37.3 4h-9.8z"
               />
               {/* círculo branco interno */}
-              <circle cx="32" cy="30" r="16" fill="white" />
+              <circle cx="32" cy="30" r="15.5" fill="white" />
               {/* silhueta pessoa */}
               <circle cx="32" cy="29" r="5.5" fill="#1c1c1c" />
               <path
@@ -340,5 +340,6 @@ export default function Login() {
 
       </div>
     </div>
+    
   );
 }
