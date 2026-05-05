@@ -1,159 +1,153 @@
-import React from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+/**
+ * Header.jsx — AMP Usinagem Industrial
+ * Tema laranja — Light/Dark toggle integrado
+ */
 
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { clearSession } from "../auth";
 import { useTheme } from "./ThemeProvider";
 
-const ROUTE_META = [
-  {
-    match: "/app/dashboard",
-    kicker: "AMP industrial suite",
-    title: "Dashboard",
-    note: "Mesa analítica de comercial, produção, estoque e caixa.",
-  },
-  {
-    match: "/app/clientes",
-    kicker: "Relacionamento unificado",
-    title: "Clientes e fornecedores",
-    note: "Conta, fiscal e próxima ação em uma só leitura.",
-  },
-  {
-    match: "/app/orcamentos",
-    kicker: "Fluxo comercial",
-    title: "Orçamentos",
-    note: "Propostas, aprovação e ponte para OS e caixa.",
-  },
-  {
-    match: "/app/ordemservico",
-    kicker: "Produção e andamento",
-    title: "Ordem de Serviço",
-    note: "Fila operacional com etapa, prioridade e ritmo.",
-  },
-  {
-    match: "/app/financeiro",
-    kicker: "Titulos, parcelas e caixa",
-    title: "Financeiro",
-    note: "Títulos, parcelas e risco em leitura direta.",
-  },
-  {
-    match: "/app/usuarios",
-    kicker: "Governança interna",
-    title: "Usuarios",
-    note: "Acesso interno e perfis por área.",
-  },
-  {
-    match: "/app/backup",
-    kicker: "Confiabilidade operacional",
-    title: "Backup",
-    note: "Backup local e restauração guiada.",
-  },
-];
-
-function getRouteMeta(pathname) {
-  return ROUTE_META.find((item) => pathname.startsWith(item.match)) || ROUTE_META[0];
-}
-
-function formatToday() {
-  return new Intl.DateTimeFormat("pt-BR", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(new Date());
-}
-
-/* Ícone hambúrguer SVG simples */
-function HamburgerIcon() {
-  return (
-    <svg
-      width="20"
-      height="20"
-      viewBox="0 0 20 20"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
-    >
-      <rect x="2" y="4"  width="16" height="2" rx="1" fill="currentColor" />
-      <rect x="2" y="9"  width="16" height="2" rx="1" fill="currentColor" />
-      <rect x="2" y="14" width="16" height="2" rx="1" fill="currentColor" />
-    </svg>
-  );
-}
+/* Mapear rotas para títulos de página */
+const ROUTE_TITLES = {
+  "/app/dashboard": "Dashboard",
+  "/app/clientes": "Clientes",
+  "/app/orcamentos": "Orçamentos",
+  "/app/ordemservico": "Ordens de Serviço",
+  "/app/financeiro": "Financeiro",
+  "/app/usuarios": "Usuários",
+  "/app/backup": "Backup",
+  "/app/home": "Home",
+};
 
 export default function Header({ onMenuToggle }) {
-  const navigate   = useNavigate();
-  const location   = useLocation();
-  const { theme, setTheme } = useTheme();
-  const meta = React.useMemo(() => getRouteMeta(location.pathname), [location.pathname]);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { theme, toggleTheme } = useTheme();
 
-  const handleLogout = () => {
-    clearSession();
-    navigate("/login", { replace: true });
-  };
+  /* Obter título da página atual */
+  const currentTitle = ROUTE_TITLES[location.pathname] || "Dashboard";
+
+  const today = new Date().toLocaleDateString("pt-BR", {
+    day: "2-digit", month: "short", year: "numeric",
+  }).toUpperCase();
 
   return (
-    <header className="amp-shell-header-wrap">
-      <div className="amp-shell-header">
+    <>
+      <style>{`
+        /* ── HEADER LIGHT ── */
+        .amp-hdr {
+          background: #fff5ed;
+          border-bottom: 1px solid #fde8d4;
+          box-shadow: 0 1px 4px rgba(249,115,22,.08);
+        }
+        .amp-hdr-title     { color: #1a1205; }
+        .amp-hdr-sub       { color: #8a7060; }
+        .amp-hdr-date      { color: #8a7060; }
+        .amp-tog           { border: 1px solid #fde8d4; border-radius: 8px; overflow: hidden; display: flex; }
+        .amp-tog-btn       { padding: 5px 14px; font-size: 11px; font-weight: 700; border: none; cursor: pointer; transition: .15s; }
+        .amp-tog-act       { background: #f97316; color: #fff; }
+        .amp-tog-in        { background: transparent; color: #8a7060; }
+        .amp-exit-btn      { font-size: 11px; font-weight: 700; color: #dc2626;
+                             background: none; border: none; cursor: pointer;
+                             display: flex; align-items: center; gap: 5px;
+                             transition: opacity .15s; }
+        .amp-exit-btn:hover{ opacity: .7; }
+        .amp-pulse-dot     { width: 6px; height: 6px; border-radius: 50%;
+                             background: #22c55e; display: inline-block;
+                             animation: hdr-pulse .9s ease-in-out infinite alternate; }
+        @keyframes hdr-pulse { to { opacity: .3; } }
+        .amp-pulse-lbl     { font-size: 9px; font-weight: 700; color: #16a34a; }
 
-        {/* ── Esquerda: botão menu + títulos ── */}
-        <div className="amp-shell-header-copy">
-          {/* Botão hambúrguer — oculto em desktop ≥ 1024px via CSS responsivo */}
-          <button
-            type="button"
-            onClick={onMenuToggle}
-            aria-label="Abrir menu lateral"
-            className="amp-shell-menu-btn amp-shell-control-btn"
-          >
-            <HamburgerIcon />
-          </button>
+        /* ── HEADER DARK ── */
+        .dark .amp-hdr         { background: #141420; border-bottom-color: #262638; box-shadow: 0 1px 6px rgba(0,0,0,.4); }
+        .dark .amp-hdr-title   { color: #ffffff; }
+        .dark .amp-hdr-sub     { color: #b8b8b8; }
+        .dark .amp-hdr-date    { color: #b8b8b8; }
+        .dark .amp-tog         { border-color: #262638; }
+        .dark .amp-tog-act     { background: #f97316; color: #fff; }
+        .dark .amp-tog-in      { background: transparent; color: #b8b8b8; }
+        .dark .amp-exit-btn    { color: #f87171; }
+        .dark .amp-pulse-lbl  { color: #4ade80; }
+        .dark .amp-pulse-dot  { background: #4ade80; }
+        `}</style>
 
-          <div className="min-w-0">
-            <p className="amp-shell-kicker">{meta.kicker}</p>
-            <div className="amp-shell-title-row">
-              <h1 className="amp-shell-title">{meta.title}</h1>
-              <span className="amp-shell-pulse">
-                <span className="amp-shell-pulse-dot" />
-                <span className="amp-shell-pulse-label">Trader shell ativo</span>
-              </span>
-            </div>
-            <p className="amp-shell-note">{meta.note}</p>
+      <header className="amp-hdr flex flex-col sm:flex-row items-center justify-between px-3 sm:px-4 lg:px-6 py-2 sm:py-3 shrink-0" style={{ borderRadius: "12px" }}>
+        {/* esquerda */}
+        <div
+          className="flex items-start gap-2"
+          style={{ background: "none", border: "none", padding: 0 }}
+        >
+            <button
+              type="button"
+              onClick={onMenuToggle}
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 8,
+                border: "none",
+                background: "#f97316",
+                color: "#fff",
+                fontSize: 13,
+                fontWeight: 700,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "pointer",
+                transition: "all .15s",
+              }}
+              onMouseEnter={(e) => e.target.style.opacity = "0.9"}
+              onMouseLeave={(e) => e.target.style.opacity = "1"}
+            >
+              ☰
+            </button>
+          <div>
+            <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+            <h1 style={{ fontSize:20, fontWeight:800 }} className="amp-hdr-title">
+              {currentTitle}
+            </h1>
+          </div>
+            <p className="amp-hdr-sub" style={{ fontSize:12, marginTop:2 }}>
+              Mesa analítica de comercial, produção, estoque e caixa.
+            </p>
           </div>
         </div>
 
-        {/* ── Direita: tema + data + sair ── */}
-        <div className="amp-shell-header-actions">
-          <div className="amp-shell-theme" role="tablist" aria-label="Tema">
+        {/* direita */}
+        <div style={{ display:"flex", alignItems:"center", gap:14, flexWrap:"wrap" }}>
+          {/* toggle */}
+          <div className="amp-tog">
             <button
-              type="button"
-              role="tab"
-              aria-selected={theme === "light"}
-              className={`amp-shell-theme-btn ${theme === "light" ? "is-active" : ""}`}
-              onClick={() => setTheme("light")}
+              className={`amp-tog-btn ${theme === "light" ? "amp-tog-act" : "amp-tog-in"}`}
+              onClick={toggleTheme}
             >
               Light
             </button>
             <button
-              type="button"
-              role="tab"
-              aria-selected={theme === "dark"}
-              className={`amp-shell-theme-btn ${theme === "dark" ? "is-active" : ""}`}
-              onClick={() => setTheme("dark")}
+              className={`amp-tog-btn ${theme === "dark" ? "amp-tog-act" : "amp-tog-in"}`}
+              onClick={toggleTheme}
             >
               Dark
             </button>
           </div>
 
-          <span className="amp-shell-chip amp-shell-chip--date">{formatToday()}</span>
+          <span className="amp-hdr-date" style={{ fontSize:11 }}>{today}</span>
 
-          <button
-            type="button"
-            className="amp-shell-control-btn is-strong"
-            onClick={handleLogout}
-          >
-            Sair
+          {/* botão sair */}
+          <button className="amp-exit-btn" onClick={() => {
+            clearSession();
+            navigate("/login");
+          }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2.2">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+              <polyline points="16 17 21 12 16 7"/>
+              <line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+            SAIR
           </button>
         </div>
-
-      </div>
-    </header>
+      </header>
+    </>
   );
 }

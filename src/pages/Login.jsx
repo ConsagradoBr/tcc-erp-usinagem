@@ -1,8 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react"; // ✅ Adicionado useMemo
 import { useNavigate } from "react-router-dom";
 import logoGif from "../assets/gif_transparente.png";
 import api from "../api";
 import { persistSession, getDefaultAppRoute } from "../auth";
+
+// ✅ Componente da Engrenagem (exatamente como você pediu)
+const GearIcon = ({ className }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+    <circle cx="12" cy="12" r="3"/>
+    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+  </svg>
+);
 
 export default function Login() {
   const [email, setEmail]       = useState("");
@@ -13,6 +21,18 @@ export default function Login() {
   const [error, setError]       = useState("");
   const [bootstrapRequired, setBootstrapRequired] = useState(false);
   const navigate = useNavigate();
+
+  // ✅ Gera as engrenagens aleatórias apenas uma vez
+  const randomGears = useMemo(() => {
+    return Array.from({ length: 60 }).map((_, i) => ({
+      id: i,
+      top: `${Math.random() * 100}%`,
+      left: `${Math.random() * 100}%`,
+      rotation: Math.floor(Math.random() * 360),
+      scale: 0.6 + Math.random() * 0.8,
+      opacity: 0.08 + Math.random() * 0.15,
+    }));
+  }, []);
 
   const handleOpenSignup = () => {
     navigate("/signup");
@@ -26,9 +46,14 @@ export default function Login() {
         const response = await api.get("/auth/bootstrap-status");
         if (!active) return;
         setBootstrapRequired(Boolean(response.data?.bootstrap_required));
-      } catch {
+      } catch (err) {
         if (!active) return;
-        setError("Nao foi possivel verificar o estado inicial do sistema.");
+        // ✅ Melhora o tratamento de erro de conexão
+        if (err.code === "ERR_NETWORK" || err.message?.includes("Network Error")) {
+          setError("Não foi possível conectar ao servidor. Verifique se a API está rodando em http://localhost:5000");
+        } else {
+          setError("Não foi possível verificar o estado inicial do sistema.");
+        }
       }
     };
 
@@ -74,38 +99,63 @@ export default function Login() {
       const defaultRoute = getDefaultAppRoute(user);
       navigate(defaultRoute);
     } catch (err) {
-      const errorMessage = err.response?.data?.erro || "Erro ao fazer login. Tente novamente.";
-      setError(errorMessage);
+      // ✅ Melhora o tratamento de erro no login também
+      if (err.code === "ERR_NETWORK" || err.message?.includes("Network Error")) {
+        setError("Servidor indisponível. Verifique sua conexão.");
+      } else {
+        const errorMessage = err.response?.data?.erro || "Erro ao fazer login. Tente novamente.";
+        setError(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-neutral-900">
+    <div className="flex min-h-screen w-screen flex-col overflow-auto bg-neutral-900 md:flex-row">
 
-      <div className="
-        relative flex w-1/2 items-center justify-center
-        bg-white overflow-hidden
-      ">
+      {/* LADO BRANCO COM ENGRENAGENS */}
+      <div className="relative flex w-full min-h-[40vh] items-center justify-center bg-white overflow-hidden md:w-1/2">
+        
+        {/* ✨ Engrenagens como marca d'água */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden hidden md:block">
+          {randomGears.map((gear) => (
+            <div
+              key={gear.id}
+              className="absolute text-gray-300"
+              style={{
+                top: gear.top,
+                left: gear.left,
+                transform: `rotate(${gear.rotation}deg) scale(${gear.scale})`,
+                opacity: gear.opacity,
+              }}
+            >
+              <GearIcon className="w-6 h-6 md:w-8 md:h-8" />
+            </div>
+          ))}
+        </div>
+
+        {/* Logo por cima das engrenagens */}
         <img
           src={logoGif}
           alt="AMP Usinagem"
           className="
-            w-[100%] max-w-lg object-contain
+            w-full max-w-md object-contain
             [mix-blend-mode:multiply]
             select-none pointer-events-none
+            relative z-10
           "
           draggable={false}
         />
 
-        <div className="absolute right-0 top-0 h-full w-px bg-neutral-200" />
+        <div className="hidden md:block absolute right-0 top-0 h-full w-px bg-neutral-200" />
       </div>
 
+      {/* LADO LARANJA COM FORMULÁRIO */}
       <div className="
-        relative flex w-1/2 flex-col items-center justify-center
+        relative flex w-full min-h-[60vh] flex-col items-center justify-center
         bg-gradient-to-br from-orange-300 via-orange-400 to-orange-500
-        px-8 py-10
+        px-6 py-10 md:w-1/2 md:px-8
       ">
 
         <div className="
@@ -114,7 +164,8 @@ export default function Login() {
           bg-white/20 backdrop-blur-sm
           border border-white/35
           shadow-xl
-          px-10 py-10
+          px-6 py-10
+          sm:px-8
         ">
 
           <div className="mb-7 flex justify-center">
@@ -127,9 +178,8 @@ export default function Login() {
                 fill="#1c1c1c"
                 d="M27.5 4 26.4 9.8a19 19 0 0 0-4.2 1.7l-5-3.4-6.6 6.6 3.4 5a19 19 0 0 0-1.7 4.2L6.5 25v9.8l5.8 1.1a19 19 0 0 0 1.7 4.2l-3.4 5 6.6 6.6 5-3.4a19 19 0 0 0 4.2 1.7l1.1 5.8h9.8L38.4 50a19 19 0 0 0 4.2-1.7l5 3.4 6.6-6.6-3.4-5a19 19 0 0 0 1.7-4.2l5.8-1.1V25l-5.8-1.1a19 19 0 0 0-1.7-4.2l3.4-5-6.6-6.6-5 3.4A19 19 0 0 0 38.4 9.8L37.3 4h-9.8z"
               />
-              {/* círculo branco interno */}
+              <circle cx="32" cy="30" r="16" fill="white" />
               <circle cx="32" cy="30" r="15.5" fill="white" />
-              {/* silhueta pessoa */}
               <circle cx="32" cy="29" r="5.5" fill="#1c1c1c" />
               <path
                 d="M21 47c0-6.1 4.9-11 11-11s11 4.9 11 11"
@@ -312,34 +362,27 @@ export default function Login() {
                 </svg>
               ) : (
                 <>
-                  <svg className="h-4 w-4 opacity-50" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                    <circle cx="12" cy="12" r="3"/>
-                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-                  </svg>
+                  <GearIcon className="h-4 w-4 opacity-50" />
                   {bootstrapRequired ? "Criar administrador e entrar" : "Entrar no sistema"}
-                  <svg className="h-4 w-4 opacity-50" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                    <circle cx="12" cy="12" r="3"/>
-                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-                  </svg>
+                  <GearIcon className="h-4 w-4 opacity-50" />
                 </>
               )}
             </button>
           </form>
 
           <p className="mt-6 text-center text-xs text-neutral-600">
-            Não tem acesso?{" "}
+            Não tem conta?{" "}
             <button
               type="button"
               onClick={handleOpenSignup}
               className="font-bold text-neutral-900 transition hover:underline"
             >
-              Fale com o administrador
+              Criar nova conta
             </button>
           </p>
         </div>
 
       </div>
     </div>
-    
   );
 }

@@ -4,176 +4,426 @@
 
 :root {
   color-scheme: light;
+  /* Fonte principal usada em toda aplicação para interface */
   --cm-font: "Rajdhani", "Segoe UI", "Trebuchet MS", sans-serif;
+  /* Zoom/escala de interface usada em desktop e modais */
   --amp-ui-zoom: 0.76;
 }
 
 :root,
 [data-theme="light"] {
+  /* Dashboard theme variables */
+  --amp-bg: #fff5ed;
+  --amp-card: #ffffff;
+  --amp-border: #fde8d4;
+  --amp-text: #1a1205;
+  --amp-muted: #8a7060;
+  --amp-sub: #c4a882;
+  --amp-orange: #f97316;
+  --amp-green: #16a34a;
+  --amp-red: #dc2626;
+  --amp-bar: #fde8d4;
+  --amp-shadow: 0 1px 6px rgba(249,115,22,.10);
+  --amp-grid: #fde8d4;
+
+  /* === CORES DE FUNDO - Gradientes e backgrounds === */
+  /* Topo do fundo da aplicação - gradiente superior */
   --cm-bg-top: #edf3fb;
+  /* Meio do fundo da aplicação - gradiente central */
   --cm-bg-mid: #e4eef9;
+  /* Fundo inferior - gradiente base */
   --cm-bg-bottom: #d7e4f2;
+  /* Orbe de fundo A - efeito visual de glassmorphism branco */
   --cm-bg-orb-a: rgba(255, 255, 255, 0.72);
+  /* Orbe de fundo B - efeito visual azul */
   --cm-bg-orb-b: rgba(0, 120, 255, 0.08);
+  /* Orbe de fundo C - efeito visual verde */
   --cm-bg-orb-c: rgba(0, 165, 127, 0.08);
-  --cm-text: #1b2432;
-  --cm-muted: #647996;
-  --cm-soft: #7f94b2;
-  --cm-accent: #00a57f;
-  --cm-accent-strong: #14c39a;
-  --cm-accent-soft: rgba(0, 165, 127, 0.1);
-  --cm-positive: #00a57f;
+
+  /* === CORES DE TEXTO === */
+  /* Cor de texto principal - escuro para boa legibilidade */
+  --cm-text: #1a1205;
+  /* Texto atenuado - para labels e texto secundário */
+  --cm-muted: #8a7060;
+  /* Texto suave - para dicas e informações suplementares */
+  --cm-soft: #c4a882;
+
+  /* === CORES DE ACENTUAÇÃO === */
+  /* Cor de acentuação principal - verde/teal para destaque */
+  --cm-accent: #f97316;
+  /* Acentuação forte - versão mais vibrante para ênfase */
+  --cm-accent-strong: #fb923c;
+  /* Acentuação suave - versão transparente para backgrounds */
+  --cm-accent-soft: rgba(249, 115, 22, 0.1);
+
+  /* === CORES SEMÂNTICAS === */
+  /* Cor para estado positivo/sucesso em validações */
+  --cm-positive: #16a34a;
+  /* Cor para avisos e alertas */
   --cm-warning: #d58a2d;
-  --cm-danger: #e05363;
+  /* Cor para erros e estados perigosos */
+  --cm-danger: #dc2626;
+
+  /* === CORES DE SUPERFÍCIE === */
+  /* Fundo de superfície principal - cards e painéis */
   --cm-surface: rgba(255, 255, 255, 0.88);
+  /* Superfície suave - versão mais translúcida */
   --cm-surface-soft: rgba(255, 255, 255, 0.96);
-  --cm-border: rgba(0, 120, 255, 0.08);
-  --cm-line: rgba(0, 120, 255, 0.1);
-  --cm-shadow: 0 20px 54px rgba(32, 54, 87, 0.1);
-  --cm-shadow-strong: 0 22px 56px rgba(32, 54, 87, 0.14);
-  --cm-strong: #0c1221;
-  --cm-strong-2: #111a2d;
-  --cm-strong-border: rgba(0, 120, 255, 0.12);
+
+  /* === CORES DE BORDA E LINHAS === */
+  /* Borda padrão para elementos */
+  --cm-border: rgba(249, 216, 212, 0.08);
+  /* Linha/divisor entre elementos */
+  --cm-line: rgba(249, 216, 212, 0.1);
+
+  /* === SOMBRAS === */
+  /* Sombra padrão para elementos elevados */
+  --cm-shadow: 0 20px 54px rgba(249, 115, 22, 0.1);
+  /* Sombra forte para elementos ainda mais elevados */
+  --cm-shadow-strong: 0 22px 56px rgba(249, 115, 22, 0.14);
+
+  /* === CORES FORTES/ESCURAS === */
+  /* Cor escura principal para textos em fundos claros */
+  --cm-strong: #1a1205;
+  /* Cor escura secundária para variações */
+  --cm-strong-2: #c4a882;
+  /* Borda para elementos fortes */
+  --cm-strong-border: rgba(249, 216, 212, 0.12);
+
+  /* === ELEMENTOS ESPECÍFICOS === */
+  /* Fundo de rail/sidebar com gradiente */
   --cm-rail: linear-gradient(180deg, rgba(249, 252, 255, 0.96), rgba(240, 247, 255, 0.98));
-  --cm-rail-border: rgba(0, 120, 255, 0.08);
+  /* Borda do rail */
+  --cm-rail-border: rgba(249, 216, 212, 0.08);
+  /* Fundo de campos de entrada */
   --cm-input-bg: rgba(255, 255, 255, 0.82);
-  --cm-input-border: rgba(0, 120, 255, 0.12);
+  /* Borda de campos de entrada */
+  --cm-input-border: rgba(249, 216, 212, 0.12);
+
+  /* === SHELL/TOPBAR === */
+  /* Texto da shell/app container */
   --amp-shell-text: rgba(244, 247, 255, 0.92);
+  /* Texto muted da shell */
   --amp-shell-muted: rgba(244, 247, 255, 0.34);
+  /* Fundo da barra superior */
   --amp-topbar-bg: rgba(17, 20, 26, 0.82);
+  /* Borda da barra superior */
   --amp-topbar-border: rgba(255, 255, 255, 0.06);
+  /* Sombra da barra superior */
   --amp-topbar-shadow: 0 22px 60px rgba(2, 4, 8, 0.32);
+  /* Fundo de botões da topbar */
   --amp-topbar-btn-bg: rgba(255, 255, 255, 0.05);
+  /* Borda de botões da topbar */
   --amp-topbar-btn-border: rgba(255, 255, 255, 0.1);
+  /* Hover de botões da topbar */
   --amp-topbar-btn-hover: rgba(255, 255, 255, 0.1);
+
+  /* === APP FRAME === */
+  /* Background com gradiente e efeitos visuais para app principal */
   --amp-app-frame-bg:
     radial-gradient(circle at 12% 18%, rgba(151, 87, 255, 0.18), transparent 22%),
     radial-gradient(circle at 86% 14%, rgba(73, 161, 255, 0.12), transparent 20%),
     radial-gradient(circle at 72% 78%, rgba(255, 88, 199, 0.08), transparent 22%),
     linear-gradient(180deg, #0b0d12 0%, #11141a 46%, #0d1015 100%);
+
+  /* === WORKSPACE === */
+  /* Fundo da área de trabalho com gradiente suave */
   --amp-workspace-bg: linear-gradient(180deg, rgba(250, 250, 253, 0.98), rgba(244, 245, 249, 0.98));
+  /* Borda do workspace */
   --amp-workspace-border: rgba(255, 255, 255, 0.1);
+  /* Sombra do workspace */
   --amp-workspace-shadow: 0 36px 90px rgba(0, 0, 0, 0.28);
+
+  /* === CARDS === */
+  /* Fundo padrão de cards e painéis */
   --amp-card-bg: rgba(255, 255, 255, 0.78);
+  /* Borda de cards */
   --amp-card-border: rgba(26, 31, 40, 0.08);
+  /* Sombra de cards */
   --amp-card-shadow: 0 18px 34px rgba(18, 22, 31, 0.08);
+  /* Texto em cards */
   --amp-card-text: #1f2430;
+  /* Texto muted em cards */
   --amp-card-muted: rgba(31, 36, 48, 0.5);
+  /* Texto suave em cards */
   --amp-card-soft: rgba(31, 36, 48, 0.72);
+
+  /* === GRÁFICOS === */
+  /* Superfície para gráficos e elementos visuais */
   --amp-chart-surface: rgba(15, 22, 34, 0.04);
+
+  /* === DARK CARDS === */
+  /* Fundo de cards escuros com gradiente */
   --amp-dark-card-bg: linear-gradient(180deg, rgba(31, 35, 44, 0.96), rgba(22, 25, 32, 0.98));
+  /* Borda de dark cards */
   --amp-dark-card-border: rgba(255, 255, 255, 0.06);
+  /* Sombra de dark cards */
   --amp-dark-card-shadow: 0 22px 48px rgba(0, 0, 0, 0.18);
+  /* Texto em dark cards */
   --amp-dark-card-text: #f4f7ff;
+  /* Texto muted em dark cards */
   --amp-dark-card-muted: rgba(244, 247, 255, 0.56);
+
+  /* === PILLS === */
+  /* Fundo de badges/pills com fundo escuro */
   --amp-pill-bg: rgba(255, 255, 255, 0.05);
+  /* Borda de pills */
   --amp-pill-border: rgba(255, 255, 255, 0.08);
+  /* Texto de pills */
   --amp-pill-text: rgba(244, 247, 255, 0.64);
+
+  /* === ANIMAÇÕES === */
+  /* Easing para transições suaves */
   --ease-out: 240ms cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* === CORES GENÉRICAS FALLBACK === */
+  /* Cor de fundo genérica */
   --bg: #ecf3fb;
+  /* Fundo suave genérico */
   --bg-soft: #f8fbff;
+  /* Superfície genérica */
   --surface: rgba(255, 255, 255, 0.88);
+  /* Superfície secundária */
   --surface-2: rgba(255, 255, 255, 0.96);
+  /* Superfície terciária com tint azul */
   --surface-3: rgba(49, 88, 149, 0.04);
+  /* Superfície forte - escura */
   --surface-strong: #1b2432;
+  /* Superfície elevada/flutuante */
   --surface-raised: rgba(255, 255, 255, 0.96);
+  /* Linha genérica */
   --line: rgba(0, 120, 255, 0.08);
+  /* Linha forte */
   --line-strong: rgba(0, 120, 255, 0.16);
-  --text: #1b2432;
-  --muted: #7184a3;
-  --muted-strong: #4d617e;
-  --accent: #00a57f;
+  /* Texto genérico */
+  --text: #1a1205;
+  /* Texto muted genérico */
+  --muted: #8a7060;
+  /* Texto muted forte */
+  --muted-strong: #c4a882;
+  /* Acentuação genérica */
+  --accent: #f97316;
+  /* Acentuação secundária - azul */
   --accent-2: #0078ff;
-  --accent-soft: rgba(0, 165, 127, 0.1);
+  /* Acentuação suave */
+  --accent-soft: rgba(249, 115, 22, 0.1);
+  /* Cor cool/azul para destaque */
   --cool: #2f7df6;
+  /* Cor warm/laranja para destaque */
   --warm: #d58a2d;
+  /* Fonte monospace para código */
   --trd-mono: "Share Tech Mono", monospace;
 }
 
 [data-theme="dark"] {
   color-scheme: dark;
+  /* Dashboard theme variables */
+  --amp-bg: #0f0f14;
+  --amp-card: #181820;
+  --amp-border: #262638;
+  --amp-text: #f0f0f5;
+  --amp-muted: #6b7280;
+  --amp-sub: #4b5563;
+  --amp-orange: #fb923c;
+  --amp-green: #4ade80;
+  --amp-red: #f87171;
+  --amp-bar: #262638;
+  --amp-shadow: 0 1px 8px rgba(0,0,0,.50);
+  --amp-grid: #262638;
+
+  /* === CORES DE FUNDO - Tema Escuro === */
+  /* Topo do fundo - versão escura */
   --cm-bg-top: #07101b;
+  /* Meio do fundo - versão escura */
   --cm-bg-mid: #0c1424;
+  /* Fundo inferior - versão escura */
   --cm-bg-bottom: #111827;
+  /* Orbe de fundo A - efeito azul no tema escuro */
   --cm-bg-orb-a: rgba(0, 170, 255, 0.08);
+  /* Orbe de fundo B - efeito verde/teal no tema escuro */
   --cm-bg-orb-b: rgba(0, 212, 170, 0.1);
+  /* Orbe de fundo C - efeito roxo no tema escuro */
   --cm-bg-orb-c: rgba(167, 139, 250, 0.08);
-  --cm-text: #e8f2ff;
-  --cm-muted: #94aac8;
-  --cm-soft: #7f94b2;
-  --cm-accent: #00d4aa;
+
+  /* === CORES DE TEXTO - Tema Escuro === */
+  /* Texto principal - claro no fundo escuro */
+  --cm-text: #f0f0f5;
+  /* Texto muted - versão clara e discreta */
+  --cm-muted: #6b7280;
+  /* Texto suave - versão intermediária */
+  --cm-soft: #4b5563;
+
+  /* === CORES DE ACENTUAÇÃO - Tema Escuro === */
+  /* Acentuação principal - teal vibrante */
+  --cm-accent: #fb923c;
+  /* Acentuação forte - azul ciano */
   --cm-accent-strong: #00aaff;
-  --cm-accent-soft: rgba(0, 212, 170, 0.12);
-  --cm-positive: #00d4aa;
+  /* Acentuação suave - versão transparente */
+  --cm-accent-soft: rgba(251, 146, 60, 0.12);
+
+  /* === CORES SEMÂNTICAS - Tema Escuro === */
+  /* Positivo/sucesso - verde teal */
+  --cm-positive: #4ade80;
+  /* Aviso - laranja */
   --cm-warning: #ffa940;
-  --cm-danger: #ff4d6d;
-  --cm-surface: rgba(12, 18, 33, 0.82);
+  /* Erro - vermelho */
+  --cm-danger: #f87171;
+
+  /* === CORES DE SUPERFÍCIE - Tema Escuro === */
+  /* Superfície principal - escura e translúcida */
+  --cm-surface: rgba(24, 24, 32, 0.82);
+  /* Superfície suave - versão mais translúcida */
   --cm-surface-soft: rgba(16, 24, 43, 0.94);
-  --cm-border: rgba(0, 212, 170, 0.12);
-  --cm-line: rgba(0, 212, 170, 0.12);
+
+  /* === CORES DE BORDA E LINHAS - Tema Escuro === */
+  /* Borda padrão - teal suave */
+  --cm-border: rgba(38, 38, 56, 0.12);
+  /* Linha - teal suave */
+  --cm-line: rgba(38, 38, 56, 0.12);
+
+  /* === SOMBRAS - Tema Escuro === */
+  /* Sombra padrão - mais pronunciada */
   --cm-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+  /* Sombra forte - muito pronunciada */
   --cm-shadow-strong: 0 24px 62px rgba(0, 0, 0, 0.36);
+
+  /* === CORES FORTES - Tema Escuro === */
+  /* Cor escura principal */
   --cm-strong: #0c1221;
+  /* Cor escura secundária */
   --cm-strong-2: #0a1020;
-  --cm-strong-border: rgba(0, 212, 170, 0.12);
+  /* Borda para elementos fortes */
+  --cm-strong-border: rgba(38, 38, 56, 0.12);
+
+  /* === ELEMENTOS ESPECÍFICOS - Tema Escuro === */
+  /* Rail/sidebar com gradiente escuro */
   --cm-rail: linear-gradient(180deg, rgba(12, 18, 33, 0.96), rgba(7, 11, 20, 0.98));
-  --cm-rail-border: rgba(0, 212, 170, 0.12);
+  /* Borda do rail */
+  --cm-rail-border: rgba(38, 38, 56, 0.12);
+  /* Fundo de inputs */
   --cm-input-bg: rgba(16, 24, 43, 0.88);
-  --cm-input-border: rgba(0, 212, 170, 0.12);
+  /* Borda de inputs */
+  --cm-input-border: rgba(38, 38, 56, 0.12);
+
+  /* === SHELL/TOPBAR - Tema Escuro === */
+  /* Texto da shell */
   --amp-shell-text: rgba(244, 247, 255, 0.92);
+  /* Texto muted da shell */
   --amp-shell-muted: rgba(244, 247, 255, 0.34);
+  /* Fundo da topbar */
   --amp-topbar-bg: rgba(15, 18, 24, 0.86);
+  /* Borda da topbar */
   --amp-topbar-border: rgba(255, 255, 255, 0.06);
+  /* Sombra da topbar */
   --amp-topbar-shadow: 0 22px 60px rgba(0, 0, 0, 0.38);
+  /* Fundo de botões da topbar */
   --amp-topbar-btn-bg: rgba(255, 255, 255, 0.04);
+  /* Borda de botões */
   --amp-topbar-btn-border: rgba(255, 255, 255, 0.1);
+  /* Hover de botões */
   --amp-topbar-btn-hover: rgba(255, 255, 255, 0.08);
+
+  /* === APP FRAME - Tema Escuro === */
+  /* Background com gradiente escuro e efeitos */
   --amp-app-frame-bg:
     radial-gradient(circle at 12% 18%, rgba(151, 87, 255, 0.2), transparent 22%),
     radial-gradient(circle at 86% 14%, rgba(73, 161, 255, 0.13), transparent 20%),
     radial-gradient(circle at 72% 78%, rgba(255, 88, 199, 0.08), transparent 22%),
     linear-gradient(180deg, #07090d 0%, #0c1016 46%, #080b10 100%);
+
+  /* === WORKSPACE - Tema Escuro === */
+  /* Fundo workspace com gradiente escuro */
   --amp-workspace-bg: linear-gradient(180deg, rgba(18, 21, 28, 0.98), rgba(14, 17, 24, 0.98));
+  /* Borda workspace */
   --amp-workspace-border: rgba(255, 255, 255, 0.06);
+  /* Sombra workspace */
   --amp-workspace-shadow: 0 36px 90px rgba(0, 0, 0, 0.34);
+
+  /* === CARDS - Tema Escuro === */
+  /* Fundo de cards */
   --amp-card-bg: rgba(28, 32, 40, 0.84);
+  /* Borda de cards */
   --amp-card-border: rgba(255, 255, 255, 0.07);
+  /* Sombra de cards */
   --amp-card-shadow: 0 18px 40px rgba(0, 0, 0, 0.16);
+  /* Texto em cards */
   --amp-card-text: #f4f7ff;
+  /* Texto muted em cards */
   --amp-card-muted: rgba(244, 247, 255, 0.48);
+  /* Texto suave em cards */
   --amp-card-soft: rgba(244, 247, 255, 0.76);
+
+  /* === GRÁFICOS - Tema Escuro === */
+  /* Superfície para gráficos */
   --amp-chart-surface: rgba(0, 0, 0, 0.16);
+
+  /* === DARK CARDS - Tema Escuro === */
+  /* Fundo de dark cards */
   --amp-dark-card-bg: linear-gradient(180deg, rgba(31, 35, 44, 0.96), rgba(22, 25, 32, 0.98));
+  /* Borda de dark cards */
   --amp-dark-card-border: rgba(255, 255, 255, 0.06);
+  /* Sombra de dark cards */
   --amp-dark-card-shadow: 0 22px 48px rgba(0, 0, 0, 0.22);
+  /* Texto em dark cards */
   --amp-dark-card-text: #f4f7ff;
+  /* Texto muted em dark cards */
   --amp-dark-card-muted: rgba(244, 247, 255, 0.56);
+
+  /* === PILLS - Tema Escuro === */
+  /* Fundo de pills */
   --amp-pill-bg: rgba(255, 255, 255, 0.05);
+  /* Borda de pills */
   --amp-pill-border: rgba(255, 255, 255, 0.08);
+  /* Texto de pills */
   --amp-pill-text: rgba(244, 247, 255, 0.64);
+
+  /* === ANIMAÇÕES - Tema Escuro === */
+  /* Easing para transições */
   --ease-out: 240ms cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* === CORES GENÉRICAS - Tema Escuro === */
+  /* Cor de fundo genérica - muito escura */
   --bg: #0b1220;
+  /* Fundo suave genérico */
   --bg-soft: #111a2d;
-  --surface: rgba(12, 18, 33, 0.78);
+  /* Superfície genérica */
+  --surface: rgba(24, 24, 32, 0.82);
+  /* Superfície secundária */
   --surface-2: rgba(16, 24, 43, 0.88);
+  /* Superfície terciária - muito discreta */
   --surface-3: rgba(232, 242, 255, 0.05);
+  /* Superfície forte - clara */
   --surface-strong: #e8f2ff;
+  /* Superfície elevada */
   --surface-raised: rgba(11, 21, 36, 0.96);
-  --line: rgba(0, 212, 170, 0.12);
-  --line-strong: rgba(0, 212, 170, 0.24);
-  --text: #e8f2ff;
-  --muted: #7f94b2;
-  --muted-strong: #adc0db;
-  --accent: #00d4aa;
+  /* Linha genérica */
+  --line: rgba(38, 38, 56, 0.12);
+  /* Linha forte */
+  --line-strong: rgba(38, 38, 56, 0.24);
+  /* Texto genérico - claro */
+  --text: #f0f0f5;
+  /* Texto muted genérico */
+  --muted: #6b7280;
+  /* Texto muted forte */
+  --muted-strong: #4b5563;
+  /* Acentuação genérica - teal */
+  --accent: #fb923c;
+  /* Acentuação secundária - azul ciano */
   --accent-2: #00aaff;
+  /* Acentuação suave */
   --accent-soft: rgba(0, 212, 170, 0.12);
+  /* Cor cool/azul */
   --cool: #00aaff;
+  /* Cor warm/laranja */
   --warm: #ffa940;
+  /* Fonte monospace para código */
   --trd-mono: "Share Tech Mono", monospace;
 }
 
+/* === ELEMENTOS BASE DA PÁGINA === */
 html,
 body {
+  /* Container principal com altura 100% e cores da shell */
   height: 100%;
   min-height: 100%;
   background: var(--amp-shell-page-bg);
@@ -182,44 +432,54 @@ body {
 }
 
 body {
+  /* Remove margem padrão e esconde overflow */
   margin: 0;
   overflow: hidden;
 }
 
 #root {
+  /* Container React - ocupa toda a viewport */
   height: 100%;
   min-height: 100vh;
 }
 
 .amp-ui-scale {
+  /* Escala de interface para desktop - aplica zoom responsivo */
   zoom: var(--amp-ui-zoom);
   width: calc(100% / var(--amp-ui-zoom));
   min-height: calc(100vh / var(--amp-ui-zoom));
   transform-origin: top left;
 }
 
+/* === CUSTOMIZAÇÃO DE SCROLLBAR === */
 * {
+  /* Define espessura e cores do scrollbar para todos elementos */
   scrollbar-width: thin;
   scrollbar-color: rgba(148, 163, 184, 0.45) transparent;
 }
 
 *::-webkit-scrollbar {
+  /* Scrollbar do WebKit - largura e altura */
   width: 10px;
   height: 10px;
 }
 
 *::-webkit-scrollbar-thumb {
+  /* Polegar do scrollbar - cor e border-radius */
   background: rgba(148, 163, 184, 0.45);
   border-radius: 999px;
 }
 
 *::-webkit-scrollbar-track {
+  /* Track do scrollbar - fundo transparente */
   background: transparent;
 }
 
+/* === ELEMENTOS DE FORMULÁRIO === */
 input,
 select,
 textarea {
+  /* Estilos padrão para inputs com bordas e backgrounds */
   @apply w-full rounded border p-2 text-gray-900;
   border-color: var(--cm-input-border);
   background: var(--cm-input-bg);
@@ -230,16 +490,20 @@ textarea {
 input:focus,
 select:focus,
 textarea:focus {
+  /* Estado focus - borda com cor quente e box-shadow */
   outline: none;
   border-color: rgba(180, 99, 56, 0.38);
   box-shadow: 0 0 0 3px rgba(180, 99, 56, 0.12);
 }
 
 button {
+  /* Botão base - aplica transição suave */
   @apply transition;
 }
 
+/* === COMPONENTES SURFACE (CM-*) === */
 .cm-surface {
+  /* Superfície padrão - fundo branco com borda e blur */
   background: var(--cm-surface);
   border: 1px solid var(--cm-line);
   box-shadow: var(--cm-shadow);
@@ -248,6 +512,7 @@ button {
 }
 
 .cm-surface-soft {
+  /* Superfície suave - versão mais translúcida */
   background: var(--cm-surface-soft);
   border: 1px solid var(--cm-line);
   box-shadow: var(--cm-shadow);
@@ -256,6 +521,7 @@ button {
 }
 
 .cm-surface-strong {
+  /* Superfície forte - fundo escuro com gradiente */
   color: var(--cm-text);
   background: linear-gradient(160deg, var(--cm-strong), var(--cm-strong-2));
   border: 1px solid var(--cm-strong-border);
@@ -263,32 +529,39 @@ button {
 }
 
 .cm-rail {
+  /* Rail/sidebar - fundo com gradiente e sombra pronunciada */
   background: var(--cm-rail);
   border: 1px solid var(--cm-rail-border);
   box-shadow: var(--cm-shadow-strong);
 }
 
 .cm-drag-region {
+  /* Região arrastável - desabilita seleção */
   user-select: none;
   cursor: grab;
 }
 
 .cm-drag-region:active {
+  /* Cursor durante arraste */
   cursor: grabbing;
 }
 
+/* === MODAL E LAYOUT === */
 .cm-modal-shell {
+  /* Container do modal - dimensões máximas */
   width: min(100%, 1120px);
   max-height: calc(100vh - 2rem);
   overflow: hidden;
 }
 
 .cm-modal-grid {
+  /* Grid do modal - estrutura de layout */
   display: grid;
   max-height: inherit;
 }
 
 .cm-modal-main {
+  /* Área principal do modal com padding e scroll */
   min-width: 0;
   max-height: calc(100vh - 2rem);
   overflow-y: auto;
@@ -296,12 +569,14 @@ button {
 }
 
 .cm-modal-side {
+  /* Área lateral do modal com scroll */
   max-height: calc(100vh - 2rem);
   overflow-y: auto;
   padding: 1.5rem;
 }
 
 .cm-list-surface {
+  /* Superfície para listas com otimizações de paint */
   background: var(--cm-surface-soft);
   border: 1px solid var(--cm-line);
   contain: paint;
@@ -311,19 +586,23 @@ button {
 }
 
 .cm-stable-layer {
+  /* Layer estável para otimizar renderização */
   contain: paint;
   isolation: isolate;
   transform: translateZ(0);
 }
 
 @media (min-width: 640px) {
+  /* Padding maior em telas maiores */
   .cm-modal-main,
   .cm-modal-side {
     padding: 1.75rem;
   }
 }
 
+/* === TYPOGRAPHY E LABELS === */
 .cm-label {
+  /* Label/rótulo - texto pequeno e maiúscula */
   color: var(--cm-soft);
   font-size: 0.72rem;
   letter-spacing: 0.22em;
@@ -331,10 +610,13 @@ button {
 }
 
 .cm-muted {
+  /* Texto muted - cor discreta */
   color: var(--cm-muted);
 }
 
+/* === CHIPS E BADGES === */
 .cm-chip {
+  /* Chip/badge padrão - pill com borda */
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
@@ -347,12 +629,15 @@ button {
 }
 
 .cm-chip-strong {
+  /* Chip com destaque - fundo com gradiente de acentuação */
   background: linear-gradient(145deg, var(--cm-accent), var(--cm-accent-strong));
   border-color: transparent;
   color: #fff7f2;
 }
 
+/* === COMPONENTS - RING === */
 .cm-ring {
+  /* Ring de progresso - circular com conic-gradient */
   position: relative;
   display: grid;
   place-items: center;
@@ -368,6 +653,7 @@ button {
 }
 
 .cm-ring::before {
+  /* Centro do ring - círculo interior */
   content: "";
   width: 8.2rem;
   height: 8.2rem;
@@ -378,6 +664,7 @@ button {
 }
 
 .cm-ring-value {
+  /* Valor dentro do ring */
   position: absolute;
   font-size: 2rem;
   font-weight: 700;
@@ -385,29 +672,35 @@ button {
   color: var(--cm-text);
 }
 
+/* === AMP APP COMPONENTS === */
 .amp-app-frame {
+  /* Frame principal da aplicação - fundo com gradiente */
   background: var(--amp-app-frame-bg);
 }
 
 .amp-dashboard-shell {
+  /* Shell do dashboard - workspace com gradiente */
   background: var(--amp-workspace-bg);
   border: 1px solid var(--amp-workspace-border);
   box-shadow: var(--amp-workspace-shadow);
 }
 
 .amp-dashboard-panel {
+  /* Painel do dashboard - card com estilos específicos */
   background: var(--amp-card-bg);
   border: 1px solid var(--amp-card-border);
   box-shadow: var(--amp-card-shadow);
 }
 
 .amp-mini-stat {
+  /* Mini estatísticas - card pequeno com dados */
   background: var(--amp-card-bg);
   border: 1px solid var(--amp-card-border);
   box-shadow: var(--amp-card-shadow);
 }
 
 .amp-anchor-panel {
+  /* Painel âncora - dark card para destaque */
   background: var(--amp-dark-card-bg);
   border: 1px solid var(--amp-dark-card-border);
   box-shadow: var(--amp-dark-card-shadow);
@@ -415,6 +708,7 @@ button {
 }
 
 .amp-dashboard-banner {
+  /* Banner do dashboard - gradiente roxo vibrante */
   position: relative;
   overflow: hidden;
   background:
@@ -425,6 +719,7 @@ button {
 }
 
 .amp-pill-dark {
+  /* Pill com fundo escuro - badge pequeno */
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
@@ -439,6 +734,7 @@ button {
 }
 
 .amp-rail-panel {
+  /* Painel do rail/sidebar - fundo escuro com blur */
   background: linear-gradient(180deg, rgba(17, 20, 26, 0.96), rgba(11, 13, 18, 0.98));
   border: 1px solid rgba(255, 255, 255, 0.07);
   box-shadow: 0 28px 70px rgba(0, 0, 0, 0.34);
@@ -446,6 +742,7 @@ button {
 }
 
 .amp-topbar {
+  /* Barra superior - topbar com blur */
   border: 1px solid var(--amp-topbar-border);
   background: var(--amp-topbar-bg);
   box-shadow: var(--amp-topbar-shadow);
@@ -453,15 +750,19 @@ button {
 }
 
 .amp-topbar-btn {
+  /* Botão da topbar - com bordas e fundo */
   border: 1px solid var(--amp-topbar-btn-border);
   background: var(--amp-topbar-btn-bg);
 }
 
 .amp-topbar-btn:hover {
+  /* Hover do botão - muda fundo */
   background: var(--amp-topbar-btn-hover);
 }
 
+/* === AMP RING (Pequeno) === */
 .amp-ring {
+  /* Ring pequeninao para KPIs - conic-gradient roxo */
   position: relative;
   display: grid;
   place-items: center;
@@ -475,6 +776,7 @@ button {
 }
 
 .amp-ring::before {
+  /* Centro do ring - fundo escuro */
   content: "";
   position: absolute;
   inset: 0.68rem;
@@ -484,6 +786,7 @@ button {
 }
 
 .amp-ring-value {
+  /* Valor dentro do ring */
   position: relative;
   z-index: 1;
   font-size: 1.1rem;
@@ -491,29 +794,48 @@ button {
   letter-spacing: -0.05em;
   color: #f4f7ff;
 }
-
+/*IMPORTANTE*/
 :root,
 [data-theme="light"] {
+  /* === SHELL LAYOUT - Tema Claro === */
+  /* Fundo da página da shell com gradiente e efeitos */
   --amp-shell-page-bg:
-    radial-gradient(circle at 12% 16%, rgba(0, 120, 255, 0.08), transparent 24%),
-    radial-gradient(circle at 88% 12%, rgba(0, 165, 127, 0.08), transparent 22%),
-    linear-gradient(180deg, #eaf1fa, #dce7f4);
-  --amp-shell-sidebar-bg: rgba(249, 252, 255, 0.92);
-  --amp-shell-sidebar-border: rgba(0, 120, 255, 0.08);
-  --amp-shell-sidebar-shadow: 0 22px 56px rgba(32, 54, 87, 0.12);
-  --amp-shell-surface: rgba(255, 255, 255, 0.9);
-  --amp-shell-surface-strong: rgba(255, 255, 255, 0.96);
+    radial-gradient(circle at 12% 16%, rgba(253, 232, 212, 0.08), transparent 24%),
+    radial-gradient(circle at 88% 12%, rgba(253, 232, 212, 0.08), transparent 22%),
+    linear-gradient(180deg, #fde8d4, #fde7d0);
+  /* Fundo da barra lateral/sidebar */
+  --amp-shell-sidebar-bg: rgb(252, 232, 213);
+  /* Borda da sidebar */
+  --amp-shell-sidebar-border: rgba(255, 255, 255, 0.836);  
+  /* Sombra da sidebar */
+  --amp-shell-sidebar-shadow: 0 22px 56px rgba(156, 115, 76, 0.12);
+  /* Superfície da shell - cards e painéis */
+  --amp-shell-surface: rgba(255, 221, 188, 0.74);
+  /* Superfície forte - versão mais sólida */
+  --amp-shell-surface-strong: rgb(253, 228, 198);
+  /* Linha/divisor - fino para separar elementos */
   --amp-shell-line: rgba(0, 120, 255, 0.09);
+  /* Linha forte - para destacar divisões */
   --amp-shell-line-strong: rgba(0, 120, 255, 0.16);
+  /* Texto principal da shell - tinta escura */
   --amp-shell-ink: #1b2432;
-  --amp-shell-soft: #647996;
-  --amp-shell-soft-2: #7f94b2;
-  --amp-shell-accent: #00a57f;
-  --amp-shell-blue: #2f7df6;
+  /* Texto suave - para labels e secundários */
+  --amp-shell-soft: #8a3a04ef;
+  /* Texto suave secundário */
+  --amp-shell-soft-2: #816c4c;
+  /* Acentuação - cores de ação e botões primários */
+  --amp-shell-accent: #ff6a00;
+  /* Azul para informações e links */
+  --amp-shell-blue: #8a3a04ef;
+  /* Laranja/aviso para alertas */
   --amp-shell-warn: #d58a2d;
+  /* Vermelho/erro para estados perigosos */
   --amp-shell-danger: #e05363;
+  /* Roxo para destaque especial */
   --amp-shell-purple: #8b76ff;
+  /* Fonte monospace para código na shell */
   --amp-shell-mono: "Share Tech Mono", "Courier New", monospace;
+  /* Fonte sans-serif para interface da shell */
   --amp-shell-sans: "Rajdhani", "Segoe UI", sans-serif;
 }
 
@@ -539,7 +861,9 @@ button {
   --amp-shell-purple: #a78bfa;
 }
 
+/* === AMP SHELL LAYOUT === */
 .amp-shell-layout {
+  /* Layout principal da shell - grid com sidebar */
   min-height: 100vh;
   height: 100vh;
   display: grid;
@@ -553,10 +877,12 @@ button {
 }
 
 .amp-shell-layout.is-collapsed {
+  /* Sidebar colapsado - largura reduzida */
   grid-template-columns: 96px minmax(0, 1fr);
 }
 
 .amp-shell-workspace {
+  /* Workspace da shell - flex coluna */
   display: flex;
   flex-direction: column;
   min-width: 0;
@@ -565,6 +891,7 @@ button {
 }
 
 .amp-shell-scroll {
+  /* Área scrollável - flex 1 com padding */
   min-height: 0;
   flex: 1;
   overflow-y: auto;
@@ -574,6 +901,7 @@ button {
 }
 
 .amp-shell-loading {
+  /* Tela de carregamento - grid center */
   min-height: 100vh;
   display: grid;
   place-items: center;
@@ -584,6 +912,7 @@ button {
 }
 
 .amp-shell-loader {
+  /* Spinner de carregamento - border animation */
   width: 44px;
   height: 44px;
   border-radius: 999px;
@@ -592,11 +921,14 @@ button {
   animation: amp-shell-spin 0.75s linear infinite;
 }
 
+/* === AMP SHELL HEADER === */
 .amp-shell-header-wrap {
+  /* Wrapper do header - sem padding */
   padding: 0;
 }
 
 .amp-shell-header {
+  /* Header principal - flex com bordas e blur */
   display: flex;
   flex-wrap: wrap;
   align-items: flex-start;
@@ -611,6 +943,7 @@ button {
 }
 
 .amp-shell-header-copy {
+  /* Seção de cópia do header - texto principal */
   min-width: 0;
   display: flex;
   flex: 1 1 360px;
@@ -619,6 +952,7 @@ button {
 }
 
 .amp-shell-kicker {
+  /* Kicker - label pequeno */
   margin: 0;
   color: var(--amp-shell-soft);
   font-size: 0.68rem;
@@ -627,6 +961,7 @@ button {
 }
 
 .amp-shell-title-row {
+  /* Row de título - flex com items */
   margin-top: 6px;
   display: flex;
   flex-wrap: wrap;
@@ -635,6 +970,7 @@ button {
 }
 
 .amp-shell-title {
+  /* Título principal do header */
   margin: 0;
   font-size: 1.82rem;
   line-height: 1;
@@ -642,6 +978,7 @@ button {
 }
 
 .amp-shell-note {
+  /* Nota/descrição - texto menor */
   margin: 8px 0 0;
   max-width: 42rem;
   color: var(--amp-shell-soft);
@@ -650,6 +987,7 @@ button {
 }
 
 .amp-shell-header-actions {
+  /* Ações do header - flex end */
   display: flex;
   flex: 1 1 320px;
   flex-wrap: wrap;
@@ -659,6 +997,7 @@ button {
 }
 
 .amp-shell-pulse {
+  /* Elemento com pulsação - badge com animação */
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -674,6 +1013,7 @@ button {
 
 .amp-shell-pulse-dot,
 .amp-terminal-live-dot {
+  /* Ponto pulsante - animação contínua */
   width: 9px;
   height: 9px;
   border-radius: 999px;
@@ -682,7 +1022,9 @@ button {
   animation: amp-shell-pulse 1.8s infinite;
 }
 
+/* === AMP SHELL THEME === */
 .amp-shell-theme {
+  /* Seletor de tema - flex inline */
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -694,6 +1036,7 @@ button {
 
 .amp-shell-theme-btn,
 .amp-shell-control-btn {
+  /* Botão base - com transição */
   border: 1px solid transparent;
   font: inherit;
   cursor: pointer;
@@ -701,6 +1044,7 @@ button {
 }
 
 .amp-shell-theme-btn {
+  /* Botão de tema - largo com padding */
   min-width: 66px;
   padding: 8px 12px;
   border-radius: 999px;
@@ -711,17 +1055,20 @@ button {
 }
 
 .amp-shell-theme-btn.is-active {
+  /* Tema ativo - com fundo azul */
   background: rgba(0, 120, 255, 0.1);
   color: var(--amp-shell-ink);
   border-color: var(--amp-shell-line-strong);
 }
 
 [data-theme="dark"] .amp-shell-theme-btn.is-active {
+  /* Tema ativo em dark - com fundo teal */
   background: rgba(0, 212, 170, 0.1);
 }
 
 .amp-shell-chip,
 .amp-shell-control-btn {
+  /* Botão de controle - flex center */
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -739,15 +1086,19 @@ button {
 
 .amp-shell-control-btn:hover,
 .amp-shell-theme-btn:hover {
+  /* Hover - eleva levemente */
   transform: translateY(-1px);
 }
 
 .amp-shell-control-btn.is-strong {
+  /* Botão forte - cor escura */
   color: var(--amp-shell-ink);
   border-color: var(--amp-shell-line-strong);
 }
 
+/* === AMP SHELL SIDEBAR === */
 .amp-shell-sidebar {
+  /* Sidebar principal - coluna com scroll */
   position: relative;
   min-height: 0;
   height: auto;
@@ -766,6 +1117,7 @@ button {
 }
 
 .amp-shell-sidebar-inner {
+  /* Conteúdo interno do sidebar - com gap */
   min-height: 100%;
   display: flex;
   flex-direction: column;
@@ -774,11 +1126,14 @@ button {
 }
 
 .amp-shell-sidebar.is-collapsed .amp-shell-brand {
+  /* Brand colapsado - center */
   grid-template-columns: 1fr;
   justify-items: center;
 }
 
+/* === AMP SHELL BRAND === */
 .amp-shell-brand {
+  /* Brand/logo - grid com icon e texto */
   display: grid;
   grid-template-columns: 54px minmax(0, 1fr);
   gap: 14px;
@@ -786,6 +1141,7 @@ button {
 }
 
 .amp-shell-brand-mark {
+  /* Ícone da brand - quadrado com borda */
   width: 54px;
   height: 54px;
   display: grid;
@@ -796,6 +1152,7 @@ button {
 }
 
 .amp-shell-brand-kicker {
+  /* Label da brand - pequeno */
   margin: 0;
   color: var(--amp-shell-soft);
   font-size: 0.66rem;
@@ -805,22 +1162,27 @@ button {
 
 .amp-shell-brand-copy h2,
 .amp-shell-brand-copy p {
+  /* Reset de margin */
   margin: 0;
 }
 
 .amp-shell-brand-copy h2 {
+  /* Título da brand */
   margin-top: 4px;
   font-size: 1.18rem;
   line-height: 1.02;
 }
 
 .amp-shell-brand-copy p:last-child {
+  /* Descrição da brand */
   margin-top: 4px;
   color: var(--amp-shell-soft);
   font-size: 0.9rem;
 }
 
+/* === AMP SHELL NAV === */
 .amp-shell-nav {
+  /* Navegação - grid com linha lateral */
   position: relative;
   display: grid;
   gap: 8px;
@@ -828,6 +1190,7 @@ button {
 }
 
 .amp-shell-nav::before {
+  /* Linha divisória vertical */
   content: "";
   position: absolute;
   left: 18px;
@@ -838,14 +1201,18 @@ button {
 }
 
 .amp-shell-sidebar.is-collapsed .amp-shell-nav {
+  /* Nav colapsado - sem padding */
   padding-left: 0;
 }
 
 .amp-shell-sidebar.is-collapsed .amp-shell-nav::before {
+  /* Linha colapsada - esconde */
   display: none;
 }
 
+/* === AMP SHELL LINK === */
 .amp-shell-link {
+  /* Link do nav - grid com icon e label */
   position: relative;
   display: grid;
   grid-template-columns: 40px minmax(0, 1fr);
@@ -861,12 +1228,14 @@ button {
 
 .amp-shell-link:hover,
 .amp-shell-link.is-active {
+  /* Hover/ativo - muda fundo e borda */
   border-color: var(--amp-shell-line-strong);
   background: var(--amp-shell-surface-strong);
   transform: translateX(2px);
 }
 
 .amp-shell-link.is-active::before {
+  /* Marcador ativo - barra lateral */
   content: "";
   position: absolute;
   left: -8px;
@@ -879,12 +1248,14 @@ button {
 }
 
 .amp-shell-link.is-collapsed {
+  /* Link colapsado - só icon */
   grid-template-columns: 1fr;
   justify-items: center;
   padding-inline: 8px;
 }
 
 .amp-shell-link-code {
+  /* Código/ícone do link - monospacee */
   width: 40px;
   height: 40px;
   display: grid;
@@ -899,50 +1270,61 @@ button {
 }
 
 .amp-shell-link.is-active .amp-shell-link-code {
+  /* Link ativo - ícone colorido */
   color: var(--amp-shell-accent);
   background: rgba(0, 165, 127, 0.08);
 }
 
 .amp-shell-link-label {
+  /* Label do link - texto */
   min-width: 0;
   font-size: 0.96rem;
   font-weight: 600;
 }
 
+/* === AMP SHELL CONSOLE E USER === */
 .amp-shell-console,
 .amp-shell-user-card {
+  /* Cards para console e usuário - com bordas */
   border: 1px solid var(--amp-shell-line);
   border-radius: 22px;
   background: var(--amp-shell-surface);
 }
 
 .amp-shell-console {
+  /* Console - coloca no final da sidebar */
   margin-top: auto;
   padding: 16px;
 }
 
 .amp-shell-console.is-collapsed {
+  /* Console colapsado - padding menor */
   padding: 12px 10px;
 }
 
 .amp-shell-console.is-collapsed .amp-shell-console-head {
+  /* Header colapsado - center */
   justify-content: center;
 }
 
 .amp-shell-console.is-collapsed .amp-shell-console-head p {
+  /* Label colapsada - esconde */
   display: none;
 }
 
 .amp-shell-console.is-collapsed .amp-shell-console-grid {
+  /* Grid colapsado - 1 coluna */
   grid-template-columns: 1fr;
 }
 
 .amp-shell-console.is-collapsed .amp-shell-console-grid article {
+  /* Item colapsado - center */
   padding-inline: 8px;
   text-align: center;
 }
 
 .amp-shell-console-head {
+  /* Cabeçalho do console - flex space-between */
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -952,10 +1334,12 @@ button {
 .amp-shell-console-head p,
 .amp-shell-user-copy p,
 .amp-shell-user-copy span {
+  /* Reset de margin para parágrafos */
   margin: 0;
 }
 
 .amp-shell-console-head p {
+  /* Label do console */
   color: var(--amp-shell-soft);
   font-size: 0.66rem;
   letter-spacing: 0.22em;
@@ -963,6 +1347,7 @@ button {
 }
 
 .amp-shell-console-head span {
+  /* Badge no console */
   padding: 4px 8px;
   border-radius: 999px;
   background: rgba(0, 165, 127, 0.1);
@@ -972,6 +1357,7 @@ button {
 }
 
 .amp-shell-console-grid {
+  /* Grid do console - 2 colunas */
   margin-top: 12px;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -979,6 +1365,7 @@ button {
 }
 
 .amp-shell-console-grid article {
+  /* Item do console com dados */
   padding: 10px 12px;
   border-radius: 14px;
   border: 1px solid var(--amp-shell-line);
@@ -986,6 +1373,7 @@ button {
 }
 
 .amp-shell-console-grid span {
+  /* Label do item console */
   display: block;
   color: var(--amp-shell-soft);
   font-size: 0.7rem;
@@ -994,25 +1382,32 @@ button {
 }
 
 .amp-shell-console-grid strong {
+  /* Valor do item console */
   display: block;
   margin-top: 6px;
   font-size: 0.95rem;
+  font-weight: 700;
+  
 }
 
 .amp-shell-user-card {
+  /* Card do usuário - flex com gap */
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 12px 14px;
+  flex-direction: row;
 }
 
 .amp-shell-user-card.is-collapsed {
+  /* User card colapsado - center */
   justify-content: center;
   padding-inline: 8px;
 }
 
 @media (min-width: 981px) {
   .amp-shell-sidebar {
+    /* Sidebar visível em desktop */
     transform: none !important;
     opacity: 1 !important;
   }
@@ -1020,12 +1415,14 @@ button {
 
 @media (max-width: 980px) {
   .amp-shell-layout {
+    /* Layout mobile - 1 coluna */
     grid-template-columns: 1fr;
     gap: 12px;
     padding: 12px;
   }
 
   .amp-shell-sidebar {
+    /* Sidebar offscreen - fixed positioning */
     position: fixed;
     left: 12px;
     top: 12px;
@@ -1039,17 +1436,20 @@ button {
   }
 
   .amp-shell-sidebar.is-mobile-open {
+    /* Sidebar aberto em mobile */
     transform: translateX(0);
     opacity: 1;
     pointer-events: auto;
   }
 
   .amp-shell-workspace {
+    /* Workspace mobile - altura calculada */
     min-height: calc(100vh - 24px);
   }
 }
 
 .amp-shell-user-avatar {
+  /* Avatar do usuário - gradiente com iniciais */
   width: 44px;
   height: 44px;
   display: grid;
@@ -1063,20 +1463,25 @@ button {
 }
 
 [data-theme="dark"] .amp-shell-user-avatar {
+  /* Avatar em dark mode - cor clara */
   color: #e8f2ff;
 }
 
 .amp-shell-user-copy p {
+  /* Nome do usuário */
   font-size: 0.98rem;
   font-weight: 700;
 }
 
 .amp-shell-user-copy span {
+  /* Email/info do usuário */
   color: var(--amp-shell-soft);
   font-size: 0.84rem;
 }
 
+/* === AMP TERMINAL VIEW === */
 .amp-terminal-view {
+  /* View principal do terminal - grid */
   display: grid;
   gap: 16px;
   padding: 4px 0 0;
@@ -1088,6 +1493,7 @@ button {
 .amp-terminal-ticker,
 .amp-terminal-kpi,
 .amp-terminal-panel {
+  /* Componentes base do terminal */
   border: 1px solid var(--amp-shell-line);
   background: var(--amp-shell-surface);
   backdrop-filter: blur(18px);
@@ -1095,6 +1501,7 @@ button {
 }
 
 .amp-terminal-intro {
+  /* Intro section - flex com wrap */
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
@@ -1104,16 +1511,19 @@ button {
 }
 
 .amp-terminal-intro-copy {
+  /* Cópia da intro - flex 1 */
   flex: 1 1 360px;
   min-width: 0;
 }
 
 .amp-terminal-intro-copy h2,
 .amp-terminal-intro-copy p {
+  /* Reset margin para títulos */
   margin: 0;
 }
 
 .amp-terminal-intro-copy h2 {
+  /* Título da intro - responsive */
   margin-top: 6px;
   font-size: clamp(1.75rem, 2.2vw, 2.4rem);
   line-height: 1;
@@ -1121,6 +1531,7 @@ button {
 }
 
 .amp-terminal-kicker {
+  /* Kicker da intro - label pequeno */
   margin: 0;
   color: var(--amp-shell-soft);
   font-size: 0.68rem;
@@ -1129,6 +1540,7 @@ button {
 }
 
 .amp-terminal-intro-copy p:last-child {
+  /* Descrição da intro */
   margin-top: 10px;
   max-width: 44rem;
   color: var(--amp-shell-soft);
@@ -1137,6 +1549,7 @@ button {
 }
 
 .amp-terminal-intro-meta {
+  /* Seção de meta da intro - grid responsive */
   display: grid;
   flex: 1 1 360px;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -1147,6 +1560,7 @@ button {
 
 .amp-terminal-live-chip,
 .amp-terminal-meta-widget {
+  /* Widgets de meta - flex column */
   min-height: 56px;
   display: flex;
   flex-direction: column;
@@ -1160,6 +1574,7 @@ button {
 }
 
 .amp-terminal-live-chip {
+  /* Chip live - flex row com ícone */
   flex-direction: row;
   align-items: center;
   gap: 8px;
@@ -1171,6 +1586,7 @@ button {
 
 .amp-terminal-meta-widget span,
 .amp-terminal-meta-widget small {
+  /* Labels do widget */
   color: var(--amp-shell-soft);
   font-size: 0.72rem;
   letter-spacing: 0.14em;
@@ -1178,11 +1594,13 @@ button {
 }
 
 .amp-terminal-meta-widget strong {
+  /* Valor do widget - monospace */
   font-family: var(--amp-shell-mono);
   font-size: 1.02rem;
 }
 
 .amp-terminal-ticker {
+  /* Ticker - carousel de valores */
   display: flex;
   flex-wrap: wrap;
   gap: 20px;
@@ -1193,6 +1611,7 @@ button {
 }
 
 .amp-terminal-ticker-item {
+  /* Item do ticker - flex */
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1202,11 +1621,13 @@ button {
 }
 
 .amp-terminal-ticker-label {
+  /* Label do ticker */
   color: var(--amp-shell-soft);
   text-transform: uppercase;
 }
 
 .amp-terminal-ticker-value {
+  /* Valor do ticker */
   color: var(--amp-shell-ink);
 }
 
@@ -1214,6 +1635,7 @@ button {
 .amp-terminal-kpi-delta.is-pos,
 .amp-terminal-break-row strong.is-pos,
 .amp-terminal-badge.is-pos {
+  /* Positivo - verde */
   color: var(--amp-shell-accent);
 }
 
@@ -1221,27 +1643,33 @@ button {
 .amp-terminal-kpi-delta.is-neg,
 .amp-terminal-break-row strong.is-neg,
 .amp-terminal-badge.is-neg {
+  /* Negativo - vermelho */
   color: var(--amp-shell-danger);
 }
 
 .amp-terminal-ticker-value.is-warn,
 .amp-terminal-kpi-delta.is-warn,
 .amp-terminal-badge.is-warn {
+  /* Aviso - laranja */
   color: var(--amp-shell-warn);
 }
 
 .amp-terminal-ticker-value.is-purple,
 .amp-terminal-kpi-delta.is-purple {
+  /* Roxo - destaque especial */
   color: var(--amp-shell-purple);
 }
 
+/* === AMP TERMINAL KPIS === */
 .amp-terminal-kpis {
+  /* Grid de KPIs - auto-fit */
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 14px;
 }
 
 .amp-terminal-kpi {
+  /* KPI card - com linha inferior */
   position: relative;
   overflow: hidden;
   padding: 14px 16px;
@@ -1249,6 +1677,7 @@ button {
 }
 
 .amp-terminal-kpi::after {
+  /* Linha de destaque inferior - gradiente */
   content: "";
   position: absolute;
   left: 0;
@@ -1260,6 +1689,7 @@ button {
 }
 
 .amp-terminal-kpi-label {
+  /* Label do KPI */
   color: var(--amp-shell-soft);
   font-size: 0.68rem;
   letter-spacing: 0.22em;
@@ -1267,6 +1697,7 @@ button {
 }
 
 .amp-terminal-kpi-value {
+  /* Valor do KPI - monospace grande */
   margin-top: 8px;
   min-height: 36px;
   display: flex;
@@ -1277,18 +1708,22 @@ button {
 }
 
 .amp-terminal-kpi-delta {
+  /* Delta/variação do KPI */
   margin-top: 6px;
   color: var(--amp-shell-soft);
   font-size: 0.84rem;
 }
 
+/* === AMP TERMINAL GRID === */
 .amp-terminal-grid {
+  /* Grid principal - 3 colunas */
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
 }
 
 .amp-terminal-column {
+  /* Coluna do grid - flex column */
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -1296,6 +1731,7 @@ button {
 }
 
 .amp-terminal-panel {
+  /* Painel do terminal - flex column */
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -1305,10 +1741,12 @@ button {
 }
 
 .amp-terminal-panel.is-grow {
+  /* Painel crescido - flex 1 */
   flex: 1;
 }
 
 .amp-terminal-panel-title {
+  /* Título do painel - com dot */
   display: flex;
   align-items: center;
   gap: 6px;
@@ -1319,6 +1757,7 @@ button {
 }
 
 .amp-terminal-panel-title::before {
+  /* Dot no título - circulinho */
   content: "";
   width: 6px;
   height: 6px;
@@ -1327,16 +1766,20 @@ button {
 }
 
 .amp-terminal-panel-body {
+  /* Conteúdo do painel - flex column */
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
 .amp-terminal-panel-body.is-grow {
+  /* Body crescido - flex 1 */
   flex: 1;
 }
 
+/* === AMP TERMINAL CHART === */
 .amp-terminal-chart-shell {
+  /* Container do gráfico */
   height: 178px;
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.04);
@@ -1346,16 +1789,19 @@ button {
 [data-theme="light"] .amp-terminal-board-col,
 [data-theme="light"] .amp-terminal-pipe-track,
 [data-theme="light"] .amp-terminal-revenue-track {
+  /* Versão light - background mais escuro */
   background: rgba(27, 36, 50, 0.04);
 }
 
 .amp-terminal-chart-grow {
+  /* Gráfico que cresce - flex 1 */
   flex: 1;
   min-height: 230px;
 }
 
 .amp-terminal-chart-loading,
 .amp-terminal-empty {
+  /* Estados vazio/carregando */
   min-height: 140px;
   display: grid;
   place-items: center;
@@ -1364,17 +1810,21 @@ button {
 }
 
 .amp-terminal-panel-foot {
+  /* Rodapé do painel */
   color: var(--amp-shell-soft);
   font-size: 0.82rem;
 }
 
 .amp-terminal-fluxo-value {
+  /* Valor de fluxo - monospace grande */
   font-family: var(--amp-shell-mono);
   font-size: 1.5rem;
   font-weight: 700;
 }
 
+/* === AMP TERMINAL DONUT E BREAKDOWN === */
 .amp-terminal-donut-wrap {
+  /* Container donut - flex wrap */
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -1382,12 +1832,14 @@ button {
 }
 
 .amp-terminal-donut-shell {
+  /* Shell do donut chart */
   width: 110px;
   height: 110px;
   flex: 0 0 110px;
 }
 
 .amp-terminal-breakdown {
+  /* Breakdown list - grid com gap */
   display: grid;
   gap: 8px;
   flex: 1;
@@ -1398,6 +1850,7 @@ button {
 .amp-terminal-feed-row,
 .amp-terminal-alert,
 .amp-terminal-tooltip-row {
+  /* Rows genéricos - flex space-between */
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1407,6 +1860,7 @@ button {
 .amp-terminal-break-row span,
 .amp-terminal-feed-row span,
 .amp-terminal-alert span {
+  /* Labels muted */
   color: var(--amp-shell-soft);
 }
 
@@ -1414,11 +1868,13 @@ button {
 .amp-terminal-revenue-list,
 .amp-terminal-feed,
 .amp-terminal-alert-list {
+  /* Listas do terminal - grid com gap */
   display: grid;
   gap: 10px;
 }
 
 .amp-terminal-pipe-row {
+  /* Row do pipeline - flex */
   display: flex;
   align-items: center;
   gap: 10px;
@@ -1428,10 +1884,12 @@ button {
 .amp-terminal-pipe-number,
 .amp-terminal-revenue-value,
 .is-mono {
+  /* Monospace para números */
   font-family: var(--amp-shell-mono);
 }
 
 .amp-terminal-pipe-label {
+  /* Label do pipeline */
   width: 84px;
   color: var(--amp-shell-soft);
   font-size: 0.82rem;
@@ -1439,6 +1897,7 @@ button {
 
 .amp-terminal-pipe-track,
 .amp-terminal-revenue-track {
+  /* Track de progresso - barra */
   flex: 1;
   overflow: hidden;
   border-radius: 999px;
@@ -1447,29 +1906,36 @@ button {
 
 .amp-terminal-pipe-fill,
 .amp-terminal-revenue-fill {
+  /* Preenchimento da barra */
   height: 100%;
   border-radius: 999px;
 }
 
 .amp-terminal-pipe-fill {
+  /* Fill padrão - azul para verde */
   background: linear-gradient(90deg, var(--amp-shell-blue), var(--amp-shell-accent));
 }
 
 .amp-terminal-pipe-fill.is-pos {
+  /* Fill positivo - verde para verde claro */
   background: linear-gradient(90deg, var(--amp-shell-accent), #00ffb2);
 }
 
 .amp-terminal-pipe-fill.is-warn {
+  /* Fill aviso - laranja para amarelo */
   background: linear-gradient(90deg, var(--amp-shell-warn), #ffd84d);
 }
 
+/* === AMP TERMINAL BOARD === */
 .amp-terminal-board {
+  /* Board grid - 3 colunas */
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
 }
 
 .amp-terminal-board-col {
+  /* Coluna do board com fundo */
   padding: 10px;
   border-radius: 14px;
   display: grid;
@@ -1477,6 +1943,7 @@ button {
 }
 
 .amp-terminal-board-head {
+  /* Cabeçalho da coluna board */
   color: var(--amp-shell-soft);
   font-size: 0.68rem;
   letter-spacing: 0.18em;
@@ -1484,6 +1951,7 @@ button {
 }
 
 .amp-terminal-board-empty {
+  /* Board vazio - mensagem */
   color: var(--amp-shell-soft);
   font-size: 0.82rem;
 }
@@ -1491,6 +1959,7 @@ button {
 .amp-terminal-order,
 .amp-terminal-feed-row,
 .amp-terminal-alert {
+  /* Cards de ordem/feed/alerta */
   padding: 10px 12px;
   border-radius: 14px;
   border: 1px solid var(--amp-shell-line);
@@ -1500,22 +1969,27 @@ button {
 .amp-terminal-order strong,
 .amp-terminal-feed-row strong,
 .amp-terminal-alert strong {
+  /* Texto forte em cards */
   display: block;
 }
 
 .amp-terminal-order span,
 .amp-terminal-order small {
+  /* Texto pequeno em ordem */
   display: block;
   color: var(--amp-shell-soft);
 }
 
+/* === AMP TERMINAL OVERDUE === */
 .amp-terminal-overdue {
+  /* Container overdue - flex */
   display: flex;
   align-items: center;
   gap: 14px;
 }
 
 .amp-terminal-overdue-big {
+  /* Número grande de overdue */
   font-family: var(--amp-shell-mono);
   font-size: 2.4rem;
   font-weight: 700;
@@ -1523,27 +1997,33 @@ button {
 }
 
 .amp-terminal-overdue-info {
+  /* Info de overdue */
   font-size: 0.92rem;
 }
 
 .amp-terminal-overdue-sub,
 .amp-terminal-gauge-note {
+  /* Nota/sub - texto pequeno */
   color: var(--amp-shell-soft);
   font-size: 0.82rem;
 }
 
 .amp-terminal-overdue-sub span {
+  /* Valor em subitem overdue */
   color: var(--amp-shell-warn);
   font-family: var(--amp-shell-mono);
 }
 
+/* === AMP TERMINAL GAUGE/RING === */
 .amp-terminal-gauge-wrap {
+  /* Wrapper do gauge - grid center */
   display: grid;
   place-items: center;
   gap: 10px;
 }
 
 .amp-terminal-ring {
+  /* Ring gauge - conic-gradient */
   position: relative;
   width: 154px;
   height: 154px;
@@ -1557,6 +2037,7 @@ button {
 }
 
 .amp-terminal-ring::before {
+  /* Centro do ring gauge */
   content: "";
   position: absolute;
   inset: 18px;
@@ -1566,6 +2047,7 @@ button {
 }
 
 .amp-terminal-ring span {
+  /* Valor do ring gauge */
   position: relative;
   z-index: 1;
   font-family: var(--amp-shell-mono);
@@ -1573,7 +2055,9 @@ button {
   font-weight: 700;
 }
 
+/* === AMP TERMINAL TABLE === */
 .amp-terminal-table {
+  /* Tabela responsiva */
   width: 100%;
   border-collapse: collapse;
   display: block;
@@ -1582,12 +2066,14 @@ button {
 
 .amp-terminal-table thead,
 .amp-terminal-table tbody {
+  /* Thead e tbody como table */
   display: table;
   width: 100%;
   table-layout: fixed;
 }
 
 .amp-terminal-table th {
+  /* Header da tabela */
   padding: 4px 2px 8px;
   color: var(--amp-shell-soft);
   text-align: left;
@@ -1597,12 +2083,15 @@ button {
 }
 
 .amp-terminal-table td {
+  /* Cell da tabela */
   padding: 9px 2px;
   border-top: 1px solid var(--amp-shell-line);
   font-size: 0.9rem;
 }
 
+/* === AMP TERMINAL BADGE E OUTRAS === */
 .amp-terminal-badge {
+  /* Badge genérico - com background */
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1616,18 +2105,21 @@ button {
 }
 
 .amp-terminal-revenue-label {
+  /* Label de revenue */
   width: 88px;
   color: var(--amp-shell-soft);
   font-size: 0.82rem;
 }
 
 .amp-terminal-feed-row em {
+  /* Em/ênfase em feed row */
   color: var(--amp-shell-ink);
   font-family: var(--amp-shell-mono);
   font-style: normal;
 }
 
 .amp-terminal-error {
+  /* Mensagem de erro - vermelho suave */
   margin-top: auto;
   padding: 10px 12px;
   border-radius: 14px;
@@ -1638,6 +2130,7 @@ button {
 }
 
 .amp-terminal-tooltip {
+  /* Tooltip do terminal */
   min-width: 180px;
   padding: 10px 12px;
   border-radius: 14px;
@@ -1648,15 +2141,18 @@ button {
 }
 
 .amp-terminal-tooltip p {
+  /* Parágrafo no tooltip */
   margin: 0 0 6px;
   font-weight: 700;
 }
 
 .amp-terminal-tooltip-row + .amp-terminal-tooltip-row {
+  /* Espaçamento entre rows */
   margin-top: 4px;
 }
 
 .amp-terminal-pulse {
+  /* Pulso/sheen animation */
   display: inline-flex;
   height: 14px;
   border-radius: 999px;
@@ -1664,13 +2160,16 @@ button {
   animation: amp-terminal-sheen 1.2s ease-in-out infinite alternate;
 }
 
+/* === ANIMAÇÕES === */
 @keyframes amp-shell-spin {
+  /* Rotação infinita - spinner */
   to {
     transform: rotate(360deg);
   }
 }
 
 @keyframes amp-shell-pulse {
+  /* Pulsação com box-shadow expansivo */
   0% {
     box-shadow: 0 0 0 0 rgba(0, 212, 170, 0.4);
   }
@@ -1683,6 +2182,7 @@ button {
 }
 
 @keyframes amp-terminal-sheen {
+  /* Efeito sheen - opacidade */
   from {
     opacity: 0.38;
   }
@@ -1691,7 +2191,9 @@ button {
   }
 }
 
+/* === MEDIA QUERIES - RESPONSIVIDADE === */
 @media (max-width: 1520px) {
+  /* Tablets large - grid 2 colunas */
   .amp-terminal-grid {
     grid-template-columns: 1fr 1fr;
   }
@@ -1702,6 +2204,7 @@ button {
 }
 
 @media (max-width: 1320px) {
+  /* Tablets medium - ajustes */
   .amp-shell-header-actions {
     justify-content: flex-start;
   }
@@ -1712,6 +2215,7 @@ button {
 }
 
 @media (max-width: 1180px) {
+  /* Tablets small - layout vertical */
   .amp-shell-header,
   .amp-terminal-intro {
     flex-direction: column;
@@ -1727,6 +2231,7 @@ button {
 }
 
 @media (max-width: 760px) {
+  /* Mobile - ajustes finais */
   .amp-shell-header-wrap,
   .amp-shell-scroll {
     padding-inline: 10px;
@@ -6153,3 +6658,26 @@ body[data-theme="light"] .balance-card {
     font-size: 0.92rem;
   }
 }
+
+/* Dashboard theme classes */
+.amp-bg        { background: var(--amp-bg); }
+.amp-card      { background: var(--amp-card); border: 1px solid var(--amp-border); box-shadow: var(--amp-shadow); }
+.amp-text      { color: var(--amp-text); }
+.amp-muted     { color: var(--amp-muted); }
+.amp-sub       { color: var(--amp-sub); }
+.amp-orange    { color: var(--amp-orange); }
+.amp-green     { color: var(--amp-green); }
+.amp-red       { color: var(--amp-red); }
+.amp-cell-bg   { background: var(--amp-bar); border-radius: 8px; }
+.amp-divider   { height: 1px; background: var(--amp-border); }
+.amp-pipe-track{ height:5px; border-radius:3px; flex:1; background:var(--amp-bar); }
+.amp-pipe-fill { height:5px; border-radius:3px; background:var(--amp-orange); }
+.amp-label     { font-size:9px; font-weight:700; letter-spacing:2.5px;
+                 text-transform:uppercase; color:var(--amp-muted); }
+.amp-kpi-val   { font-size:24px; font-weight:800; color:var(--amp-text); line-height:1.1; }
+.amp-tooltip   { background:var(--amp-card); border:1px solid var(--amp-border);
+                 border-radius:8px; padding:8px 12px; color:var(--amp-text);
+                 box-shadow:var(--amp-shadow); }
+::-webkit-scrollbar       { width:4px; height:4px; }
+::-webkit-scrollbar-thumb { background:var(--amp-orange); border-radius:2px; }
+::-webkit-scrollbar-track { background:transparent; }

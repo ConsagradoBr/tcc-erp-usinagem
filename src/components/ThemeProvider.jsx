@@ -13,6 +13,7 @@ export function ThemeProvider({ children }) {
     document.documentElement.setAttribute("data-theme", theme);
     document.body?.setAttribute("data-theme", theme);
     document.documentElement.style.colorScheme = theme;
+    document.documentElement.classList.toggle("dark", theme === "dark");
     if (document.body) {
       document.body.style.colorScheme = theme;
     }

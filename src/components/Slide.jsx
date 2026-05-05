@@ -1,5 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import { clearSession } from "../auth";
 
 import {
   IconClients,
@@ -27,7 +28,7 @@ export default function Slide({ isOpen, onClose }) {
   if (!isOpen) return null;
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
+    clearSession();
     navigate("/login");
   };
 

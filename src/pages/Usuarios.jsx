@@ -23,6 +23,7 @@ function AccessModal({
   onSubmit,
 }) {
   const title = editingId ? "Editar usuario" : "Novo usuario";
+  const [showPassword, setShowPassword] = useState(false);
 
   return (
     <div className="amp-terminal-modal-shell">
@@ -50,13 +51,22 @@ function AccessModal({
 
           <label className="amp-terminal-field">
             <span>Senha {editingId ? "(deixe em branco para manter)" : ""}</span>
-            <input
-              type="password"
-              value={form.senha}
-              onChange={onChange("senha")}
-              placeholder={editingId ? "Manter senha atual" : "Defina a senha de acesso"}
-              required={!editingId}
-            />
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                value={form.senha}
+                onChange={onChange("senha")}
+                placeholder={editingId ? "Manter senha atual" : "Defina a senha de acesso"}
+                required={!editingId}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((current) => !current)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-blue-600 hover:text-blue-800"
+              >
+                {showPassword ? "Ocultar" : "Mostrar"}
+              </button>
+            </div>
           </label>
 
           <label className="amp-terminal-field">
