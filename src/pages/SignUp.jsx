@@ -1,13 +1,11 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
+import logo from "../assets/gif_transparente.png";
 
 import api from "../api";
 import {
   AuthSideImg,
-  IconApple,
-  IconFacebook,
-  IconGoogle,
   LogoMain,
 } from "../assets/assets-map";
 
@@ -36,13 +34,13 @@ export default function SignUp() {
   }
 
   return (
-    <div className="flex min-h-screen w-full bg-gray-100">
-      <div className="hidden flex-1 items-center justify-center bg-white lg:flex">
-        <img src={AuthSideImg} alt="Ilustracao de cadastro" className="max-w-md" />
+    <div className="flex flex-col md:flex-row min-h-screen w-full bg-gray-100">
+      <div className="hidden md:flex md:flex-1 items-center justify-center bg-white">
+        <img src={AuthSideImg} alt="Ilustracao de cadastro" className="max-w-md w-11/12 md:w-full" />
       </div>
 
-      <div className="flex flex-1 flex-col items-center justify-center p-8">
-        <img src={LogoMain} alt="Logo AMP Usinagem" className="mb-8 w-40" />
+      <div className="flex flex-1 flex-col items-center justify-center px-4 sm:px-8 py-8 md:py-0">
+        <img src={logo} alt="Logo AMP Usinagem" className="mb-8 w-40" />
 
         <form onSubmit={handleSignup} className="w-full max-w-md space-y-4">
           <input
@@ -85,24 +83,6 @@ export default function SignUp() {
             Criar conta
           </button>
         </form>
-
-        <div className="mt-6 flex gap-4">
-          <img
-            src={IconGoogle}
-            alt="Entrar com Google"
-            className="w-10 cursor-pointer rounded-xl bg-gray-200 p-2"
-          />
-          <img
-            src={IconApple}
-            alt="Entrar com Apple"
-            className="w-10 cursor-pointer rounded-xl bg-gray-200 p-2"
-          />
-          <img
-            src={IconFacebook}
-            alt="Entrar com Facebook"
-            className="w-10 cursor-pointer rounded-xl bg-gray-200 p-2"
-          />
-        </div>
       </div>
     </div>
   );
