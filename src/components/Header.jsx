@@ -3,7 +3,6 @@
  * Tema laranja — Light/Dark toggle integrado
  */
 
-import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { clearSession } from "../auth";
 import { useTheme } from "./ThemeProvider";

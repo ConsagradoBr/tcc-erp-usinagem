@@ -4,10 +4,7 @@ import toast from "react-hot-toast";
 import logo from "../assets/gif_transparente.png";
 
 import api from "../api";
-import {
-  AuthSideImg,
-  LogoMain,
-} from "../assets/assets-map";
+import { AuthSideImg } from "../assets/assets-map";
 
 export default function SignUp() {
   const navigate = useNavigate();

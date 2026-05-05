@@ -1,9 +1,40 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   LineChart, Line, BarChart, Bar,
   XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from "recharts";
+
+import api from "../api";
+import { getStoredUser, hasPermission } from "../auth";
+
+const MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+const STATUS_ABERTOS_OS = new Set(["solicitado", "em_andamento", "revisao"]);
+
+function ultimosMeses(total = 6) {
+  const hoje = new Date();
+  return Array.from({ length: total }, (_, index) => {
+    const data = new Date(hoje.getFullYear(), hoje.getMonth() - (total - 1 - index), 1);
+    return {
+      mes: MESES[data.getMonth()],
+      chave: `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, "0")}`,
+    };
+  });
+}
+
+function toNumber(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : 0;
+}
+
+function isAtrasada(ordem) {
+  if (!ordem?.prazo || ordem.status === "concluido") return false;
+  const prazo = new Date(`${ordem.prazo}T00:00:00`);
+  if (Number.isNaN(prazo.getTime())) return false;
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  return prazo < hoje;
+}
 
 /* ── relógio ao vivo ── */
 function useClock() {
@@ -38,30 +69,179 @@ export default function Dashboard() {
 
   const now = useClock();  
   const navigate = useNavigate();
+  const user = getStoredUser();
+  const canClientes = hasPermission(user, "clientes");
+  const canFinanceiro = hasPermission(user, "financeiro");
+  const canOS = hasPermission(user, "ordens_servico");
+  const canOrcamentos = hasPermission(user, "orcamentos");
+  const [dados, setDados] = useState({
+    clientes: [],
+    financeiro: [],
+    financeiroResumo: null,
+    orcamentosResumo: null,
+    ordens: [],
+  });
+  const [erroCarga, setErroCarga] = useState(false);
 
-  /*
-     DADOS — substitua cada linha pelos seus hooks/variáveis reais
-  */
-  const clientes         = 0;   // TODO
-  const recebidoMTD      = 0;   // TODO
-  const atrasosSensiveis = 0;   // TODO
-  const aprovadoAtivo    = 0;   // TODO
-  const propostasDecisao = 0;   // TODO
-  const ticketOS         = 0;   // TODO
-  const osConcluidas     = 0;   // TODO
-  const osTotais         = 0;   // TODO
-  const osAtraso         = 0;   // TODO
-  const osEntrada        = [];  // TODO
-  const osUsinagem       = [];  // TODO
-  const osFechamento     = [];  // TODO
-  const faturamento      = [];  // TODO: [{ mes:"Jan", valor:1500 }, ...]
-  const capacidade       = [];  // TODO: [{ etapa:"Entrada", carga:4, capacidade:6 }, ...]
-  const pipeline         = { rascunho:0, enviado:0, aprovado:0 }; // TODO
-  const fluxoCaixa       = { total:0, entradas:0, saidas:0, saldo:0 }; // TODO
-  const alertas          = [];  // TODO: [{ titulo:"...", descricao:"..." }, ...]
-  const receitaClientes  = [];  // TODO: [{ nome:"Cliente X", receita:5000 }, ...]
-  const backlog          = 0;   // TODO
-  const comercialAberto  = 0;   // TODO
+  useEffect(() => {
+    let ativo = true;
+    const requests = [];
+
+    if (canClientes) requests.push(["clientes", api.get("/clientes")]);
+    if (canFinanceiro) {
+      requests.push(["financeiro", api.get("/financeiro")]);
+      requests.push(["financeiroResumo", api.get("/financeiro/resumo")]);
+    }
+    if (canOrcamentos) {
+      requests.push(["orcamentosResumo", api.get("/orcamentos/resumo")]);
+    }
+    if (canOS) requests.push(["ordens", api.get("/ordens-servico")]);
+
+    Promise.allSettled(requests.map(([, request]) => request)).then((results) => {
+      if (!ativo) return;
+      setErroCarga(results.some((result) => result.status === "rejected"));
+      setDados((prev) => {
+        const next = { ...prev };
+        results.forEach((result, index) => {
+          if (result.status === "fulfilled") {
+            next[requests[index][0]] = result.value.data;
+          }
+        });
+        return next;
+      });
+    });
+
+    return () => {
+      ativo = false;
+    };
+  }, [canClientes, canFinanceiro, canOS, canOrcamentos]);
+
+  const metricas = useMemo(() => {
+    const listaClientes = Array.isArray(dados.clientes) ? dados.clientes : [];
+    const financeiro = Array.isArray(dados.financeiro) ? dados.financeiro : [];
+    const ordens = Array.isArray(dados.ordens) ? dados.ordens : [];
+    const financeiroResumo = dados.financeiroResumo || {};
+    const orcamentosResumo = dados.orcamentosResumo || {};
+
+    const meses = ultimosMeses();
+    const faturamento = meses.map(({ mes, chave }) => ({
+      mes,
+      valor: Math.round(
+        financeiro
+          .filter((item) => item.tipo === "receber" && item.data_pagamento?.startsWith(chave))
+          .reduce((sum, item) => sum + toNumber(item.valor), 0)
+      ),
+    }));
+
+    const receitasPorCliente = new Map();
+    financeiro
+      .filter((item) => item.tipo === "receber")
+      .forEach((item) => {
+        const nome = item.cliente_nome || "Sem cliente";
+        receitasPorCliente.set(nome, (receitasPorCliente.get(nome) || 0) + toNumber(item.valor_total || item.valor));
+      });
+
+    const osEntrada = ordens.filter((ordem) => ordem.status === "solicitado");
+    const osUsinagem = ordens.filter((ordem) => ordem.status === "em_andamento");
+    const osFechamento = ordens.filter((ordem) => ordem.status === "revisao");
+    const osConcluidas = ordens.filter((ordem) => ordem.status === "concluido").length;
+    const osAtraso = ordens.filter(isAtrasada).length;
+    const backlog = ordens.filter((ordem) => STATUS_ABERTOS_OS.has(ordem.status)).length;
+    const aprovadoAtivo = toNumber(
+      orcamentosResumo.valor_aprovado_ativo ?? orcamentosResumo.valor_aprovado
+    );
+    const comercialAberto = toNumber(orcamentosResumo.rascunho) + toNumber(orcamentosResumo.enviado);
+    const entradas = toNumber(financeiroResumo.a_receber);
+    const saidas = toNumber(financeiroResumo.a_pagar);
+
+    const alertas = [];
+    if (erroCarga) {
+      alertas.push({
+        titulo: "Carga parcial do dashboard",
+        descricao: "Algum módulo não respondeu ou está sem permissão.",
+      });
+    }
+    if (toNumber(financeiroResumo.atrasados) > 0) {
+      alertas.push({
+        titulo: "Recebimentos em atraso",
+        descricao: `${toNumber(financeiroResumo.atrasados)} título(s) precisam de atenção.`,
+      });
+    }
+    if (osAtraso > 0) {
+      alertas.push({
+        titulo: "Ordens fora do prazo",
+        descricao: `${osAtraso} OS em atraso operacional.`,
+      });
+    }
+    if (comercialAberto > 0) {
+      alertas.push({
+        titulo: "Pipeline aberto",
+        descricao: `${comercialAberto} proposta(s) aguardando decisão.`,
+      });
+    }
+
+    return {
+      clientes: listaClientes.length,
+      recebidoMTD: toNumber(financeiroResumo.recebido_mes),
+      atrasosSensiveis: toNumber(financeiroResumo.atrasados),
+      aprovadoAtivo,
+      propostasDecisao: comercialAberto,
+      ticketOS: ordens.length > 0 ? aprovadoAtivo / ordens.length : 0,
+      osConcluidas,
+      osTotais: ordens.length,
+      osAtraso,
+      osEntrada,
+      osUsinagem,
+      osFechamento,
+      faturamento,
+      capacidade: [
+        { etapa: "Entrada", carga: osEntrada.length, capacidade: Math.max(6, osEntrada.length) },
+        { etapa: "Usinagem", carga: osUsinagem.length, capacidade: Math.max(6, osUsinagem.length) },
+        { etapa: "Fechamento", carga: osFechamento.length, capacidade: Math.max(6, osFechamento.length) },
+      ],
+      pipeline: {
+        rascunho: toNumber(orcamentosResumo.rascunho),
+        enviado: toNumber(orcamentosResumo.enviado),
+        aprovado: toNumber(orcamentosResumo.aprovado),
+      },
+      fluxoCaixa: {
+        total: entradas - saidas,
+        entradas,
+        saidas,
+        saldo: entradas - saidas,
+      },
+      alertas: alertas.slice(0, 5),
+      receitaClientes: [...receitasPorCliente.entries()]
+        .map(([nome, receita]) => ({ nome, receita: Math.round(receita) }))
+        .sort((a, b) => b.receita - a.receita)
+        .slice(0, 5),
+      backlog,
+      comercialAberto,
+    };
+  }, [dados, erroCarga]);
+
+  const {
+    clientes,
+    recebidoMTD,
+    atrasosSensiveis,
+    aprovadoAtivo,
+    propostasDecisao,
+    ticketOS,
+    osConcluidas,
+    osTotais,
+    osAtraso,
+    osEntrada,
+    osUsinagem,
+    osFechamento,
+    faturamento,
+    capacidade,
+    pipeline,
+    fluxoCaixa,
+    alertas,
+    receitaClientes,
+    backlog,
+    comercialAberto,
+  } = metricas;
 
 
   const throughput = osTotais > 0 ? Math.round((osConcluidas / osTotais) * 100) : 0;
@@ -152,7 +332,7 @@ export default function Dashboard() {
               style={{ borderLeftColor: "#22c55e" }}
             >
               <p className="amp-label">Ticket por OS</p>
-              <p className="amp-kpi-val">{`${ticketOS}%`}</p>
+              <p className="amp-kpi-val">{fmt(ticketOS)}</p>
               <p className="text-xs amp-orange">{osConcluidas} concluída(s) →</p>
             </button>
           </div>
