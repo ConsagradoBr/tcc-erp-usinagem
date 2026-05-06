@@ -93,7 +93,7 @@ export default function ProtectedLayout() {
   }
 
   return (
-    <div className={`amp-shell-layout ${open ? "is-expanded" : "is-collapsed"}`}>
+    <div className={`amp-ui-scale amp-shell-layout ${open ? "is-expanded" : "is-collapsed"}`}>
       <Sidebar user={user} open={open} mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
 
       <div className="amp-shell-workspace">

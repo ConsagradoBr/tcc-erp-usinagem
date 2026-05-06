@@ -728,24 +728,29 @@ function ModalCliente({ cliente, isImportado, onClose, onSalvo }) {
 
   return (
     <ModalContainer>
-      <div className="cm-surface w-full max-w-4xl rounded-[34px] shadow-[0_24px_80px_rgba(22,18,14,0.28)]">
-        <div className="grid gap-0 lg:grid-cols-[minmax(0,1.5fr)_20rem]">
-          <div className="p-6 sm:p-7">
+      <div className="cm-surface amp-client-modal w-full max-w-[1180px] rounded-[24px] shadow-[0_24px_80px_rgba(22,18,14,0.28)]">
+        <div>
+          <div className="p-4 sm:p-5">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="cm-label">{cliente?.id ? "Edição guiada" : "Novo cliente"}</p>
-                <h2 className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-[var(--cm-text)]">
+                <h2 className="mt-2 text-xl font-semibold tracking-[-0.04em] text-[var(--cm-text)]">
                   {cliente?.id ? "Refinar cadastro da carteira" : "Abrir nova frente de relacionamento"}
                 </h2>
-                <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--cm-muted)]">
-                  O cadastro agora nasce com foco operacional: contato, documento, endereço e prontidão para comercial,
-                  produção e financeiro.
-                </p>
+              </div>
+              <div className="hidden items-center gap-3 text-right sm:flex">
+                <div>
+                  <p className="cm-label">Completude</p>
+                  <strong className="text-2xl text-[var(--cm-text)]">{completude.score}%</strong>
+                </div>
+                <ToneBadge tone={completude.completo ? "positive" : "warning"}>
+                  {completude.completo ? "Completo" : "Em evolução"}
+                </ToneBadge>
               </div>
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-full border border-[color:var(--cm-line)] bg-white/72 p-3 text-[var(--cm-muted)] transition hover:text-[var(--cm-text)]"
+                className="rounded-full border border-[color:var(--cm-line)] bg-white/72 p-2 text-[var(--cm-muted)] transition hover:text-[var(--cm-text)]"
                 aria-label="Fechar formulário de cliente"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
@@ -755,14 +760,14 @@ function ModalCliente({ cliente, isImportado, onClose, onSalvo }) {
             </div>
 
             {isImportado && (
-              <div className="mt-5 rounded-[20px] border border-[rgba(180,99,56,0.18)] bg-[rgba(180,99,56,0.12)] px-4 py-3 text-sm text-[var(--cm-accent)]">
+              <div className="mt-3 rounded-[14px] border border-[rgba(180,99,56,0.18)] bg-[rgba(180,99,56,0.12)] px-3 py-2 text-sm text-[var(--cm-accent)]">
                 Dados importados da NF-e. Revise os campos e confirme para consolidar o cliente na carteira.
               </div>
             )}
 
             {notif && (
               <div
-                className={`mt-5 rounded-[20px] px-4 py-3 text-sm ${
+                className={`mt-3 rounded-[14px] px-3 py-2 text-sm ${
                   notif.tipo === "erro"
                     ? "border border-[rgba(187,103,80,0.18)] bg-[rgba(187,103,80,0.12)] text-[var(--cm-danger)]"
                     : "border border-[rgba(63,141,114,0.18)] bg-[rgba(63,141,114,0.12)] text-[var(--cm-positive)]"
@@ -772,7 +777,7 @@ function ModalCliente({ cliente, isImportado, onClose, onSalvo }) {
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="mt-6 space-y-5">
+            <form onSubmit={handleSubmit} className="mt-4 space-y-3">
               <div>
                 <label htmlFor={`${idBase}-nome`} className={LABEL_BASE}>
                   Nome <span className="text-[var(--cm-danger)]">*</span>
@@ -787,7 +792,7 @@ function ModalCliente({ cliente, isImportado, onClose, onSalvo }) {
                 />
               </div>
 
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-3 sm:grid-cols-4">
                 <div>
                   <label htmlFor={`${idBase}-documento`} className={LABEL_BASE}>CPF / CNPJ</label>
                   <input
@@ -810,9 +815,6 @@ function ModalCliente({ cliente, isImportado, onClose, onSalvo }) {
                     className={INPUT_BASE}
                   />
                 </div>
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
                 <div>
                   <label htmlFor={`${idBase}-email`} className={LABEL_BASE}>E-mail</label>
                   <input
@@ -836,18 +838,17 @@ function ModalCliente({ cliente, isImportado, onClose, onSalvo }) {
                 </div>
               </div>
 
-              <div className="rounded-[22px] border border-[color:var(--cm-line)] bg-[var(--cm-input-bg)] p-4">
+              <div className="rounded-[18px] border border-[color:var(--cm-line)] bg-[var(--cm-input-bg)] p-3">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <p className={LABEL_BASE}>Endereço fiscal NF-e</p>
-                    <p className="mt-1 text-xs text-[var(--cm-muted)]">Campos estruturados do destinatário/emitente para cadastro fiscal completo.</p>
                   </div>
                   <ToneBadge tone={form.cep && form.municipio && form.uf ? "positive" : "warning"}>
                     {form.cep && form.municipio && form.uf ? "Fiscal completo" : "Completar fiscal"}
                   </ToneBadge>
                 </div>
 
-                <div className="mt-4 grid gap-3 sm:grid-cols-6">
+                <div className="mt-3 grid gap-3 sm:grid-cols-12">
                   <div className="sm:col-span-4">
                     <label htmlFor={`${idBase}-logradouro`} className={LABEL_BASE}>Logradouro</label>
                     <input
@@ -977,18 +978,18 @@ function ModalCliente({ cliente, isImportado, onClose, onSalvo }) {
                 </div>
               </div>
 
-              <div className="flex flex-wrap gap-3 pt-2">
+              <div className="flex flex-wrap justify-end gap-3 pt-1">
                 <button
                   type="button"
                   onClick={onClose}
-                  className="rounded-full border border-[color:var(--cm-line)] bg-white/74 px-5 py-3 text-sm font-semibold text-[var(--cm-text)] transition hover:bg-white"
+                  className="rounded-full border border-[color:var(--cm-line)] bg-white/74 px-4 py-2 text-sm font-semibold text-[var(--cm-text)] transition hover:bg-white"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={salvando}
-                  className="rounded-full bg-[var(--cm-text)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-92 disabled:cursor-not-allowed disabled:opacity-55"
+                  className="rounded-full bg-[var(--cm-accent)] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-92 disabled:cursor-not-allowed disabled:opacity-55"
                 >
                   {salvando ? "Salvando..." : cliente?.id ? "Salvar alterações" : "Cadastrar cliente"}
                 </button>
@@ -996,46 +997,6 @@ function ModalCliente({ cliente, isImportado, onClose, onSalvo }) {
             </form>
           </div>
 
-          <aside className="rounded-b-[34px] border-t border-[color:var(--cm-line)] bg-[rgba(37,42,49,0.96)] p-6 text-white lg:rounded-r-[34px] lg:rounded-bl-none lg:border-l lg:border-t-0">
-            <p className="text-[11px] uppercase tracking-[0.18em] text-white/52">Prontidão do cadastro</p>
-            <div className="mt-4 flex items-end justify-between gap-3">
-              <div>
-                <p className="text-4xl font-semibold tracking-[-0.05em]">{completude.score}%</p>
-                <p className="mt-2 text-sm text-white/68">
-                  {completude.completo ? "Cadastro pronto para o fluxo completo." : "Ainda há pontos para destravar."}
-                </p>
-              </div>
-              <ToneBadge tone={completude.completo ? "positive" : "warning"}>
-                {completude.completo ? "Completo" : "Em evolução"}
-              </ToneBadge>
-            </div>
-
-            <div className="mt-5 space-y-3 rounded-[24px] border border-white/10 bg-white/6 p-4">
-              <InfoItem label="Nome" value={form.nome || "Aguardando preenchimento"} subtle={!form.nome} />
-              <InfoItem label="Documento" value={form.documento || "Pendente"} subtle={!form.documento} />
-              <InfoItem label="IE" value={form.inscricao_estadual || "Pendente"} subtle={!form.inscricao_estadual} />
-              <InfoItem label="Contato" value={form.telefone || form.email || "Sem canal definido"} subtle={!form.telefone && !form.email} />
-              <InfoItem
-                label="Endereço"
-                value={form.endereco || montarEnderecoFiscal(form) || "Pendente"}
-                subtle={!form.endereco && !montarEnderecoFiscal(form)}
-                title={form.endereco || montarEnderecoFiscal(form) || ""}
-              />
-            </div>
-
-            {!completude.completo && (
-              <div className="mt-5 rounded-[24px] border border-white/10 bg-white/6 p-4">
-                <p className="text-[11px] uppercase tracking-[0.18em] text-white/52">Campos que faltam</p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {completude.faltantes.map((item) => (
-                    <span key={item} className="rounded-full border border-white/10 bg-white/8 px-3 py-1 text-xs uppercase tracking-[0.14em] text-white/72">
-                      {item}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </aside>
         </div>
       </div>
     </ModalContainer>

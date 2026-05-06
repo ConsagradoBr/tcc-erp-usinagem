@@ -161,6 +161,13 @@ export default function Sidebar({ user, open, mobileOpen, onClose }) {
         .dark .sb-div { background: #262638; }
 
         .sb-nav { flex: 1; overflow-y: auto; padding: 8px 7px 0; }
+        .amp-shell-sidebar.is-collapsed .sb-nav {
+          display: grid;
+          justify-items: center;
+          align-content: start;
+          gap: 10px;
+          padding-inline: 0;
+        }
         .sb-nav::-webkit-scrollbar { width: 3px; }
         .sb-nav::-webkit-scrollbar-thumb { background: #f97316; border-radius: 2px; }
 
@@ -226,6 +233,20 @@ export default function Sidebar({ user, open, mobileOpen, onClose }) {
         .amp-shell-sidebar.is-collapsed .sb-user {
           flex-direction: column;
           gap: 8px;
+        }
+        .amp-shell-sidebar.is-collapsed .sb-item {
+          width: 56px;
+          height: 56px;
+          margin: 0;
+          border-left-width: 0;
+          border-radius: 14px;
+        }
+        .amp-shell-sidebar.is-collapsed .sb-badge {
+          width: 36px;
+          height: 36px;
+          min-width: 36px;
+          min-height: 36px;
+          border-radius: 10px;
         }
 
         .sb-avatar {

@@ -7,7 +7,7 @@
   /* Fonte principal usada em toda aplicação para interface */
   --cm-font: "Rajdhani", "Segoe UI", "Trebuchet MS", sans-serif;
   /* Zoom/escala de interface usada em desktop e modais */
-  --amp-ui-zoom: 0.76;
+  --amp-ui-zoom: 0.75;
 }
 
 :root,
@@ -28,17 +28,17 @@
 
   /* === CORES DE FUNDO - Gradientes e backgrounds === */
   /* Topo do fundo da aplicação - gradiente superior */
-  --cm-bg-top: #edf3fb;
+  --cm-bg-top: #fff5ed;
   /* Meio do fundo da aplicação - gradiente central */
-  --cm-bg-mid: #e4eef9;
+  --cm-bg-mid: #fde8d4;
   /* Fundo inferior - gradiente base */
-  --cm-bg-bottom: #d7e4f2;
+  --cm-bg-bottom: #fbd7b9;
   /* Orbe de fundo A - efeito visual de glassmorphism branco */
   --cm-bg-orb-a: rgba(255, 255, 255, 0.72);
   /* Orbe de fundo B - efeito visual azul */
-  --cm-bg-orb-b: rgba(0, 120, 255, 0.08);
+  --cm-bg-orb-b: rgba(249, 115, 22, 0.08);
   /* Orbe de fundo C - efeito visual verde */
-  --cm-bg-orb-c: rgba(0, 165, 127, 0.08);
+  --cm-bg-orb-c: rgba(251, 146, 60, 0.08);
 
   /* === CORES DE TEXTO === */
   /* Cor de texto principal - escuro para boa legibilidade */
@@ -186,15 +186,15 @@
   /* Superfície secundária */
   --surface-2: rgba(255, 255, 255, 0.96);
   /* Superfície terciária com tint azul */
-  --surface-3: rgba(49, 88, 149, 0.04);
+  --surface-3: rgba(249, 115, 22, 0.06);
   /* Superfície forte - escura */
   --surface-strong: #1b2432;
   /* Superfície elevada/flutuante */
   --surface-raised: rgba(255, 255, 255, 0.96);
   /* Linha genérica */
-  --line: rgba(0, 120, 255, 0.08);
+  --line: rgba(249, 216, 212, 0.32);
   /* Linha forte */
-  --line-strong: rgba(0, 120, 255, 0.16);
+  --line-strong: rgba(249, 115, 22, 0.22);
   /* Texto genérico */
   --text: #1a1205;
   /* Texto muted genérico */
@@ -204,11 +204,11 @@
   /* Acentuação genérica */
   --accent: #f97316;
   /* Acentuação secundária - azul */
-  --accent-2: #0078ff;
+  --accent-2: #fb923c;
   /* Acentuação suave */
   --accent-soft: rgba(249, 115, 22, 0.1);
   /* Cor cool/azul para destaque */
-  --cool: #2f7df6;
+  --cool: #f97316;
   /* Cor warm/laranja para destaque */
   --warm: #d58a2d;
   /* Fonte monospace para código */
@@ -411,9 +411,9 @@
   /* Acentuação secundária - azul ciano */
   --accent-2: #00aaff;
   /* Acentuação suave */
-  --accent-soft: rgba(0, 212, 170, 0.12);
+  --accent-soft: rgba(251, 146, 60, 0.12);
   /* Cor cool/azul */
-  --cool: #00aaff;
+  --cool: #fb923c;
   /* Cor warm/laranja */
   --warm: #ffa940;
   /* Fonte monospace para código */
@@ -814,9 +814,9 @@ button {
   /* Superfície forte - versão mais sólida */
   --amp-shell-surface-strong: rgb(253, 228, 198);
   /* Linha/divisor - fino para separar elementos */
-  --amp-shell-line: rgba(0, 120, 255, 0.09);
+  --amp-shell-line: rgba(249, 115, 22, 0.16);
   /* Linha forte - para destacar divisões */
-  --amp-shell-line-strong: rgba(0, 120, 255, 0.16);
+  --amp-shell-line-strong: rgba(249, 115, 22, 0.28);
   /* Texto principal da shell - tinta escura */
   --amp-shell-ink: #1b2432;
   /* Texto suave - para labels e secundários */
@@ -3899,6 +3899,31 @@ body[data-theme="light"] .amp-rel-focus-empty {
   font-size: 0.68rem;
 }
 
+.amp-client-modal {
+  max-height: calc(100vh / var(--amp-ui-zoom) - 34px);
+  overflow: hidden;
+}
+
+.amp-client-modal input,
+.amp-client-modal select,
+.amp-client-modal textarea {
+  margin-top: 5px;
+  min-height: 36px;
+  border-radius: 12px;
+  padding: 8px 11px;
+}
+
+.amp-client-modal label,
+.amp-client-modal .cm-label {
+  font-size: 0.66rem;
+  letter-spacing: 0.15em;
+}
+
+.amp-client-modal .amp-rel-badge {
+  min-height: 22px;
+  padding-inline: 8px;
+}
+
 .amp-rel-filter-chip.is-active,
 .pill.is-solid {
   border-color: rgba(249, 115, 22, 0.34);
@@ -5861,7 +5886,7 @@ body[data-theme="light"] .balance-card {
 
 @media (max-width: 1380px) {
   :root {
-    --amp-ui-zoom: 0.82;
+    --amp-ui-zoom: 0.75;
   }
 
   .screen-grid-rel,
@@ -5886,7 +5911,7 @@ body[data-theme="light"] .balance-card {
 
 @media (max-width: 1120px) {
   :root {
-    --amp-ui-zoom: 0.88;
+    --amp-ui-zoom: 0.82;
   }
 
   .terminal-ribbon,
