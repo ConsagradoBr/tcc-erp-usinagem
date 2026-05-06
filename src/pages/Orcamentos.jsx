@@ -444,7 +444,7 @@ export default function Orcamentos() {
   const [ordens, setOrdens] = useState([]);
   const [lancamentos, setLancamentos] = useState([]);
   const [carregando, setCarregando] = useState(true);
-  const [carregandoContexto, setCarregandoContexto] = useState(false);
+  const [, setCarregandoContexto] = useState(false);
   const [contextoErro, setContextoErro] = useState(false);
   const [erro, setErro] = useState("");
   const [filtro, setFiltro] = useState("");
@@ -639,16 +639,6 @@ export default function Orcamentos() {
     });
   }, [filtroRapido, orcamentosEnriquecidos]);
 
-  const filaPrioritaria = useMemo(() => {
-    return [...orcamentosEnriquecidos]
-      .sort((a, b) => {
-        if (b.prioridade !== a.prioridade) return b.prioridade - a.prioridade;
-        return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
-      })
-      .filter((item) => item.prioridade > 0)
-      .slice(0, 4);
-  }, [orcamentosEnriquecidos]);
-
   const stats = useMemo(() => {
     const pendentes = orcamentosEnriquecidos.filter((item) => item.emDecisao).length;
     const integrados = orcamentosEnriquecidos.filter((item) => item.integrado).length;
@@ -666,11 +656,6 @@ export default function Orcamentos() {
       setItemFocoId(dadosVisiveis[0].id);
     }
   }, [dadosVisiveis, itemFocoId]);
-
-  const itemFoco = useMemo(
-    () => dadosVisiveis.find((item) => item.id === itemFocoId) || null,
-    [dadosVisiveis, itemFocoId]
-  );
 
   const alterarStatus = async (item, status) => {
     try {
@@ -703,9 +688,6 @@ export default function Orcamentos() {
 
   const aprovadosCount = contagemFiltros.aprovado;
   const backlogComercial = contagemFiltros.todos;
-  const conversao30d = backlogComercial
-    ? Math.round((aprovadosCount / Math.max(backlogComercial, 1)) * 100)
-    : 0;
   const ticketAlvo = backlogComercial
     ? (resumo?.valor_total ?? 0) / Math.max(backlogComercial, 1)
     : 0;
@@ -727,7 +709,7 @@ export default function Orcamentos() {
         </div>
       )}
 
-      <div className="screen-grid screen-grid-flow">
+      <div className="screen-grid">
         <section className="surface-panel">
           <div className="section-head">
             <div>
@@ -743,8 +725,8 @@ export default function Orcamentos() {
               <strong>{String(backlogComercial).padStart(2, "0")}</strong>
             </article>
             <article className="terminal-metric">
-              <span>Conversão 30d</span>
-              <strong>{conversao30d}%</strong>
+              <span>Em decisão</span>
+              <strong>{String(stats.pendentes).padStart(2, "0")}</strong>
             </article>
             <article className="terminal-metric">
               <span>Ticket alvo</span>
@@ -924,121 +906,6 @@ export default function Orcamentos() {
           </div>
         </section>
 
-        <aside className="inspector-panel">
-          <p className="eyebrow">Conversão</p>
-          <h3>{itemFoco ? itemFoco.cliente_nome : "Regra visual oficial"}</h3>
-          <p className="muted">
-            {itemFoco
-              ? itemFoco.nextNote
-              : "Orçamento aprovado precisa deixar clara a passagem natural para Ordem de Serviço e Financeiro."}
-          </p>
-
-          <div className="balance-stack">
-            <div className="balance-card">
-              <span>Valor</span>
-              <strong>{itemFoco ? fmt(itemFoco.valor) : fmt(ticketAlvo)}</strong>
-            </div>
-            <div className="balance-card">
-              <span>Validade</span>
-              <strong>{itemFoco?.validade ? fmtD(itemFoco.validade) : "Sem prazo"}</strong>
-            </div>
-            <div className="balance-card">
-              <span>OS vinculada</span>
-              <strong>
-                {itemFoco
-                  ? canOS
-                    ? itemFoco.osRelacionado?.os || itemFoco.osRelacionado?.numero || "Não"
-                    : "Sem permissão"
-                  : String(stats.integracaoPendente)}
-              </strong>
-            </div>
-            <div className="balance-card">
-              <span>Financeiro</span>
-              <strong>
-                {itemFoco
-                  ? canFinanceiro
-                    ? itemFoco.financeiroRelacionado
-                      ? fmt(itemFoco.financeiroRelacionado.valor_total || itemFoco.financeiroRelacionado.valor)
-                      : "Não"
-                    : "Sem permissão"
-                  : String(stats.integrados)}
-              </strong>
-            </div>
-          </div>
-
-          <div className="action-list">
-            {carregandoContexto && !filaPrioritaria.length ? (
-              <div className="action-row">
-                <div>
-                  <strong>Consolidando carteira comercial</strong>
-                  <p>Buscando sinais de validade, integração e follow-up.</p>
-                </div>
-                <span className="status-tag">Sync</span>
-              </div>
-            ) : filaPrioritaria.length > 0 ? (
-              filaPrioritaria.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => setItemFocoId(item.id)}
-                  className="action-row w-full text-left"
-                >
-                  <div>
-                    <strong>{item.cliente_nome}</strong>
-                    <p>{item.nextAction}</p>
-                  </div>
-                  <span
-                    className={`status-tag ${
-                      item.statusTone === "danger"
-                        ? "is-warm"
-                        : item.statusTone === "positive"
-                        ? "is-cool"
-                        : ""
-                    }`}
-                  >
-                    {item.statusLabel}
-                  </span>
-                </button>
-              ))
-            ) : (
-              <div className="action-row">
-                <div>
-                  <strong>Sem alertas críticos</strong>
-                  <p>O fluxo comercial parece estável neste recorte.</p>
-                </div>
-                <span className="status-tag is-cool">Estável</span>
-              </div>
-            )}
-          </div>
-
-          {itemFoco && (
-            <div className="pill-row mt-4">
-              {transicoesPrincipais(itemFoco.status).map((status) => (
-                <button
-                  key={status}
-                  type="button"
-                  onClick={() => alterarStatus(itemFoco, status)}
-                  className="pill"
-                >
-                  {STATUS[status].label}
-                </button>
-              ))}
-              <button
-                type="button"
-                onClick={() => {
-                  setItemEdit(itemFoco);
-                  setModalForm(true);
-                }}
-                className="pill is-solid"
-              >
-                Editar
-              </button>
-              <button type="button" onClick={() => setItemDel(itemFoco)} className="pill">
-                Excluir
-              </button>
-            </div>
-          )}
-        </aside>
       </div>
 
       {modalForm && (

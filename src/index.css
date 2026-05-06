@@ -3831,6 +3831,203 @@ body[data-theme="light"] .amp-rel-focus-empty {
   background: linear-gradient(90deg, var(--amp-shell-blue), var(--amp-shell-accent));
 }
 
+/* Dashboard-aligned refinements for operational pages */
+.amp-rel-command,
+.amp-rel-ledger,
+.surface-panel,
+.lane,
+.lane-card,
+.terminal-metric,
+.stage-card,
+.table-shell,
+.search-box,
+.action-row {
+  background: var(--amp-card);
+  border-color: var(--amp-border);
+  box-shadow: var(--amp-shadow);
+  color: var(--amp-text);
+}
+
+.amp-rel-command {
+  padding: 18px;
+  border-radius: 16px;
+}
+
+.amp-rel-command-copy h1,
+.surface-panel h3 {
+  color: var(--amp-text);
+  font-size: clamp(1.35rem, 2vw, 2rem);
+}
+
+.amp-rel-command-copy p,
+.muted,
+.terminal-metric span,
+.stage-card .muted,
+.lane .muted,
+.lane-card .muted {
+  color: var(--amp-muted);
+}
+
+.amp-rel-grid {
+  grid-template-columns: 1fr;
+}
+
+.amp-rel-focus {
+  display: none;
+}
+
+.amp-rel-primary-btn {
+  border-color: rgba(249, 115, 22, 0.36);
+  background: linear-gradient(90deg, rgba(249, 115, 22, 0.96), rgba(251, 146, 60, 0.86));
+  color: #fff;
+}
+
+.amp-rel-secondary-btn,
+.amp-rel-ghost-chip,
+.amp-rel-filter-chip,
+.amp-rel-status-chip,
+.pill {
+  border-color: var(--amp-border);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--amp-muted);
+}
+
+.amp-rel-primary-btn.is-compact,
+.amp-rel-secondary-btn.is-compact {
+  min-height: 30px;
+  padding: 7px 11px;
+  font-size: 0.68rem;
+}
+
+.amp-rel-filter-chip.is-active,
+.pill.is-solid {
+  border-color: rgba(249, 115, 22, 0.34);
+  background: rgba(249, 115, 22, 0.16);
+  color: var(--amp-orange);
+}
+
+.amp-rel-kpi-tape {
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.amp-rel-tape-card {
+  min-height: 76px;
+  padding: 12px;
+  border-radius: 12px;
+  border-color: var(--amp-border);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.amp-rel-ledger-head,
+.amp-rel-ledger-row {
+  grid-template-columns: 28px minmax(0, 1.45fr) minmax(10rem, 0.65fr) minmax(14rem, 1fr) minmax(8rem, 0.48fr);
+  gap: 12px;
+}
+
+.amp-rel-ledger-row {
+  padding-block: 12px;
+}
+
+.amp-rel-ledger-actions {
+  gap: 7px;
+}
+
+.amp-rel-ledger-row.is-selected,
+.table-row.is-selected {
+  background: rgba(249, 115, 22, 0.1);
+}
+
+.amp-rel-badge.is-positive,
+.amp-rel-badge.is-accent,
+.amp-rel-status-chip.is-live {
+  border-color: rgba(249, 115, 22, 0.28);
+  color: var(--amp-orange);
+}
+
+.amp-rel-progress-fill.is-positive,
+.amp-rel-progress-fill.is-accent {
+  background: linear-gradient(90deg, var(--amp-orange), var(--amp-green));
+}
+
+.screen-grid {
+  gap: 14px;
+}
+
+.surface-panel {
+  border-radius: 16px;
+  padding: 18px;
+}
+
+.terminal-ribbon,
+.flow-strip {
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.terminal-metric,
+.stage-card,
+.lane,
+.lane-card {
+  border-radius: 12px;
+}
+
+.terminal-metric {
+  padding: 12px 14px;
+}
+
+.toolbar-row {
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.search-box {
+  padding: 11px 14px;
+}
+
+.kanban-grid {
+  gap: 10px;
+}
+
+.lane {
+  padding: 12px;
+  min-height: 300px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(249, 115, 22, 0.04));
+}
+
+.lane:nth-child(1) {
+  border-color: rgba(20, 184, 166, 0.25);
+}
+
+.lane:nth-child(2) {
+  border-color: rgba(249, 115, 22, 0.3);
+}
+
+.lane:nth-child(3) {
+  border-color: rgba(59, 130, 246, 0.25);
+}
+
+.lane:nth-child(4) {
+  border-color: rgba(34, 197, 94, 0.25);
+}
+
+.lane-card {
+  padding: 13px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.lane-card:hover {
+  border-color: rgba(249, 115, 22, 0.35);
+  transform: translateY(-1px);
+}
+
+@media (max-width: 1120px) {
+  .amp-rel-ledger-head,
+  .amp-rel-ledger-row {
+    grid-template-columns: 28px minmax(0, 1fr);
+  }
+}
+
 .amp-fin-kpi-icon {
   width: 42px;
   height: 42px;

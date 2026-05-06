@@ -1,12 +1,14 @@
 import { useNavigate, useLocation } from "react-router-dom";
+import { hasPermission } from "../auth";
+
 const NAV_ITEMS = [
-  { id:"DB", label:"Dashboard",              color:"#14b8a6", path:"/app/dashboard"      },
-  { id:"CR", label:"Clientes e Fornecedores",color:"#3b82f6", path:"/app/clientes"        },
-  { id:"OC", label:"Orçamentos",             color:"#f97316", path:"/app/orcamentos"      },
-  { id:"OS", label:"OS",                     color:"#22c55e", path:"/app/ordemservico"  },
-  { id:"FN", label:"Financeiro",             color:"#fb923c", path:"/app/financeiro"      },
-  { id:"US", label:"Usuarios",               color:"#60a5fa", path:"/app/usuarios"        },
-  { id:"BK", label:"Backup",                 color:"#9ca3af", path:"/app/backup"          },
+  { id:"DB", label:"Dashboard",              color:"#14b8a6", path:"/app/dashboard", permissao:"dashboard" },
+  { id:"CR", label:"Clientes e Fornecedores",color:"#3b82f6", path:"/app/clientes", permissao:"clientes" },
+  { id:"OC", label:"Orçamentos",             color:"#f97316", path:"/app/orcamentos", permissao:"orcamentos" },
+  { id:"OS", label:"Ordem de Serviço",       color:"#22c55e", path:"/app/ordemservico", permissao:"ordens_servico" },
+  { id:"FN", label:"Financeiro",             color:"#fb923c", path:"/app/financeiro", permissao:"financeiro" },
+  { id:"US", label:"Usuários",               color:"#60a5fa", path:"/app/usuarios", permissao:"usuarios" },
+  { id:"BK", label:"Backup",                 color:"#9ca3af", path:"/app/backup", permissao:"backup" },
 ];
 
 import logo from "../assets/gif_transparente.png";
@@ -14,14 +16,7 @@ import logo from "../assets/gif_transparente.png";
 export default function Sidebar({ user, open, mobileOpen, onClose }) {
   const navigate = useNavigate();
   const location = useLocation();
-
-  const nomeUsuario = user?.nome || "Lucas Vital Davoli";
-  const perfil = user?.perfil || "Administrador";
-  const iniciais = nomeUsuario
-    .split(" ")
-    .slice(0, 2)
-    .map((p) => p[0]?.toUpperCase())
-    .join("");
+  const navItems = NAV_ITEMS.filter((item) => hasPermission(user, item.permissao));
 
   return (
     <>
@@ -185,6 +180,12 @@ export default function Sidebar({ user, open, mobileOpen, onClose }) {
                     font-weight: 700; color: #fff; display: flex; align-items: center;
                     justify-content: center; flex-shrink: 0; }
         .sb-label { font-size: 12px; font-weight: 500; color: #1a1205; }
+        .sb-label {
+          min-width: 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
         .dark .sb-label { color: #e0e0e8; }
         .sb-item.active .sb-label { color: #f97316; font-weight: 600; }
 
@@ -284,7 +285,7 @@ export default function Sidebar({ user, open, mobileOpen, onClose }) {
 
         {/* Navegação */}
         <nav className="sb-nav">
-          {NAV_ITEMS.map((item) => {
+          {navItems.map((item) => {
             const active = location.pathname.startsWith(item.path);
             return (
               <button
@@ -303,17 +304,6 @@ export default function Sidebar({ user, open, mobileOpen, onClose }) {
             );
           })}
         </nav>
-
-        {/* Rodapé do usuário */}
-        <div className="sb-footer">
-          <div className="sb-user">
-            <div className="sb-avatar">{iniciais}</div>
-            <div className="sb-user-copy">
-              <p className="sb-uname">{nomeUsuario}</p>
-              <p className="sb-urole">{perfil}</p>
-            </div>
-          </div>
-        </div>
       </aside>
     </>
   );

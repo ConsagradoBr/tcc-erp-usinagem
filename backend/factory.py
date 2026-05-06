@@ -44,6 +44,40 @@ def _garantir_colunas_usuarios():
         )
 
 
+def _garantir_colunas_clientes():
+    inspector = inspect(db.engine)
+    if "clientes" not in inspector.get_table_names():
+        return
+
+    colunas = {coluna["name"] for coluna in inspector.get_columns("clientes")}
+    campos = {
+        "inscricao_estadual": "VARCHAR(20)",
+        "indicador_ie_destinatario": "VARCHAR(2)",
+        "logradouro": "VARCHAR(160)",
+        "numero": "VARCHAR(20)",
+        "complemento": "VARCHAR(80)",
+        "bairro": "VARCHAR(80)",
+        "codigo_municipio": "VARCHAR(10)",
+        "municipio": "VARCHAR(80)",
+        "uf": "VARCHAR(2)",
+        "cep": "VARCHAR(8)",
+        "codigo_pais": "VARCHAR(8)",
+        "pais": "VARCHAR(60)",
+    }
+    alteracoes = [
+        f"ALTER TABLE clientes ADD COLUMN {campo} {tipo}"
+        for campo, tipo in campos.items()
+        if campo not in colunas
+    ]
+
+    for sql in alteracoes:
+        db.session.execute(text(sql))
+
+    if alteracoes:
+        db.session.commit()
+        logging.info("Estrutura de clientes atualizada para dados fiscais NF-e.")
+
+
 def create_app():
     app = Flask(__name__)
     configure_app(app)
@@ -59,6 +93,7 @@ def create_app():
         try:
             db.create_all()
             _garantir_colunas_usuarios()
+            _garantir_colunas_clientes()
             logging.info("Tabelas verificadas/criadas.")
         except Exception as exc:
             logging.error(f"Erro ao criar tabelas: {exc}")

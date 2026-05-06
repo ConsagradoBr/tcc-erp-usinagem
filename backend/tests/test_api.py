@@ -157,6 +157,48 @@ def test_auth_profile_flow(client):
     assert "dashboard" in payload["permissoes"]
 
 
+def test_cliente_persiste_campos_fiscais_nfe(client):
+    headers = auth_headers(client)
+    payload = {
+        "nome": "FUNDICAO REGALI BRASIL LTDA.",
+        "documento": "07.702.969/0001-53",
+        "telefone": "19380574001",
+        "endereco": "R DR.JOSE FABIANO DE CHRISTO GURJAO, 490, DISTRITO II, Mogi Mirim, SP - CEP: 13803705",
+        "inscricao_estadual": "456064276113",
+        "indicador_ie_destinatario": "1",
+        "logradouro": "R DR.JOSE FABIANO DE CHRISTO GURJAO",
+        "numero": "490",
+        "bairro": "DISTRITO II",
+        "codigo_municipio": "3530805",
+        "municipio": "Mogi Mirim",
+        "uf": "SP",
+        "cep": "13803705",
+        "codigo_pais": "1058",
+        "pais": "BRASIL",
+    }
+
+    criado = client.post("/clientes", headers=headers, json=payload)
+    assert criado.status_code == 201
+    data = criado.get_json()
+    assert data["inscricao_estadual"] == "456064276113"
+    assert data["municipio"] == "Mogi Mirim"
+    assert data["uf"] == "SP"
+    assert data["cep"] == "13803705"
+
+    busca = client.get("/clientes", headers=headers, query_string={"q": "13803705"})
+    assert busca.status_code == 200
+    assert busca.get_json()[0]["documento"] == "07.702.969/0001-53"
+
+    editado = client.put(
+        f"/clientes/{data['id']}",
+        headers=headers,
+        json={"nome": payload["nome"], "municipio": "Mogi Guaçu", "uf": "sp"},
+    )
+    assert editado.status_code == 200
+    assert editado.get_json()["municipio"] == "Mogi Guaçu"
+    assert editado.get_json()["uf"] == "SP"
+
+
 def test_bootstrap_rejeita_email_invalido_e_senha_fraca(client):
     email_invalido = client.post(
         "/auth/usuarios",

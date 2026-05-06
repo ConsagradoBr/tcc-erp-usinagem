@@ -11,7 +11,6 @@ const Financeiro = lazy(() => import("./pages/Financeiro"));
 const Home = lazy(() => import("./pages/Home"));
 const AuthPage = lazy(() => import("./pages/AuthPage"));
 const LoginPage = lazy(() => import("./pages/Login"));
-const SignUp = lazy(() => import("./pages/SignUp"));
 const Usuarios = lazy(() => import("./pages/Usuarios"));
 const BackupDesktop = lazy(() => import("./pages/BackupDesktop"));
 
@@ -40,7 +39,6 @@ const routes = createBrowserRouter(
         { index: true, element: <Navigate to="/login" replace /> },
         { path: "login", element: screen(LoginPage) },
         { path: "login-preview", element: screen(AuthPage) },
-        { path: "signup", element: screen(SignUp) },
       ],
     },
     {

@@ -33,6 +33,18 @@ class Cliente(db.Model):
     telefone = db.Column(db.String(20), nullable=True)
     email = db.Column(db.String(120), nullable=True)
     endereco = db.Column(db.String(255), nullable=True)
+    inscricao_estadual = db.Column(db.String(20), nullable=True)
+    indicador_ie_destinatario = db.Column(db.String(2), nullable=True)
+    logradouro = db.Column(db.String(160), nullable=True)
+    numero = db.Column(db.String(20), nullable=True)
+    complemento = db.Column(db.String(80), nullable=True)
+    bairro = db.Column(db.String(80), nullable=True)
+    codigo_municipio = db.Column(db.String(10), nullable=True)
+    municipio = db.Column(db.String(80), nullable=True)
+    uf = db.Column(db.String(2), nullable=True)
+    cep = db.Column(db.String(8), nullable=True)
+    codigo_pais = db.Column(db.String(8), nullable=True)
+    pais = db.Column(db.String(60), nullable=True)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
 
     def to_dict(self):
@@ -43,6 +55,18 @@ class Cliente(db.Model):
             "telefone": self.telefone,
             "email": self.email,
             "endereco": self.endereco,
+            "inscricao_estadual": self.inscricao_estadual,
+            "indicador_ie_destinatario": self.indicador_ie_destinatario,
+            "logradouro": self.logradouro,
+            "numero": self.numero,
+            "complemento": self.complemento,
+            "bairro": self.bairro,
+            "codigo_municipio": self.codigo_municipio,
+            "municipio": self.municipio,
+            "uf": self.uf,
+            "cep": self.cep,
+            "codigo_pais": self.codigo_pais,
+            "pais": self.pais,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }
 

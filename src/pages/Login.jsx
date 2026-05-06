@@ -15,11 +15,9 @@ const GearIcon = ({ className }) => (
 export default function Login() {
   const [email, setEmail]       = useState("");
   const [password, setPassword] = useState("");
-  const [name, setName]         = useState("");
   const [showPwd, setShowPwd]   = useState(false);
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState("");
-  const [bootstrapRequired, setBootstrapRequired] = useState(false);
   const navigate = useNavigate();
 
   // ✅ Gera as engrenagens aleatórias apenas uma vez
@@ -34,10 +32,6 @@ export default function Login() {
     }));
   }, []);
 
-  const handleOpenSignup = () => {
-    navigate("/signup");
-  };
-
   useEffect(() => {
     let active = true;
 
@@ -45,7 +39,9 @@ export default function Login() {
       try {
         const response = await api.get("/auth/bootstrap-status");
         if (!active) return;
-        setBootstrapRequired(Boolean(response.data?.bootstrap_required));
+        if (response.data?.bootstrap_required) {
+          setError("Primeiro acesso pendente. Fale com o administrador do sistema para liberar sua conta.");
+        }
       } catch (err) {
         if (!active) return;
         // ✅ Melhora o tratamento de erro de conexão
@@ -75,21 +71,7 @@ export default function Login() {
       return;
     }
 
-    if (bootstrapRequired && !name) {
-      setError("Informe o nome do administrador inicial.");
-      setLoading(false);
-      return;
-    }
-
     try {
-      if (bootstrapRequired) {
-        await api.post("/auth/usuarios", {
-          nome: name,
-          email,
-          senha: password,
-        });
-      }
-
       const response = await api.post("/auth/login", {
         email,
         senha: password,
@@ -244,42 +226,6 @@ export default function Login() {
               </div>
             </div>
 
-            {bootstrapRequired && (
-              <div className="flex flex-col gap-1.5">
-                <label
-                  htmlFor="name"
-                  className="text-[11px] font-bold tracking-[3px] text-neutral-700 uppercase"
-                >
-                  Nome do administrador
-                </label>
-                <div className="relative flex items-center">
-                  <svg
-                    className="pointer-events-none absolute left-3.5 h-4 w-4 text-neutral-500"
-                    viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
-                  >
-                    <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Z" />
-                    <path d="M5 19a7 7 0 0 1 14 0" />
-                  </svg>
-                  <input
-                    id="name"
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
-                    autoComplete="name"
-                    placeholder="Nome completo"
-                    className="
-                      w-full rounded-xl border border-white/70 bg-white/55
-                      py-3 pl-10 pr-4
-                      text-sm text-neutral-800 placeholder-neutral-400
-                      outline-none transition
-                      focus:border-orange-700 focus:ring-2 focus:ring-orange-500/30
-                    "
-                  />
-                </div>
-              </div>
-            )}
-
             <div className="flex flex-col gap-1.5">
               <div className="flex items-center justify-between">
                 <label
@@ -363,7 +309,7 @@ export default function Login() {
               ) : (
                 <>
                   <GearIcon className="h-4 w-4 opacity-50" />
-                  {bootstrapRequired ? "Criar administrador e entrar" : "Entrar no sistema"}
+                  Entrar no sistema
                   <GearIcon className="h-4 w-4 opacity-50" />
                 </>
               )}
@@ -371,14 +317,7 @@ export default function Login() {
           </form>
 
           <p className="mt-6 text-center text-xs text-neutral-600">
-            Não tem conta?{" "}
-            <button
-              type="button"
-              onClick={handleOpenSignup}
-              className="font-bold text-neutral-900 transition hover:underline"
-            >
-              Criar nova conta
-            </button>
+            Não tem acesso? <strong className="font-bold text-neutral-900">Fale com o administrador do sistema.</strong>
           </p>
         </div>
 

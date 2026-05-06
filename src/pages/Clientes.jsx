@@ -9,7 +9,25 @@ import {
   IconServiceOrder,
 } from "../assets/assets-map";
 
-const FORM_VAZIO = { nome: "", documento: "", telefone: "", email: "", endereco: "" };
+const FORM_VAZIO = {
+  nome: "",
+  documento: "",
+  telefone: "",
+  email: "",
+  endereco: "",
+  inscricao_estadual: "",
+  indicador_ie_destinatario: "",
+  logradouro: "",
+  numero: "",
+  complemento: "",
+  bairro: "",
+  codigo_municipio: "",
+  municipio: "",
+  uf: "",
+  cep: "",
+  codigo_pais: "",
+  pais: "",
+};
 
 const CONTEXTO_VAZIO = Object.freeze({
   orcamentos: null,
@@ -86,12 +104,28 @@ function mascaraTelefone(valor) {
     .replace(/(\d{5})(\d{1,4})$/, "$1-$2");
 }
 
+function mascaraCep(valor) {
+  return valor.replace(/\D/g, "").slice(0, 8);
+}
+
 function formatarDocumento(doc) {
   return doc ? mascaraDocumento(doc.replace(/\D/g, "")) : "";
 }
 
 function formatarTelefone(tel) {
   return tel ? mascaraTelefone(tel.replace(/\D/g, "")) : "";
+}
+
+function montarEnderecoFiscal(dados = {}) {
+  const partes = [
+    dados.logradouro,
+    dados.numero,
+    dados.complemento,
+    dados.bairro,
+    dados.municipio,
+    dados.uf,
+  ].filter(Boolean);
+  return dados.cep ? `${partes.join(", ")} - CEP: ${dados.cep}` : partes.join(", ");
 }
 
 function parsearXmlNFe(xmlString) {
@@ -110,15 +144,28 @@ function parsearXmlNFe(xmlString) {
     const e =
       node.getElementsByTagNameNS("*", "enderEmit")[0] ||
       node.getElementsByTagNameNS("*", "enderDest")[0];
-    const partes = [txt(e, "xLgr"), txt(e, "nro"), txt(e, "xBairro"), txt(e, "xMun"), txt(e, "UF")].filter(Boolean);
-    const cep = txt(e, "CEP");
-    return {
+    const dados = {
       _rotulo: rotulo,
       nome: txt(node, "xNome"),
       documento: formatarDocumento(txt(node, "CNPJ") || txt(node, "CPF")),
       telefone: formatarTelefone(txt(e, "fone")),
       email: txt(node, "email"),
-      endereco: cep ? `${partes.join(", ")} - CEP: ${cep}` : partes.join(", "),
+      inscricao_estadual: txt(node, "IE"),
+      indicador_ie_destinatario: txt(node, "indIEDest"),
+      logradouro: txt(e, "xLgr"),
+      numero: txt(e, "nro"),
+      complemento: txt(e, "xCpl"),
+      bairro: txt(e, "xBairro"),
+      codigo_municipio: txt(e, "cMun"),
+      municipio: txt(e, "xMun"),
+      uf: txt(e, "UF"),
+      cep: txt(e, "CEP"),
+      codigo_pais: txt(e, "cPais"),
+      pais: txt(e, "xPais"),
+    };
+    dados.endereco = montarEnderecoFiscal(dados);
+    return {
+      ...dados,
     };
   };
 
@@ -131,15 +178,27 @@ function parsearJsonNFe(obj) {
   const extrair = (node, rotulo) => {
     if (!node) return null;
     const e = node.enderEmit || node.enderDest || {};
-    const partes = [e.xLgr, e.nro, e.xBairro, e.xMun, e.UF].filter(Boolean);
-    return {
+    const dados = {
       _rotulo: rotulo,
       nome: node.xNome || node.xFant || "",
       documento: formatarDocumento(String(node.CNPJ || node.CPF || "")),
       telefone: formatarTelefone(String(e.fone || "")),
       email: node.email || "",
-      endereco: e.CEP ? `${partes.join(", ")} - CEP: ${e.CEP}` : partes.join(", "),
+      inscricao_estadual: String(node.IE || ""),
+      indicador_ie_destinatario: String(node.indIEDest || ""),
+      logradouro: e.xLgr || "",
+      numero: e.nro || "",
+      complemento: e.xCpl || "",
+      bairro: e.xBairro || "",
+      codigo_municipio: String(e.cMun || ""),
+      municipio: e.xMun || "",
+      uf: e.UF || "",
+      cep: String(e.CEP || ""),
+      codigo_pais: String(e.cPais || ""),
+      pais: e.xPais || "",
     };
+    dados.endereco = montarEnderecoFiscal(dados);
+    return dados;
   };
 
   return { emitente: extrair(inf?.emit, "Emitente"), destinatario: extrair(inf?.dest, "Destinatário") };
@@ -405,8 +464,8 @@ function LedgerRow({
         <p>{cliente.nextAction}</p>
         <div className="amp-rel-ledger-meta">
           <span>{cliente.documento || "Documento pendente"}</span>
+          <span>{cliente.municipio || cliente.uf ? `${cliente.municipio || "Cidade pendente"} / ${cliente.uf || "UF"}` : "Cidade pendente"}</span>
           <span>{cliente.telefone || cliente.email || "Sem contato direto"}</span>
-          <span>Últ. mov.: {fmtDate(cliente.ultimaMovimentacao)}</span>
         </div>
       </button>
 
@@ -459,14 +518,11 @@ function LedgerRow({
       </div>
 
       <div className="amp-rel-ledger-actions">
-        <button type="button" onClick={() => onFocus(cliente.id)} className="amp-rel-ghost-chip">
-          Foco
-        </button>
-        <button type="button" onClick={() => onShare(cliente)} className="amp-rel-ghost-chip">
-          Exportar
-        </button>
-        <button type="button" onClick={() => onEdit(cliente)} className="amp-rel-ghost-chip">
+        <button type="button" onClick={() => onEdit(cliente)} className="amp-rel-primary-btn is-compact">
           Editar
+        </button>
+        <button type="button" onClick={() => onShare(cliente)} className="amp-rel-secondary-btn is-compact">
+          Exportar
         </button>
         <button type="button" onClick={() => onDelete(cliente)} className="amp-rel-ghost-chip is-danger">
           Excluir
@@ -509,6 +565,8 @@ function ModalSelecaoNFe({ dados, onSelecionar, onClose }) {
         <p className="mt-4 text-lg font-semibold tracking-[-0.03em] text-[var(--cm-text)]">{parte.nome || "—"}</p>
         <div className="mt-3 grid gap-2 text-sm text-[var(--cm-muted)]">
           <span>{parte.documento || "Documento não identificado"}</span>
+          <span>{parte.inscricao_estadual ? `IE ${parte.inscricao_estadual}` : "IE não identificada"}</span>
+          <span>{parte.municipio || parte.uf ? `${parte.municipio || "Cidade não identificada"} / ${parte.uf || "UF"}` : "Município não identificado"}</span>
           <span>{parte.telefone || parte.email || "Sem contato extraído"}</span>
           <span>{parte.endereco || "Endereço não disponível"}</span>
         </div>
@@ -636,12 +694,25 @@ function ModalCliente({ cliente, isImportado, onClose, onSalvo }) {
 
     setSalvando(true);
     try {
+      const enderecoFiscal = montarEnderecoFiscal(form);
       const payload = {
         ...form,
         documento: form.documento?.trim() || "",
         telefone: form.telefone?.trim() || "",
         email: form.email?.trim() || "",
-        endereco: form.endereco?.trim() || "",
+        endereco: form.endereco?.trim() || enderecoFiscal,
+        inscricao_estadual: form.inscricao_estadual?.trim() || "",
+        indicador_ie_destinatario: form.indicador_ie_destinatario?.trim() || "",
+        logradouro: form.logradouro?.trim() || "",
+        numero: form.numero?.trim() || "",
+        complemento: form.complemento?.trim() || "",
+        bairro: form.bairro?.trim() || "",
+        codigo_municipio: form.codigo_municipio?.trim() || "",
+        municipio: form.municipio?.trim() || "",
+        uf: form.uf?.trim().toUpperCase() || "",
+        cep: form.cep?.trim() || "",
+        codigo_pais: form.codigo_pais?.trim() || "",
+        pais: form.pais?.trim() || "",
       };
       const res = cliente?.id
         ? await api.put(`/clientes/${cliente.id}`, payload)
@@ -754,7 +825,7 @@ function ModalCliente({ cliente, isImportado, onClose, onSalvo }) {
                   />
                 </div>
                 <div>
-                  <label htmlFor={`${idBase}-endereco`} className={LABEL_BASE}>Endereço</label>
+                  <label htmlFor={`${idBase}-endereco`} className={LABEL_BASE}>Endereço resumido</label>
                   <input
                     id={`${idBase}-endereco`}
                     value={form.endereco || ""}
@@ -762,6 +833,147 @@ function ModalCliente({ cliente, isImportado, onClose, onSalvo }) {
                     placeholder="Rua, número, bairro, cidade"
                     className={INPUT_BASE}
                   />
+                </div>
+              </div>
+
+              <div className="rounded-[22px] border border-[color:var(--cm-line)] bg-[var(--cm-input-bg)] p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className={LABEL_BASE}>Endereço fiscal NF-e</p>
+                    <p className="mt-1 text-xs text-[var(--cm-muted)]">Campos estruturados do destinatário/emitente para cadastro fiscal completo.</p>
+                  </div>
+                  <ToneBadge tone={form.cep && form.municipio && form.uf ? "positive" : "warning"}>
+                    {form.cep && form.municipio && form.uf ? "Fiscal completo" : "Completar fiscal"}
+                  </ToneBadge>
+                </div>
+
+                <div className="mt-4 grid gap-3 sm:grid-cols-6">
+                  <div className="sm:col-span-4">
+                    <label htmlFor={`${idBase}-logradouro`} className={LABEL_BASE}>Logradouro</label>
+                    <input
+                      id={`${idBase}-logradouro`}
+                      value={form.logradouro || ""}
+                      onChange={(e) => set("logradouro", e.target.value)}
+                      placeholder="Rua, avenida, estrada..."
+                      className={INPUT_BASE}
+                    />
+                  </div>
+                  <div className="sm:col-span-1">
+                    <label htmlFor={`${idBase}-numero`} className={LABEL_BASE}>Número</label>
+                    <input
+                      id={`${idBase}-numero`}
+                      value={form.numero || ""}
+                      onChange={(e) => set("numero", e.target.value)}
+                      placeholder="490"
+                      className={INPUT_BASE}
+                    />
+                  </div>
+                  <div className="sm:col-span-1">
+                    <label htmlFor={`${idBase}-uf`} className={LABEL_BASE}>UF</label>
+                    <input
+                      id={`${idBase}-uf`}
+                      value={form.uf || ""}
+                      onChange={(e) => set("uf", e.target.value.toUpperCase().slice(0, 2))}
+                      placeholder="SP"
+                      maxLength={2}
+                      className={INPUT_BASE}
+                    />
+                  </div>
+                  <div className="sm:col-span-3">
+                    <label htmlFor={`${idBase}-complemento`} className={LABEL_BASE}>Complemento</label>
+                    <input
+                      id={`${idBase}-complemento`}
+                      value={form.complemento || ""}
+                      onChange={(e) => set("complemento", e.target.value)}
+                      placeholder="Bloco, sala, referência"
+                      className={INPUT_BASE}
+                    />
+                  </div>
+                  <div className="sm:col-span-3">
+                    <label htmlFor={`${idBase}-bairro`} className={LABEL_BASE}>Bairro</label>
+                    <input
+                      id={`${idBase}-bairro`}
+                      value={form.bairro || ""}
+                      onChange={(e) => set("bairro", e.target.value)}
+                      placeholder="Distrito II"
+                      className={INPUT_BASE}
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label htmlFor={`${idBase}-codigo-municipio`} className={LABEL_BASE}>Cód. município</label>
+                    <input
+                      id={`${idBase}-codigo-municipio`}
+                      value={form.codigo_municipio || ""}
+                      onChange={(e) => set("codigo_municipio", e.target.value.replace(/\D/g, "").slice(0, 10))}
+                      placeholder="3530805"
+                      inputMode="numeric"
+                      className={INPUT_BASE}
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label htmlFor={`${idBase}-municipio`} className={LABEL_BASE}>Município</label>
+                    <input
+                      id={`${idBase}-municipio`}
+                      value={form.municipio || ""}
+                      onChange={(e) => set("municipio", e.target.value)}
+                      placeholder="Mogi Mirim"
+                      className={INPUT_BASE}
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label htmlFor={`${idBase}-cep`} className={LABEL_BASE}>CEP</label>
+                    <input
+                      id={`${idBase}-cep`}
+                      value={form.cep || ""}
+                      onChange={(e) => set("cep", mascaraCep(e.target.value))}
+                      placeholder="13803705"
+                      inputMode="numeric"
+                      className={INPUT_BASE}
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label htmlFor={`${idBase}-codigo-pais`} className={LABEL_BASE}>Cód. país</label>
+                    <input
+                      id={`${idBase}-codigo-pais`}
+                      value={form.codigo_pais || ""}
+                      onChange={(e) => set("codigo_pais", e.target.value.replace(/\D/g, "").slice(0, 8))}
+                      placeholder="1058"
+                      inputMode="numeric"
+                      className={INPUT_BASE}
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label htmlFor={`${idBase}-pais`} className={LABEL_BASE}>País</label>
+                    <input
+                      id={`${idBase}-pais`}
+                      value={form.pais || ""}
+                      onChange={(e) => set("pais", e.target.value)}
+                      placeholder="BRASIL"
+                      className={INPUT_BASE}
+                    />
+                  </div>
+                  <div className="sm:col-span-1">
+                    <label htmlFor={`${idBase}-ind-ie`} className={LABEL_BASE}>Ind. IE</label>
+                    <input
+                      id={`${idBase}-ind-ie`}
+                      value={form.indicador_ie_destinatario || ""}
+                      onChange={(e) => set("indicador_ie_destinatario", e.target.value.replace(/\D/g, "").slice(0, 2))}
+                      placeholder="1"
+                      inputMode="numeric"
+                      className={INPUT_BASE}
+                    />
+                  </div>
+                  <div className="sm:col-span-1">
+                    <label htmlFor={`${idBase}-ie`} className={LABEL_BASE}>IE</label>
+                    <input
+                      id={`${idBase}-ie`}
+                      value={form.inscricao_estadual || ""}
+                      onChange={(e) => set("inscricao_estadual", e.target.value.replace(/\D/g, "").slice(0, 20))}
+                      placeholder="456064276113"
+                      inputMode="numeric"
+                      className={INPUT_BASE}
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -801,8 +1013,14 @@ function ModalCliente({ cliente, isImportado, onClose, onSalvo }) {
             <div className="mt-5 space-y-3 rounded-[24px] border border-white/10 bg-white/6 p-4">
               <InfoItem label="Nome" value={form.nome || "Aguardando preenchimento"} subtle={!form.nome} />
               <InfoItem label="Documento" value={form.documento || "Pendente"} subtle={!form.documento} />
+              <InfoItem label="IE" value={form.inscricao_estadual || "Pendente"} subtle={!form.inscricao_estadual} />
               <InfoItem label="Contato" value={form.telefone || form.email || "Sem canal definido"} subtle={!form.telefone && !form.email} />
-              <InfoItem label="Endereço" value={form.endereco || "Pendente"} subtle={!form.endereco} title={form.endereco || ""} />
+              <InfoItem
+                label="Endereço"
+                value={form.endereco || montarEnderecoFiscal(form) || "Pendente"}
+                subtle={!form.endereco && !montarEnderecoFiscal(form)}
+                title={form.endereco || montarEnderecoFiscal(form) || ""}
+              />
             </div>
 
             {!completude.completo && (
@@ -881,7 +1099,7 @@ export default function Clientes() {
   const [filtro, setFiltro] = useState("");
   const [filtroRapido, setFiltroRapido] = useState("todos");
   const [carregando, setCarregando] = useState(true);
-  const [carregandoContexto, setCarregandoContexto] = useState(false);
+  const [, setCarregandoContexto] = useState(false);
   const [contextoErro, setContextoErro] = useState(false);
   const [contexto, setContexto] = useState(CONTEXTO_VAZIO);
   const [selecionados, setSelecionados] = useState([]);
@@ -1280,6 +1498,18 @@ export default function Clientes() {
       telefone: cliente.telefone,
       email: cliente.email,
       endereco: cliente.endereco,
+      inscricao_estadual: cliente.inscricao_estadual,
+      indicador_ie_destinatario: cliente.indicador_ie_destinatario,
+      logradouro: cliente.logradouro,
+      numero: cliente.numero,
+      complemento: cliente.complemento,
+      bairro: cliente.bairro,
+      codigo_municipio: cliente.codigo_municipio,
+      municipio: cliente.municipio,
+      uf: cliente.uf,
+      cep: cliente.cep,
+      codigo_pais: cliente.codigo_pais,
+      pais: cliente.pais,
       cadastrado_em: cliente.created_at,
       proxima_acao: cliente.nextAction,
       completude: cliente.completude,
@@ -1305,6 +1535,10 @@ export default function Clientes() {
       telefone: cliente.telefone,
       email: cliente.email,
       endereco: cliente.endereco,
+      inscricao_estadual: cliente.inscricao_estadual,
+      municipio: cliente.municipio,
+      uf: cliente.uf,
+      cep: cliente.cep,
       completude: cliente.completude,
       status: cliente.statusLabel,
       proxima_acao: cliente.nextAction,
@@ -1448,10 +1682,9 @@ export default function Clientes() {
           <div className="amp-rel-command-head">
             <div className="amp-rel-command-copy">
               <p className="amp-rel-kicker">Relacionamento unificado</p>
-              <h1>Terminal de clientes com leitura comercial, operacional e financeira</h1>
+              <h1>Clientes e fornecedores</h1>
               <p>
-                A carteira deixa de ser só cadastro. Agora ela mostra prontidão de fluxo, próxima ação,
-                risco fiscal e sinal de caixa para cada conta em um único ledger operacional.
+                Cadastro fiscal e operacional em uma grade compacta, com importação de NF-e e ações rápidas.
               </p>
             </div>
 
@@ -1489,13 +1722,11 @@ export default function Clientes() {
               )}
             </div>
 
-            <div className="amp-rel-command-meta">
-              <span className="amp-rel-status-chip is-live">Desktop sync</span>
-              <span className="amp-rel-status-chip">Fiscal rastreado</span>
-              <span className="amp-rel-status-chip">{fmtDate(new Date().toISOString())}</span>
-              {carregandoContexto && <span className="amp-rel-status-chip">Sincronizando contexto</span>}
-              {contextoErro && <span className="amp-rel-status-chip is-danger">Parte do contexto não carregou</span>}
-            </div>
+            {contextoErro && (
+              <div className="amp-rel-command-meta">
+                <span className="amp-rel-status-chip is-danger">Parte do contexto não carregou</span>
+              </div>
+            )}
           </div>
 
           <div className="amp-rel-filter-row">
@@ -1654,6 +1885,13 @@ export default function Clientes() {
                   <InfoItem label="Telefone" value={clienteFoco.telefone || "Pendente"} subtle={!clienteFoco.telefone} />
                   <InfoItem label="E-mail" value={clienteFoco.email || "Pendente"} subtle={!clienteFoco.email} title={clienteFoco.email || ""} />
                   <InfoItem label="Documento" value={clienteFoco.documento || "Pendente"} subtle={!clienteFoco.documento} />
+                  <InfoItem label="IE" value={clienteFoco.inscricao_estadual || "Pendente"} subtle={!clienteFoco.inscricao_estadual} />
+                  <InfoItem
+                    label="Cidade/UF"
+                    value={clienteFoco.municipio || clienteFoco.uf ? `${clienteFoco.municipio || "Cidade pendente"} / ${clienteFoco.uf || "UF"}` : "Pendente"}
+                    subtle={!clienteFoco.municipio && !clienteFoco.uf}
+                  />
+                  <InfoItem label="CEP" value={clienteFoco.cep || "Pendente"} subtle={!clienteFoco.cep} />
                   <InfoItem label="Endereço" value={clienteFoco.endereco || "Pendente"} subtle={!clienteFoco.endereco} title={clienteFoco.endereco || ""} />
                 </div>
 
