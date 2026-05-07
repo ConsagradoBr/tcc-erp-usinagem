@@ -5,7 +5,7 @@ import {
   XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from "recharts";
 
-import api from "../api";
+import api, { parseISODate } from "../api";
 import { getStoredUser, hasPermission } from "../auth";
 
 const MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
@@ -29,11 +29,41 @@ function toNumber(value) {
 
 function isAtrasada(ordem) {
   if (!ordem?.prazo || ordem.status === "concluido") return false;
-  const prazo = new Date(`${ordem.prazo}T00:00:00`);
-  if (Number.isNaN(prazo.getTime())) return false;
+  const prazo = parseISODate(ordem.prazo);
+  if (!prazo) return false;
   const hoje = new Date();
   hoje.setHours(0, 0, 0, 0);
   return prazo < hoje;
+}
+
+function DashboardCard({ canAccess, onClick, borderColor, label, value, detail }) {
+  if (!canAccess) return null;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="amp-card rounded-xl px-5 py-4 flex flex-col gap-1 hover:scale-105 transition-transform cursor-pointer border-l-4"
+      style={{ borderLeftColor: borderColor }}
+    >
+      <p className="amp-label">{label}</p>
+      <p className="amp-kpi-val">{value}</p>
+      <p className="text-xs amp-orange">{detail}</p>
+    </button>
+  );
+}
+
+function QuickLink({ canAccess, onClick, title, subtitle }) {
+  if (!canAccess) return null;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="amp-cell-bg p-3 rounded-lg text-center hover:scale-105 transition-transform cursor-pointer"
+    >
+      <p className="text-xs font-bold amp-text">{title}</p>
+      <p className="text-[10px] amp-muted mt-1">{subtitle}</p>
+    </button>
+  );
 }
 
 /* ── relógio ao vivo ── */
@@ -151,8 +181,28 @@ export default function Dashboard() {
       orcamentosResumo.valor_aprovado_ativo ?? orcamentosResumo.valor_aprovado
     );
     const comercialAberto = toNumber(orcamentosResumo.rascunho) + toNumber(orcamentosResumo.enviado);
-    const entradas = toNumber(financeiroResumo.a_receber);
-    const saidas = toNumber(financeiroResumo.a_pagar);
+    const mesAtual = new Date().toISOString().slice(0, 7);
+    const recebidoMesLista = financeiro
+      .filter((item) => item.tipo === "receber" && item.data_pagamento?.startsWith(mesAtual))
+      .reduce((sum, item) => sum + toNumber(item.valor), 0);
+    const entradasLista = financeiro
+      .filter((item) => item.tipo === "receber" && item.status !== "pago")
+      .reduce((sum, item) => sum + toNumber(item.valor_total || item.valor), 0);
+    const saidasLista = financeiro
+      .filter((item) => item.tipo === "pagar" && item.status !== "pago")
+      .reduce((sum, item) => sum + toNumber(item.valor_total || item.valor), 0);
+    const atrasadosFinanceiro = Number.isFinite(Number(financeiroResumo.atrasados))
+      ? toNumber(financeiroResumo.atrasados)
+      : financeiro.filter((item) => item.status === "atrasado").length;
+    const recebidoMTD = Number.isFinite(Number(financeiroResumo.recebido_mes))
+      ? toNumber(financeiroResumo.recebido_mes)
+      : recebidoMesLista;
+    const entradas = Number.isFinite(Number(financeiroResumo.a_receber))
+      ? toNumber(financeiroResumo.a_receber)
+      : entradasLista;
+    const saidas = Number.isFinite(Number(financeiroResumo.a_pagar))
+      ? toNumber(financeiroResumo.a_pagar)
+      : saidasLista;
 
     const alertas = [];
     if (erroCarga) {
@@ -161,10 +211,10 @@ export default function Dashboard() {
         descricao: "Algum módulo não respondeu ou está sem permissão.",
       });
     }
-    if (toNumber(financeiroResumo.atrasados) > 0) {
+    if (atrasadosFinanceiro > 0) {
       alertas.push({
         titulo: "Recebimentos em atraso",
-        descricao: `${toNumber(financeiroResumo.atrasados)} título(s) precisam de atenção.`,
+        descricao: `${atrasadosFinanceiro} título(s) precisam de atenção.`,
       });
     }
     if (osAtraso > 0) {
@@ -182,8 +232,8 @@ export default function Dashboard() {
 
     return {
       clientes: listaClientes.length,
-      recebidoMTD: toNumber(financeiroResumo.recebido_mes),
-      atrasosSensiveis: toNumber(financeiroResumo.atrasados),
+      recebidoMTD,
+      atrasosSensiveis: atrasadosFinanceiro,
       aprovadoAtivo,
       propostasDecisao: comercialAberto,
       ticketOS: ordens.length > 0 ? aprovadoAtivo / ordens.length : 0,
@@ -250,25 +300,24 @@ export default function Dashboard() {
   const timeStr = now.toLocaleTimeString("pt-BR");
 
   return (
-    <>
+    <div className="flex flex-col h-full overflow-hidden amp-bg px-3 py-2" style={{ borderRadius: "12px" }}>
       {/* ══ CONTEÚDO (sem header — já existe no ProtectedLayout) ══ */}
-      <div className="flex flex-col h-full overflow-hidden amp-bg px-3 py-2" style={{ borderRadius: "12px" }}>
-        <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-4 ">
+      <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-4">
 
           {/* ── Sub-header analítico ── */}
           <div className="amp-card rounded-2xl px-6 py-4">
             <div className="flex items-start justify-between flex-wrap gap-4">
               <div>
-                <p className="amp-label mb-1">AMP Trader Board</p>
+                <p className="amp-label mb-1">Painel AMP</p>
                 <h2 className="text-2xl font-extrabold amp-text">Centro analítico industrial</h2>
                 <p className="text-sm amp-muted mt-1">
-                  Mesa única de decisão para comercial, OS e caixa.
+                  Visão consolidada dos módulos liberados para o seu perfil.
                 </p>
               </div>
               <div className="flex items-center gap-8 flex-wrap">
                 <div className="text-right">
                   <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                  <span className="w-2 h-2 rounded-full bg-[var(--amp-green)] animate-pulse" />
                   <span className="text-[10px] font-bold amp-muted uppercase tracking-wider">
                     Operação em curso
                   </span>
@@ -283,12 +332,12 @@ export default function Dashboard() {
             <div className="flex flex-wrap gap-5 mt-4 pt-4"
               style={{ borderTop: "1px solid var(--amp-border)" }}>
               {[
-                { k: "Backlog",          v: `${backlog} OS` },
-                { k: "Comercial Aberto", v: `${comercialAberto} proposta(s)` },
-                { k: "A Receber",        v: fmt(fluxoCaixa.entradas), color: "var(--amp-green)"  },
-                { k: "A Pagar",          v: fmt(fluxoCaixa.saidas),   color: "var(--amp-red)"    },
-                { k: "Base Ativa",       v: `${clientes} conta(s)` },
-              ].map((s) => (
+                canOS ? { k: "Backlog", v: `${backlog} OS` } : null,
+                canOrcamentos ? { k: "Comercial aberto", v: `${comercialAberto} proposta(s)` } : null,
+                canFinanceiro ? { k: "A receber", v: fmt(fluxoCaixa.entradas), color: "var(--amp-green)" } : null,
+                canFinanceiro ? { k: "A pagar", v: fmt(fluxoCaixa.saidas), color: "var(--amp-red)" } : null,
+                canClientes ? { k: "Base ativa", v: `${clientes} conta(s)` } : null,
+              ].filter(Boolean).map((s) => (
                 <span key={s.k} className="flex items-center gap-1.5 text-[10px] font-bold amp-muted tracking-wider uppercase">
                   {s.k}
                   <span style={{ color: s.color ?? "var(--amp-orange)", fontWeight: 800 }}>{s.v}</span>
@@ -299,90 +348,92 @@ export default function Dashboard() {
 
           {/* ── KPIs + Navegação Rápida ── */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-            <button
+            <DashboardCard
+              canAccess={canClientes}
               onClick={() => navigate("/app/clientes")}
-              className="amp-card rounded-xl px-5 py-4 flex flex-col gap-1 hover:scale-105 transition-transform cursor-pointer border-l-4"
-              style={{ borderLeftColor: "#14b8a6" }}
-            >
-              <p className="amp-label">Clientes Ativos</p>
-              <p className="amp-kpi-val">{clientes}</p>
-              <p className="text-xs amp-muted hover:amp-orange">Ir para Clientes →</p>
-            </button>
-            <button
+              borderColor="var(--amp-green)"
+              label="Clientes ativos"
+              value={clientes}
+              detail="Ir para Clientes"
+            />
+            <DashboardCard
+              canAccess={canFinanceiro}
               onClick={() => navigate("/app/financeiro")}
-              className="amp-card rounded-xl px-5 py-4 flex flex-col gap-1 hover:scale-105 transition-transform cursor-pointer border-l-4"
-              style={{ borderLeftColor: "#f97316" }}
-            >
-              <p className="amp-label">Recebido MTD</p>
-              <p className="amp-kpi-val">{fmt(recebidoMTD)}</p>
-              <p className="text-xs amp-orange">{atrasosSensiveis} atraso(s) →</p>
-            </button>
-            <button
+              borderColor="var(--amp-orange)"
+              label="Recebido no mês"
+              value={fmt(recebidoMTD)}
+              detail={`${atrasosSensiveis} atraso(s)`}
+            />
+            <DashboardCard
+              canAccess={canOrcamentos}
               onClick={() => navigate("/app/orcamentos")}
-              className="amp-card rounded-xl px-5 py-4 flex flex-col gap-1 hover:scale-105 transition-transform cursor-pointer border-l-4"
-              style={{ borderLeftColor: "#3b82f6" }}
-            >
-              <p className="amp-label">Aprovado Ativo</p>
-              <p className="amp-kpi-val">{fmt(aprovadoAtivo)}</p>
-              <p className="text-xs amp-orange">{propostasDecisao} em decisão →</p>
-            </button>
-            <button
-              onClick={() => navigate("/app/ordemservico")}
-              className="amp-card rounded-xl px-5 py-4 flex flex-col gap-1 hover:scale-105 transition-transform cursor-pointer border-l-4"
-              style={{ borderLeftColor: "#22c55e" }}
-            >
-              <p className="amp-label">Ticket por OS</p>
-              <p className="amp-kpi-val">{fmt(ticketOS)}</p>
-              <p className="text-xs amp-orange">{osConcluidas} concluída(s) →</p>
-            </button>
+              borderColor="var(--amp-orange)"
+              label="Aprovado ativo"
+              value={fmt(aprovadoAtivo)}
+              detail={`${propostasDecisao} em decisão`}
+            />
+            <DashboardCard
+              canAccess={canOS}
+              onClick={() => navigate("/app/ordens-servico")}
+              borderColor="var(--amp-green)"
+              label="Ticket por OS"
+              value={fmt(ticketOS)}
+              detail={`${osConcluidas} concluída(s)`}
+            />
           </div>
 
           {/* ── Linha 2: Faturamento · Pipeline+Fila · Ordens+Throughput ── */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
 
             {/* Faturamento + Pipeline */}
-            <div className="amp-card rounded-xl p-5 flex flex-col gap-4">
-              <div>
-                <p className="amp-label mb-4">● Faturamento Mensal</p>
-                <ResponsiveContainer width="100%" height={110}>
-                  <LineChart data={faturamento} margin={{ top:4, right:4, left:-28, bottom:0 }}>
-                    <CartesianGrid stroke="var(--amp-grid)" strokeDasharray="3 3" />
-                    <XAxis dataKey="mes" tick={{ fontSize:9, fill:"var(--amp-muted)" }} />
-                    <YAxis              tick={{ fontSize:9, fill:"var(--amp-muted)" }} />
-                    <Tooltip content={<ChartTooltip />} />
-                    <Line type="monotone" dataKey="valor" stroke="var(--amp-orange)"
-                      strokeWidth={2} dot={{ r:3, fill:"var(--amp-orange)" }}
-                      activeDot={{ r:5 }} name="R$" />
-                  </LineChart>
-                </ResponsiveContainer>
-                <p className="text-xs amp-muted mt-2">Total vendas: {fmt(recebidoMTD)}</p>
-              </div>
+            {(canFinanceiro || canOrcamentos) && (
+              <div className="amp-card rounded-xl p-5 flex flex-col gap-4">
+                {canFinanceiro && (
+                  <div>
+                    <p className="amp-label mb-4">● Faturamento mensal</p>
+                    <ResponsiveContainer width="100%" height={110}>
+                      <LineChart data={faturamento} margin={{ top:4, right:4, left:-28, bottom:0 }}>
+                        <CartesianGrid stroke="var(--amp-grid)" strokeDasharray="3 3" />
+                        <XAxis dataKey="mes" tick={{ fontSize:9, fill:"var(--amp-muted)" }} />
+                        <YAxis              tick={{ fontSize:9, fill:"var(--amp-muted)" }} />
+                        <Tooltip content={<ChartTooltip />} />
+                        <Line type="monotone" dataKey="valor" stroke="var(--amp-orange)"
+                          strokeWidth={2} dot={{ r:3, fill:"var(--amp-orange)" }}
+                          activeDot={{ r:5 }} name="R$" />
+                      </LineChart>
+                    </ResponsiveContainer>
+                    <p className="text-xs amp-muted mt-2">Recebido no mês: {fmt(recebidoMTD)}</p>
+                  </div>
+                )}
 
-              <div className="amp-divider" />
+                {canFinanceiro && canOrcamentos && <div className="amp-divider" />}
 
-              <div>
-                <p className="amp-label mb-3">● Pipeline Comercial</p>
-                {[
-                  { l:"Rascunho", v:pipeline.rascunho },
-                  { l:"Enviado",  v:pipeline.enviado  },
-                  { l:"Aprovado", v:pipeline.aprovado },
-                ].map((p) => {
-                  const w = Math.min(100, Math.round((p.v / Math.max(comercialAberto,1)) * 100));
-                  return (
-                    <div key={p.l} className="flex items-center gap-3 mb-2 text-xs">
-                      <span className="amp-muted w-16">{p.l}</span>
-                      <div className="amp-pipe-track">
-                        <div className="amp-pipe-fill" style={{ width:`${w}%` }} />
-                      </div>
-                      <span className="amp-muted w-5 text-right">{p.v}</span>
-                    </div>
-                  );
-                })}
+                {canOrcamentos && (
+                  <div>
+                    <p className="amp-label mb-3">● Pipeline comercial</p>
+                    {[
+                      { l:"Rascunho", v:pipeline.rascunho },
+                      { l:"Enviado",  v:pipeline.enviado  },
+                      { l:"Aprovado", v:pipeline.aprovado },
+                    ].map((p) => {
+                      const w = Math.min(100, Math.round((p.v / Math.max(comercialAberto,1)) * 100));
+                      return (
+                        <div key={p.l} className="flex items-center gap-3 mb-2 text-xs">
+                          <span className="amp-muted w-16">{p.l}</span>
+                          <div className="amp-pipe-track">
+                            <div className="amp-pipe-fill" style={{ width:`${w}%` }} />
+                          </div>
+                          <span className="amp-muted w-5 text-right">{p.v}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
-            </div>
+            )}
 
             {/* Fila de OS + Carga × Capacidade */}
-            <div className="amp-card rounded-xl p-5 flex flex-col gap-4">
+            {canOS && <div className="amp-card rounded-xl p-5 flex flex-col gap-4">
               <div>
                 <p className="amp-label mb-3">● Fila de OS</p>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -411,15 +462,15 @@ export default function Dashboard() {
                     <XAxis dataKey="etapa" tick={{ fontSize:9, fill:"var(--amp-muted)" }} />
                     <YAxis              tick={{ fontSize:9, fill:"var(--amp-muted)" }} />
                     <Tooltip content={<ChartTooltip />} />
-                    <Bar dataKey="carga"      fill="#60a5fa" radius={[3,3,0,0]} name="Carga" />
+                    <Bar dataKey="carga"      fill="var(--amp-green)" radius={[3,3,0,0]} name="Carga" />
                     <Bar dataKey="capacidade" fill="var(--amp-orange)" radius={[3,3,0,0]} name="Capacidade" opacity={0.65} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
-            </div>
+            </div>}
 
             {/* Ordens em atraso + Throughput */}
-            <div className="flex flex-col gap-3">
+            {canOS && <div className="flex flex-col gap-3">
               <div className="amp-card rounded-xl p-5 flex-1">
                 <p className="amp-label mb-3">● Ordens em Atraso — Mês</p>
                 <div className="flex items-center gap-4 mt-1">
@@ -450,14 +501,14 @@ export default function Dashboard() {
                   {osConcluidas} concluída(s) de {osTotais} ordem(ns).
                 </p>
               </div>
-            </div>
+            </div>}
           </div>
 
           {/* ── Linha 3: Fluxo · Recebimentos+Radar · Receita ── */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
 
             {/* Fluxo de caixa */}
-            <div className="amp-card rounded-xl p-5">
+            {canFinanceiro && <div className="amp-card rounded-xl p-5">
               <p className="amp-label mb-3">● Fluxo de Caixa</p>
               <p className="text-3xl font-extrabold amp-text mb-4">{fmt(fluxoCaixa.total)}</p>
               {[
@@ -471,30 +522,30 @@ export default function Dashboard() {
                   <span className="text-sm font-bold" style={{ color:r.c }}>{r.v}</span>
                 </div>
               ))}
-            </div>
+            </div>}
 
             {/* Recebimentos sensíveis + Radar */}
-            <div className="flex flex-col gap-3">
-              <div className="amp-card rounded-xl p-5 flex-1">
+            {(canFinanceiro || canOrcamentos) && <div className="flex flex-col gap-3">
+              {canFinanceiro && <div className="amp-card rounded-xl p-5 flex-1">
                 <p className="amp-label mb-3">● Recebimentos Sensíveis</p>
                 <p className="text-xs amp-muted italic text-center mt-4">
                   {atrasosSensiveis > 0
                     ? `${atrasosSensiveis} título(s) em atenção`
                     : "Sem títulos sensíveis na abertura."}
                 </p>
-              </div>
-              <div className="amp-card rounded-xl p-5 flex-1">
+              </div>}
+              {canOrcamentos && <div className="amp-card rounded-xl p-5 flex-1">
                 <p className="amp-label mb-3">● Radar Comercial</p>
                 <p className="text-xs amp-muted italic text-center mt-4">
                   {comercialAberto > 0
                     ? `${comercialAberto} proposta(s) em aberto`
                     : "Sem orçamentos recentes nesta mesa."}
                 </p>
-              </div>
-            </div>
+              </div>}
+            </div>}
 
             {/* Receita por cliente */}
-            <div className="amp-card rounded-xl p-5">
+            {canFinanceiro && <div className="amp-card rounded-xl p-5">
               <p className="amp-label mb-4">● Receita por Cliente</p>
               {receitaClientes.length > 0 ? (
                 <ResponsiveContainer width="100%" height={110}>
@@ -514,7 +565,7 @@ export default function Dashboard() {
                 </p>
               )}
               <p className="text-xs amp-muted text-right mt-3">Valor total: {fmt(recebidoMTD)}</p>
-            </div>
+            </div>}
           </div>
 
           {/* ── Mesa de Alertas ── */}
@@ -537,53 +588,46 @@ export default function Dashboard() {
           <div className="amp-card rounded-xl p-5">
             <p className="amp-label mb-4">● Navegação Rápida</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-              <button
+              <QuickLink
+                canAccess={canClientes}
                 onClick={() => navigate("/app/clientes")}
-                className="amp-cell-bg p-3 rounded-lg text-center hover:scale-105 transition-transform cursor-pointer"
-              >
-                <p className="text-xs font-bold amp-text">Clientes</p>
-                <p className="text-[10px] amp-muted mt-1">Carteira e fornecedores</p>
-              </button>
-              <button
+                title="Clientes"
+                subtitle="Carteira e fornecedores"
+              />
+              <QuickLink
+                canAccess={canOrcamentos}
                 onClick={() => navigate("/app/orcamentos")}
-                className="amp-cell-bg p-3 rounded-lg text-center hover:scale-105 transition-transform cursor-pointer"
-              >
-                <p className="text-xs font-bold amp-text">Orçamentos</p>
-                <p className="text-[10px] amp-muted mt-1">Propostas comerciais</p>
-              </button>
-              <button
-                onClick={() => navigate("/app/ordemservico")}
-                className="amp-cell-bg p-3 rounded-lg text-center hover:scale-105 transition-transform cursor-pointer"
-              >
-                <p className="text-xs font-bold amp-text">Ordens de Serviço</p>
-                <p className="text-[10px] amp-muted mt-1">OS em produção</p>
-              </button>
-              <button
+                title="Orçamentos"
+                subtitle="Propostas comerciais"
+              />
+              <QuickLink
+                canAccess={canOS}
+                onClick={() => navigate("/app/ordens-servico")}
+                title="Ordens de Serviço"
+                subtitle="OS em produção"
+              />
+              <QuickLink
+                canAccess={canFinanceiro}
                 onClick={() => navigate("/app/financeiro")}
-                className="amp-cell-bg p-3 rounded-lg text-center hover:scale-105 transition-transform cursor-pointer"
-              >
-                <p className="text-xs font-bold amp-text">Financeiro</p>
-                <p className="text-[10px] amp-muted mt-1">Fluxo de caixa</p>
-              </button>
-              <button
+                title="Financeiro"
+                subtitle="Fluxo de caixa"
+              />
+              <QuickLink
+                canAccess={hasPermission(user, "usuarios")}
                 onClick={() => navigate("/app/usuarios")}
-                className="amp-cell-bg p-3 rounded-lg text-center hover:scale-105 transition-transform cursor-pointer"
-              >
-                <p className="text-xs font-bold amp-text">Usuários</p>
-                <p className="text-[10px] amp-muted mt-1">Equipe e permissões</p>
-              </button>
-              <button
+                title="Usuários"
+                subtitle="Equipe e permissões"
+              />
+              <QuickLink
+                canAccess={hasPermission(user, "backup")}
                 onClick={() => navigate("/app/backup")}
-                className="amp-cell-bg p-3 rounded-lg text-center hover:scale-105 transition-transform cursor-pointer"
-              >
-                <p className="text-xs font-bold amp-text">Backup</p>
-                <p className="text-[10px] amp-muted mt-1">Dados e segurança</p>
-              </button>
+                title="Backup"
+                subtitle="Dados e segurança"
+              />
             </div>
           </div>
 
-        </div>
       </div>
-    </>
+    </div>
   );
 }

@@ -1,13 +1,33 @@
-import logging
-
 from flask import Blueprint, jsonify, request
+from werkzeug.exceptions import HTTPException
 
+from backend.api_utils import (
+    error_response,
+    get_or_404,
+    http_error_response,
+    internal_error,
+    json_body,
+)
 from backend.extensions import db
 from backend.models import STATUS_OS_VALIDOS, OrdemServico
 from backend.security import require_permissions
 from backend.services import proximo_numero_os
 
 os_bp = Blueprint("ordens_servico", __name__, url_prefix="/ordens-servico")
+
+
+def _texto_obrigatorio(value):
+    if not isinstance(value, str):
+        return None
+    return value.strip()
+
+
+def _texto_opcional(value):
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        raise ValueError
+    return value.strip() or None
 
 
 @os_bp.route("", methods=["GET"])
@@ -36,9 +56,10 @@ def listar_os():
             ),
             200,
         )
+    except HTTPException as exc:
+        return http_error_response(exc)
     except Exception as exc:
-        logging.error(f"❌ {exc}")
-        return jsonify({"erro": "Erro interno."}), 500
+        return internal_error(exc)
 
 
 @os_bp.route("/resumo", methods=["GET"])
@@ -51,20 +72,21 @@ def resumo_os():
         }
         resultado["total"] = OrdemServico.query.count()
         return jsonify(resultado), 200
+    except HTTPException as exc:
+        return http_error_response(exc)
     except Exception as exc:
-        logging.error(f"❌ {exc}")
-        return jsonify({"erro": "Erro interno."}), 500
+        return internal_error(exc)
 
 
 @os_bp.route("", methods=["POST"])
 @require_permissions("ordens_servico")
 def criar_os():
     try:
-        data = request.get_json() or {}
-        cliente = (data.get("cliente") or "").strip()
-        servico = (data.get("servico") or "").strip()
+        data = json_body()
+        cliente = _texto_obrigatorio(data.get("cliente") or "")
+        servico = _texto_obrigatorio(data.get("servico") or "")
         if not cliente or not servico:
-            return jsonify({"erro": "Cliente e serviço são obrigatórios."}), 400
+            return error_response("Cliente e serviço são obrigatórios.")
         status = data.get("status", "solicitado")
         if status not in STATUS_OS_VALIDOS:
             status = "solicitado"
@@ -73,71 +95,91 @@ def criar_os():
             cliente=cliente,
             servico=servico,
             prioridade=data.get("prioridade", "media"),
-            prazo=(data.get("prazo") or "").strip() or None,
-            responsavel=(data.get("responsavel") or "").strip() or None,
-            descricao=(data.get("descricao") or "").strip() or None,
+            prazo=_texto_opcional(data.get("prazo")),
+            responsavel=_texto_opcional(data.get("responsavel")),
+            descricao=_texto_opcional(data.get("descricao")),
             status=status,
         )
         db.session.add(ordem)
         db.session.commit()
         return jsonify(ordem.to_dict()), 201
+    except HTTPException as exc:
+        return http_error_response(exc)
+    except (TypeError, ValueError):
+        return error_response("Dados invalidos para ordem de servico.")
     except Exception as exc:
-        logging.error(f"❌ {exc}")
-        return jsonify({"erro": "Erro interno."}), 500
+        return internal_error(exc)
 
 
 @os_bp.route("/<int:id>", methods=["PUT"])
 @require_permissions("ordens_servico")
 def editar_os(id):
     try:
-        ordem = OrdemServico.query.get_or_404(id)
-        data = request.get_json() or {}
+        ordem, error = get_or_404(OrdemServico, id, "OS nao encontrada.")
+        if error:
+            return error
+        data = json_body()
         if "cliente" in data:
-            ordem.cliente = data["cliente"].strip()
+            cliente = _texto_obrigatorio(data["cliente"])
+            if not cliente:
+                return error_response("Cliente e obrigatorio.")
+            ordem.cliente = cliente
         if "servico" in data:
-            ordem.servico = data["servico"].strip()
+            servico = _texto_obrigatorio(data["servico"])
+            if not servico:
+                return error_response("Servico e obrigatorio.")
+            ordem.servico = servico
         if "prioridade" in data:
             ordem.prioridade = data["prioridade"]
         if "prazo" in data:
-            ordem.prazo = data["prazo"].strip() or None
+            ordem.prazo = _texto_opcional(data["prazo"])
         if "responsavel" in data:
-            ordem.responsavel = (data["responsavel"] or "").strip() or None
+            ordem.responsavel = _texto_opcional(data["responsavel"])
         if "descricao" in data:
-            ordem.descricao = (data["descricao"] or "").strip() or None
+            ordem.descricao = _texto_opcional(data["descricao"])
         if "status" in data and data["status"] in STATUS_OS_VALIDOS:
             ordem.status = data["status"]
         db.session.commit()
         return jsonify(ordem.to_dict()), 200
+    except HTTPException as exc:
+        return http_error_response(exc)
+    except (TypeError, ValueError):
+        return error_response("Dados invalidos para ordem de servico.")
     except Exception as exc:
-        logging.error(f"❌ {exc}")
-        return jsonify({"erro": "Erro interno."}), 500
+        return internal_error(exc)
 
 
 @os_bp.route("/<int:id>/status", methods=["PATCH"])
 @require_permissions("ordens_servico")
 def mover_os(id):
     try:
-        ordem = OrdemServico.query.get_or_404(id)
-        data = request.get_json() or {}
+        ordem, error = get_or_404(OrdemServico, id, "OS nao encontrada.")
+        if error:
+            return error
+        data = json_body()
         status = data.get("status", "")
         if status not in STATUS_OS_VALIDOS:
-            return jsonify({"erro": "Status inválido."}), 400
+            return error_response("Status inválido.")
         ordem.status = status
         db.session.commit()
         return jsonify(ordem.to_dict()), 200
+    except HTTPException as exc:
+        return http_error_response(exc)
     except Exception as exc:
-        logging.error(f"❌ {exc}")
-        return jsonify({"erro": "Erro interno."}), 500
+        return internal_error(exc)
 
 
 @os_bp.route("/<int:id>", methods=["DELETE"])
 @require_permissions("ordens_servico")
 def excluir_os(id):
     try:
-        ordem = OrdemServico.query.get_or_404(id)
+        ordem, error = get_or_404(OrdemServico, id, "OS nao encontrada.")
+        if error:
+            return error
         db.session.delete(ordem)
         db.session.commit()
         return jsonify({"mensagem": "OS excluída."}), 200
+    except HTTPException as exc:
+        return http_error_response(exc)
     except Exception as exc:
-        logging.error(f"❌ {exc}")
-        return jsonify({"erro": "Erro interno."}), 500
+        return internal_error(exc)

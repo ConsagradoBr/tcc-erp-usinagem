@@ -61,10 +61,10 @@ Dashboard
 ├─ KPI Clientes Ativos ──────────→ /app/clientes
 ├─ KPI Recebido MTD ─────────────→ /app/financeiro
 ├─ KPI Aprovado Ativo ───────────→ /app/orcamentos
-├─ KPI Ticket por OS ────────────→ /app/ordemservico
+├─ KPI Ticket por OS ────────────→ /app/ordens-servico
 ├─ Btn Clientes ─────────────────→ /app/clientes
 ├─ Btn Orçamentos ───────────────→ /app/orcamentos
-├─ Btn Ordens de Serviço ────────→ /app/ordemservico
+├─ Btn Ordens de Serviço ────────→ /app/ordens-servico
 ├─ Btn Financeiro ───────────────→ /app/financeiro
 ├─ Btn Usuários ─────────────────→ /app/usuarios
 └─ Btn Backup ───────────────────→ /app/backup

@@ -1,12 +1,15 @@
 import base64
+import binascii
 import contextlib
+import os
 import sqlite3
 from datetime import datetime
 from pathlib import Path
 
-from flask import Blueprint, current_app, jsonify, request, send_file
+from flask import Blueprint, current_app, jsonify, send_file
 from sqlalchemy.engine.url import make_url
 
+from backend.api_utils import json_body
 from backend.config import get_runtime_data_dir
 from backend.extensions import db
 from backend.security import require_permissions
@@ -14,6 +17,21 @@ from backend.security import require_permissions
 sistema_bp = Blueprint("sistema", __name__, url_prefix="/sistema")
 
 ALLOWED_RESTORE_SUFFIXES = {".sqlite3", ".db", ".bak"}
+DEFAULT_MAX_BACKUP_BYTES = 50 * 1024 * 1024
+REQUIRED_BACKUP_TABLES = {
+    "usuarios",
+    "clientes",
+    "lancamentos",
+    "ordens_servico",
+    "orcamentos",
+}
+
+
+def _max_backup_bytes():
+    try:
+        return int(os.getenv("BACKUP_MAX_BYTES", DEFAULT_MAX_BACKUP_BYTES))
+    except ValueError:
+        return DEFAULT_MAX_BACKUP_BYTES
 
 
 def _sqlite_db_path():
@@ -37,6 +55,19 @@ def _copy_sqlite_database(source_path, target_path):
     with sqlite3.connect(source_path) as source_conn:
         with sqlite3.connect(target_path) as target_conn:
             source_conn.backup(target_conn)
+
+
+def _validate_backup_schema(conn):
+    tabelas = {
+        row[0]
+        for row in conn.execute(
+            "SELECT name FROM sqlite_master WHERE type = 'table'"
+        ).fetchall()
+    }
+    faltando = sorted(REQUIRED_BACKUP_TABLES - tabelas)
+    if faltando:
+        return "Backup nao contem o schema minimo do ERP."
+    return None
 
 
 def _ensure_local_sqlite():
@@ -69,8 +100,9 @@ def backup_info():
             {
                 "modo": "sqlite_local",
                 "suporta_backup_local": True,
-                "caminho_banco": str(db_path),
-                "pasta_backups": str(backup_dir),
+                "banco": db_path.name,
+                "pasta_backups": backup_dir.name,
+                "tamanho_maximo_mb": round(_max_backup_bytes() / (1024 * 1024), 1),
                 "ultima_atualizacao": datetime.fromtimestamp(
                     db_path.stat().st_mtime
                 ).isoformat(),
@@ -86,6 +118,11 @@ def criar_backup():
     db_path, error = _ensure_local_sqlite()
     if error:
         return error
+    if db_path.stat().st_size > _max_backup_bytes():
+        return (
+            jsonify({"erro": "Banco local excede o tamanho maximo para backup."}),
+            413,
+        )
 
     db.session.remove()
     db.engine.dispose()
@@ -110,12 +147,14 @@ def restaurar_backup():
     if error:
         return error
 
-    data = request.get_json() or {}
+    data = json_body()
     arquivo_base64 = data.get("arquivo_base64", "")
     nome_arquivo = (data.get("nome_arquivo") or "backup.sqlite3").strip()
 
-    if not arquivo_base64:
+    if not isinstance(arquivo_base64, str) or not arquivo_base64:
         return jsonify({"erro": "Nenhum arquivo de backup enviado."}), 400
+    if len(arquivo_base64) > (_max_backup_bytes() * 4 // 3) + 8:
+        return jsonify({"erro": "Arquivo de backup excede o tamanho maximo."}), 413
 
     suffix = Path(nome_arquivo).suffix.lower()
     if suffix and suffix not in ALLOWED_RESTORE_SUFFIXES:
@@ -129,9 +168,11 @@ def restaurar_backup():
         )
 
     try:
-        payload = base64.b64decode(arquivo_base64)
-    except Exception:
+        payload = base64.b64decode(arquivo_base64, validate=True)
+    except (binascii.Error, ValueError):
         return jsonify({"erro": "Arquivo de backup invalido ou corrompido."}), 400
+    if len(payload) > _max_backup_bytes():
+        return jsonify({"erro": "Arquivo de backup excede o tamanho maximo."}), 413
 
     backup_dir = _backup_dir()
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -148,6 +189,9 @@ def restaurar_backup():
                     "integridade do SQLite."
                 )
                 return (jsonify({"erro": msg}), 400)
+            schema_error = _validate_backup_schema(conn)
+            if schema_error:
+                return jsonify({"erro": schema_error}), 400
 
         db.session.remove()
         db.engine.dispose()
@@ -162,8 +206,7 @@ def restaurar_backup():
         jsonify(
             {
                 "mensagem": "Backup restaurado com sucesso.",
-                "backup_seguranca": str(safety_backup_path),
-                "caminho_banco": str(db_path),
+                "backup_seguranca": safety_backup_path.name,
             }
         ),
         200,

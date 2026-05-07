@@ -27,7 +27,7 @@
     ┌───────────┼───────────┐ ┌─────────┼─────────────────────┐
     │           │           │ │         │                     │
     ▼           ▼           ▼ ▼         ▼                     ▼
- /clientes  /financeiro  /orcamentos /ordemservico /usuarios /backup
+ /clientes  /financeiro  /orcamentos /ordens-servico /usuarios /backup
     │           │           │         │           │          │
     ├───────────┼───────────┴─────────┴───────────┴──────────┤
     │                                                         │
@@ -44,12 +44,12 @@ Dashboard (4 KPIs):
 ├─ Clientes Ativos (blue card) ────────→ /app/clientes
 ├─ Recebido MTD (orange card) ─────────→ /app/financeiro
 ├─ Aprovado Ativo (blue card) ────────→ /app/orcamentos
-└─ Ticket por OS (green card) ────────→ /app/ordemservico
+└─ Ticket por OS (green card) ────────→ /app/ordens-servico
 
 Dashboard (Navegação Rápida):
 ├─ Clientes (grid btn 1) ──────────────→ /app/clientes
 ├─ Orçamentos (grid btn 2) ────────────→ /app/orcamentos
-├─ Ordens de Serviço (grid btn 3) ────→ /app/ordemservico
+├─ Ordens de Serviço (grid btn 3) ────→ /app/ordens-servico
 ├─ Financeiro (grid btn 4) ────────────→ /app/financeiro
 ├─ Usuários (grid btn 5) ──────────────→ /app/usuarios
 └─ Backup (grid btn 6) ────────────────→ /app/backup
@@ -61,7 +61,7 @@ Sidebar (Menu):
 ├─ Dashboard ──────────────────────────────→ /app/dashboard
 ├─ Clientes ───────────────────────────────→ /app/clientes
 ├─ Orçamentos ─────────────────────────────→ /app/orcamentos
-├─ OS ─────────────────────────────────────→ /app/ordemservico
+├─ OS ─────────────────────────────────────→ /app/ordens-servico
 ├─ Financeiro ─────────────────────────────→ /app/financeiro
 ├─ Usuários ───────────────────────────────→ /app/usuarios
 └─ Backup ─────────────────────────────────→ /app/backup
@@ -75,10 +75,10 @@ SAÍDO DO DASHBOARD (10 links):
 ✅ KPI Clientes Ativos        → /app/clientes
 ✅ KPI Recebido MTD           → /app/financeiro
 ✅ KPI Aprovado Ativo         → /app/orcamentos
-✅ KPI Ticket por OS          → /app/ordemservico
+✅ KPI Ticket por OS          → /app/ordens-servico
 ✅ Nav. Btn Clientes          → /app/clientes
 ✅ Nav. Btn Orçamentos        → /app/orcamentos
-✅ Nav. Btn Ordens Serviço    → /app/ordemservico
+✅ Nav. Btn Ordens Serviço    → /app/ordens-servico
 ✅ Nav. Btn Financeiro        → /app/financeiro
 ✅ Nav. Btn Usuários          → /app/usuarios
 ✅ Nav. Btn Backup            → /app/backup
@@ -90,7 +90,7 @@ RETORNO AO DASHBOARD (3 caminhos):
 
 ENTRE PÁGINAS (via Sidebar):
 ✅ Clientes ↔ Orcamentos (menu)         → /app/orcamentos
-✅ Orcamentos ↔ OS (menu)               → /app/ordemservico
+✅ Orcamentos ↔ OS (menu)               → /app/ordens-servico
 ✅ OS ↔ Financeiro (menu)               → /app/financeiro
 ✅ E todas as combinações possíveis...  → Via Sidebar
 

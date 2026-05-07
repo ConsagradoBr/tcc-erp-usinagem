@@ -59,6 +59,11 @@ const fmt = (value) =>
 const fmtD = (iso) =>
   iso ? new Date(`${iso.slice(0, 10)}T12:00:00`).toLocaleDateString("pt-BR") : "—";
 
+function finiteOrNull(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
 function useNotif() {
   const [notif, setNotif] = useState(null);
   const show = useCallback((msg, tipo = "sucesso") => {
@@ -138,7 +143,7 @@ function EmptyState({ onCreate }) {
     <div className="amp-rel-empty">
       <div className="amp-rel-empty-icon">$</div>
       <h3>Nenhum lançamento encontrado</h3>
-      <p>Ajuste os filtros ou cadastre um novo título para reacender a leitura do caixa.</p>
+      <p>Ajuste os filtros ou cadastre um novo título para atualizar a leitura do caixa.</p>
       <div className="amp-rel-empty-actions">
         <button type="button" onClick={onCreate} className="amp-rel-primary-btn">
           Novo lançamento
@@ -1122,11 +1127,30 @@ export default function Financeiro() {
       (sum, item) => (item.tipo === "pagar" && item.status !== "pago" ? sum + item.valor_total : sum),
       0
     );
-    const totalJuros = dados.reduce((sum, item) => sum + item.juros, 0);
-    return { totalReceber, totalPagar, totalJuros };
+    const totalAtrasado = dados.reduce(
+      (sum, item) => (item.status === "atrasado" ? sum + Number(item.valor_total || 0) : sum),
+      0
+    );
+    return { totalReceber, totalPagar, totalAtrasado };
   }, [dados]);
 
-  const saldoProjetado = totaisLista.totalReceber - totaisLista.totalPagar;
+  const resumoMetricas = useMemo(() => {
+    const mesAtual = new Date().toISOString().slice(0, 7);
+    const recebidoMesLista = dados.reduce((sum, item) => {
+      if (item.tipo !== "receber" || !item.data_pagamento?.startsWith(mesAtual)) return sum;
+      return sum + Number(item.valor || 0);
+    }, 0);
+
+    return {
+      aReceber: finiteOrNull(resumo?.a_receber) ?? totaisLista.totalReceber,
+      aPagar: finiteOrNull(resumo?.a_pagar) ?? totaisLista.totalPagar,
+      atrasados: finiteOrNull(resumo?.atrasados) ?? dados.filter((item) => item.status === "atrasado").length,
+      valorAtrasado: finiteOrNull(resumo?.valor_atrasado) ?? totaisLista.totalAtrasado,
+      recebidoMes: finiteOrNull(resumo?.recebido_mes) ?? recebidoMesLista,
+    };
+  }, [dados, resumo, totaisLista.totalAtrasado, totaisLista.totalPagar, totaisLista.totalReceber]);
+
+  const saldoProjetado = resumoMetricas.aReceber - resumoMetricas.aPagar;
 
   const filaPrioritaria = useMemo(() => {
     return [...dadosEnriquecidos]
@@ -1239,7 +1263,8 @@ export default function Financeiro() {
   };
 
   return (
-    <div className="amp-fin-page">
+    <div className="flex flex-col h-full overflow-hidden amp-bg px-3 py-2" style={{ borderRadius: "12px" }}>
+      <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-4">
       {notif && <div className={`amp-rel-notice ${notif.tipo === "erro" ? "is-error" : "is-success"}`}>{notif.msg}</div>}
 
       <div className="screen-grid screen-grid-fin">
@@ -1247,7 +1272,7 @@ export default function Financeiro() {
           <div className="section-head">
             <div>
               <p className="eyebrow">Financeiro</p>
-              <h3>Títulos e parcelas com espinha dorsal em tabela</h3>
+              <h3>Títulos e parcelas em tabela operacional</h3>
             </div>
             <div className="pill-row">
               <button type="button" onClick={() => setFiltroRapido("receber")} className={`pill ${filtroRapido === "receber" ? "is-solid" : ""}`}>
@@ -1264,33 +1289,33 @@ export default function Financeiro() {
 
           <div className="terminal-ribbon">
             <article className="terminal-metric">
-              <span>D+7 recebimento</span>
-              <strong>{fmt(totaisLista.totalReceber)}</strong>
+              <span>A receber aberto</span>
+              <strong>{fmt(resumoMetricas.aReceber)}</strong>
             </article>
             <article className="terminal-metric">
-              <span>D+7 pagamento</span>
-              <strong>{fmt(totaisLista.totalPagar)}</strong>
+              <span>A pagar aberto</span>
+              <strong>{fmt(resumoMetricas.aPagar)}</strong>
             </article>
             <article className="terminal-metric">
-              <span>Inadimplência</span>
-              <strong>{`${(((resumo?.atrasados ?? 0) / Math.max(dadosVisiveis.length, 1)) * 100).toFixed(1)}%`}</strong>
+              <span>Títulos em atraso</span>
+              <strong>{String(resumoMetricas.atrasados).padStart(2, "0")}</strong>
             </article>
           </div>
 
           <div className="overview-strip finance-overview">
             <article className="overview-chip">
               <p className="eyebrow">Recebido no mês</p>
-              <strong>{fmt(resumo?.recebido_mes)}</strong>
-              <span className="muted">Fluxo saudável</span>
+              <strong>{fmt(resumoMetricas.recebidoMes)}</strong>
+              <span className="muted">Pagamentos recebidos no mês</span>
             </article>
             <article className="overview-chip">
               <p className="eyebrow">A receber</p>
-              <strong>{fmt(totaisLista.totalReceber)}</strong>
-              <span className="muted">Janela de 7 dias</span>
+              <strong>{fmt(resumoMetricas.aReceber)}</strong>
+              <span className="muted">Títulos não pagos</span>
             </article>
             <article className="overview-chip">
-              <p className="eyebrow">Atrasado</p>
-              <strong className="is-warm-text">{fmt(resumo?.valor_atrasado ?? 0)}</strong>
+              <p className="eyebrow">Valor atrasado</p>
+              <strong className="is-warm-text">{fmt(resumoMetricas.valorAtrasado)}</strong>
               <span className="muted">Precisa ação</span>
             </article>
           </div>
@@ -1477,8 +1502,8 @@ export default function Financeiro() {
 
           <div className="balance-stack">
             <div className="balance-card">
-              <span>Receita recorrente</span>
-              <strong>{fmt(resumo?.receita_recorrente ?? 0)}</strong>
+              <span>A receber</span>
+              <strong>{fmt(resumoMetricas.aReceber)}</strong>
             </div>
             <div className="balance-card">
               <span>Parcelas abertas</span>
@@ -1597,6 +1622,7 @@ export default function Financeiro() {
           onConfirmar={excluir}
         />
       )}
+      </div>
     </div>
   );
 }

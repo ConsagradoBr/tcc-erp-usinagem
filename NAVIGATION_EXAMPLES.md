@@ -76,7 +76,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-3">
         <button onClick={() => navigate("/app/clientes")}>Clientes</button>
         <button onClick={() => navigate("/app/orcamentos")}>Orçamentos</button>
-        <button onClick={() => navigate("/app/ordemservico")}>OS</button>
+        <button onClick={() => navigate("/app/ordens-servico")}>OS</button>
         <button onClick={() => navigate("/app/financeiro")}>Financeiro</button>
         <button onClick={() => navigate("/app/usuarios")}>Usuários</button>
         <button onClick={() => navigate("/app/backup")}>Backup</button>

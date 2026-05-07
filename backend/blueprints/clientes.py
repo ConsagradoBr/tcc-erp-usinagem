@@ -1,7 +1,13 @@
-import logging
-
 from flask import Blueprint, jsonify, request
+from werkzeug.exceptions import HTTPException
 
+from backend.api_utils import (
+    error_response,
+    get_or_404,
+    http_error_response,
+    internal_error,
+    json_body,
+)
 from backend.extensions import db
 from backend.models import Cliente
 from backend.security import require_permissions
@@ -71,52 +77,70 @@ def listar_clientes():
             ),
             200,
         )
+    except HTTPException as exc:
+        return http_error_response(exc)
     except Exception as exc:
-        logging.error(f"Erro ao listar clientes: {exc}")
-        return jsonify({"erro": "Erro interno."}), 500
+        return internal_error(exc)
 
 
 @clientes_bp.route("", methods=["POST"])
 @require_permissions("clientes")
 def criar_cliente():
     try:
-        data = request.get_json() or {}
-        nome = data.get("nome", "").strip()
+        data = json_body()
+        nome_raw = data.get("nome", "")
+        if not isinstance(nome_raw, str):
+            return error_response("Nome deve ser texto.")
+        nome = nome_raw.strip()
         if not nome:
-            return jsonify({"erro": "Nome e obrigatorio."}), 400
+            return error_response("Nome e obrigatorio.")
         cliente = Cliente(nome=nome)
         aplicar_campos_cliente(cliente, data)
         db.session.add(cliente)
         db.session.commit()
         return jsonify(cliente.to_dict()), 201
+    except HTTPException as exc:
+        return http_error_response(exc)
     except Exception as exc:
-        logging.error(f"Erro ao criar cliente: {exc}")
-        return jsonify({"erro": "Erro interno."}), 500
+        return internal_error(exc)
 
 
 @clientes_bp.route("/<int:id>", methods=["PUT"])
 @require_permissions("clientes")
 def editar_cliente(id):
     try:
-        cliente = Cliente.query.get_or_404(id)
-        data = request.get_json() or {}
-        cliente.nome = data.get("nome", cliente.nome).strip()
+        cliente, error = get_or_404(Cliente, id, "Cliente nao encontrado.")
+        if error:
+            return error
+        data = json_body()
+        if "nome" in data:
+            nome_raw = data["nome"]
+            if not isinstance(nome_raw, str):
+                return error_response("Nome deve ser texto.")
+            nome = nome_raw.strip()
+            if not nome:
+                return error_response("Nome e obrigatorio.")
+            cliente.nome = nome
         aplicar_campos_cliente(cliente, data)
         db.session.commit()
         return jsonify(cliente.to_dict()), 200
+    except HTTPException as exc:
+        return http_error_response(exc)
     except Exception as exc:
-        logging.error(f"Erro ao editar cliente: {exc}")
-        return jsonify({"erro": "Erro interno."}), 500
+        return internal_error(exc)
 
 
 @clientes_bp.route("/<int:id>", methods=["DELETE"])
 @require_permissions("clientes")
 def excluir_cliente(id):
     try:
-        cliente = Cliente.query.get_or_404(id)
+        cliente, error = get_or_404(Cliente, id, "Cliente nao encontrado.")
+        if error:
+            return error
         db.session.delete(cliente)
         db.session.commit()
         return jsonify({"mensagem": "Cliente excluido."}), 200
+    except HTTPException as exc:
+        return http_error_response(exc)
     except Exception as exc:
-        logging.error(f"Erro ao excluir cliente: {exc}")
-        return jsonify({"erro": "Erro interno."}), 500
+        return internal_error(exc)

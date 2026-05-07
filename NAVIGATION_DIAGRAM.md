@@ -52,14 +52,14 @@
 │      │ Clientes Ativos (card) ────→ /app/clientes              │ │
 │      │ Recebido MTD (card) ────────→ /app/financeiro           │ │
 │      │ Aprovado Ativo (card) ──────→ /app/orcamentos           │ │
-│      │ Ticket por OS (card) ───────→ /app/ordemservico         │ │
+│      │ Ticket por OS (card) ───────→ /app/ordens-servico         │ │
 │      └─────────────────────────────────────────────────────────┘ │
 │                                                                    │
 │  2️⃣  NAVEGAÇÃO RÁPIDA (Dashboard - 6 Botões)                      │
 │      ┌─────────────────────────────────────────────────────────┐ │
 │      │ Clientes ────────────→ /app/clientes                    │ │
 │      │ Orçamentos ──────────→ /app/orcamentos                  │ │
-│      │ Ordens de Serviço ───→ /app/ordemservico                │ │
+│      │ Ordens de Serviço ───→ /app/ordens-servico                │ │
 │      │ Financeiro ──────────→ /app/financeiro                  │ │
 │      │ Usuários ────────────→ /app/usuarios                    │ │
 │      │ Backup ──────────────→ /app/backup                      │ │

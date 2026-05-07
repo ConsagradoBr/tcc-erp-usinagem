@@ -68,3 +68,27 @@ def test_build_engine_options_matches_database_type():
     assert options["pool_recycle"] == 300
     assert options["connect_args"]["sslmode"] == "require"
     assert options["connect_args"]["connect_timeout"] == 10
+
+
+def test_cors_default_restrito_ao_front_local(monkeypatch):
+    monkeypatch.delenv("CORS_ORIGINS", raising=False)
+
+    origins = config.get_cors_origins()
+
+    assert "http://localhost:5173" in origins
+    assert "*" not in origins
+
+
+def test_secret_padrao_apenas_em_dev(monkeypatch):
+    monkeypatch.delenv("SECRET_KEY", raising=False)
+    monkeypatch.setenv("APP_ENV", "development")
+
+    assert config.get_secret_config("SECRET_KEY", "dev-secret") == "dev-secret"
+
+    monkeypatch.setenv("APP_ENV", "production")
+    try:
+        config.get_secret_config("SECRET_KEY", "dev-secret")
+    except RuntimeError as exc:
+        assert "SECRET_KEY" in str(exc)
+    else:
+        raise AssertionError("production sem SECRET_KEY deveria falhar")

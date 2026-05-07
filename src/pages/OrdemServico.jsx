@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 
-import api from "../api";
+import api, { formatISODateBR, normalizeISODate } from "../api";
+import { getStoredUser, hasPermission } from "../auth";
 
 const COLUNAS_CONFIG = [
   { id: "solicitado", titulo: "Solicitado", tone: "accent", note: "Entrada de demanda e definição de prioridade." },
@@ -110,13 +111,6 @@ function ModalContainer({ children }) {
   );
 }
 
-const mascaraData = (valor) => {
-  const n = valor.replace(/\D/g, "").slice(0, 8);
-  if (n.length <= 2) return n;
-  if (n.length <= 4) return `${n.slice(0, 2)}/${n.slice(2)}`;
-  return `${n.slice(0, 2)}/${n.slice(2, 4)}/${n.slice(4)}`;
-};
-
 function extrairMarcadorOrcamento(texto = "") {
   const match = String(texto).match(/\[ORC:([^\]]+)\]/);
   return match?.[1] || "";
@@ -132,6 +126,7 @@ function ModalOS({
   mostrarDropdown,
   setMostrarDropdown,
   clientesSugeridos,
+  clientesLookupDisponivel,
   setCardAtual,
   onClose,
   onSalvar,
@@ -183,7 +178,7 @@ function ModalOS({
                   <InfoItem label="Prioridade" value={prioridade.label} />
                 </div>
                 <div className="rounded-[22px] border border-[color:var(--cm-line)] bg-white/38 p-4">
-                  <InfoItem label="Prazo" value={cardAtual.prazo || "Sem prazo"} subtle={!cardAtual.prazo} />
+                  <InfoItem label="Prazo" value={formatISODateBR(cardAtual.prazo) || "Sem prazo"} subtle={!cardAtual.prazo} />
                   <InfoItem label="Responsável" value={cardAtual.responsavel || "Não definido"} subtle={!cardAtual.responsavel} />
                   <InfoItem label="Origem" value={origemOrcamento ? `Orçamento ${origemOrcamento}` : "Manual"} subtle={!origemOrcamento} />
                 </div>
@@ -238,9 +233,14 @@ function ModalOS({
                     }}
                     onFocus={() => setMostrarDropdown(true)}
                     onBlur={() => setTimeout(() => setMostrarDropdown(false), 150)}
-                    placeholder="Digite ou selecione um cliente..."
+                    placeholder={clientesLookupDisponivel ? "Digite ou selecione um cliente..." : "Digite o nome do cliente..."}
                     className={INPUT_BASE}
                   />
+                  {!clientesLookupDisponivel && (
+                    <p className="mt-2 text-xs leading-5 text-[var(--cm-muted)]">
+                      A consulta da carteira de clientes não está disponível para este perfil. O nome será salvo como texto livre na OS.
+                    </p>
+                  )}
                   {mostrarDropdown && clientesSugeridos.length > 0 && (
                     <div className="absolute z-10 mt-1 max-h-44 w-full overflow-y-auto rounded-[20px] border border-[color:var(--cm-line)] bg-white shadow-lg">
                       {clientesSugeridos.map((cliente) => (
@@ -289,11 +289,9 @@ function ModalOS({
                     <label htmlFor={`${fieldBase}-prazo`} className={LABEL_BASE}>Prazo</label>
                     <input
                       id={`${fieldBase}-prazo`}
-                      type="text"
-                      value={cardAtual.prazo || ""}
-                      onChange={(e) => setCardAtual({ ...cardAtual, prazo: mascaraData(e.target.value) })}
-                      placeholder="DD/MM/AAAA"
-                      maxLength={10}
+                      type="date"
+                      value={normalizeISODate(cardAtual.prazo)}
+                      onChange={(e) => setCardAtual({ ...cardAtual, prazo: e.target.value })}
                       className={INPUT_BASE}
                     />
                   </div>
@@ -342,7 +340,7 @@ function ModalOS({
             <div className="mt-5 space-y-3 rounded-[24px] border border-white/10 bg-white/6 p-4">
               <InfoItem label="Cliente" value={cardAtual.cliente || "A definir"} subtle={!cardAtual.cliente} />
               <InfoItem label="Serviço" value={cardAtual.servico || "A definir"} subtle={!cardAtual.servico} />
-              <InfoItem label="Prazo" value={cardAtual.prazo || "Sem prazo"} subtle={!cardAtual.prazo} />
+              <InfoItem label="Prazo" value={formatISODateBR(cardAtual.prazo) || "Sem prazo"} subtle={!cardAtual.prazo} />
               <InfoItem label="Responsável" value={cardAtual.responsavel || "Não definido"} subtle={!cardAtual.responsavel} />
             </div>
 
@@ -362,6 +360,8 @@ function ModalOS({
 }
 
 export default function OrdemServico() {
+  const user = getStoredUser();
+  const canClientes = hasPermission(user, "clientes");
   const [ordens, setOrdens] = useState([]);
   const [clientes, setClientes] = useState([]);
   const [carregando, setCarregando] = useState(true);
@@ -379,38 +379,46 @@ export default function OrdemServico() {
   const [cardFocoId, setCardFocoId] = useState(null);
   const dragCard = useRef(null);
 
-  const notificar = (msg, tipo = "sucesso") => {
+  const notificar = useCallback((msg, tipo = "sucesso") => {
     setNotificacao({ msg, tipo });
     window.clearTimeout(window.__osToastTimer);
     window.__osToastTimer = window.setTimeout(() => setNotificacao(null), 3200);
-  };
+  }, []);
 
-  const carregar = async () => {
+  const carregar = useCallback(async () => {
     setCarregando(true);
     try {
-      const [resOS, resClientes] = await Promise.all([
+      const [resOS, resClientes] = await Promise.allSettled([
         api.get("/ordens-servico"),
-        api.get("/clientes"),
+        canClientes ? api.get("/clientes") : Promise.resolve({ data: [] }),
       ]);
-      setOrdens(resOS.data);
-      setClientes(resClientes.data.map((cliente) => cliente.nome));
+      if (resOS.status !== "fulfilled") {
+        throw new Error("Erro ao carregar ordens de serviço.");
+      }
+      setOrdens(resOS.value.data);
+      if (resClientes.status === "fulfilled") {
+        setClientes((resClientes.value.data || []).map((cliente) => cliente.nome));
+      } else {
+        setClientes([]);
+        notificar("Ordens carregadas. A lista de clientes não está disponível para este perfil.", "erro");
+      }
     } catch {
       notificar("Erro ao carregar ordens de serviço.", "erro");
     } finally {
       setCarregando(false);
     }
-  };
+  }, [canClientes, notificar]);
 
   useEffect(() => {
     carregar();
-  }, []);
+  }, [carregar]);
 
   const ordensFiltradas = useMemo(() => {
     return ordens.filter((ordem) => {
       const termo =
-        ordem.cliente.toLowerCase().includes(filtro.toLowerCase()) ||
-        ordem.os.toLowerCase().includes(filtro.toLowerCase()) ||
-        ordem.servico.toLowerCase().includes(filtro.toLowerCase());
+        (ordem.cliente || "").toLowerCase().includes(filtro.toLowerCase()) ||
+        (ordem.os || "").toLowerCase().includes(filtro.toLowerCase()) ||
+        (ordem.servico || "").toLowerCase().includes(filtro.toLowerCase());
 
       if (!termo) return false;
       if (filtroRapido === "alta") return ordem.prioridade === "alta";
@@ -508,14 +516,14 @@ export default function OrdemServico() {
   const abrirEditar = (card) => {
     setModoModal("editar");
     setClienteFiltrado(card.cliente);
-    setCardAtual({ ...card });
+    setCardAtual({ ...card, prazo: normalizeISODate(card.prazo) });
     setModalAberto(true);
   };
 
   const abrirVer = (card) => {
     setModoModal("ver");
     setClienteFiltrado(card.cliente);
-    setCardAtual({ ...card });
+    setCardAtual({ ...card, prazo: normalizeISODate(card.prazo) });
     setModalAberto(true);
   };
 
@@ -526,13 +534,17 @@ export default function OrdemServico() {
     }
     setSalvando(true);
     try {
+      const payload = {
+        ...cardAtual,
+        prazo: normalizeISODate(cardAtual.prazo) || "",
+      };
       if (modoModal === "criar") {
-        const res = await api.post("/ordens-servico", { ...cardAtual, status: colunaDestino });
+        const res = await api.post("/ordens-servico", { ...payload, status: colunaDestino });
         setOrdens((prev) => [...prev, res.data]);
         setCardFocoId(res.data.id);
         notificar(`${res.data.os} criada com sucesso.`);
       } else {
-        const res = await api.put(`/ordens-servico/${cardAtual.id}`, cardAtual);
+        const res = await api.put(`/ordens-servico/${cardAtual.id}`, payload);
         setOrdens((prev) => prev.map((ordem) => (ordem.id === res.data.id ? res.data : ordem)));
         setCardFocoId(res.data.id);
         notificar(`${res.data.os} atualizada.`);
@@ -556,12 +568,14 @@ export default function OrdemServico() {
     }
   };
 
-  const clientesSugeridos = clientes.filter((cliente) =>
-    cliente.toLowerCase().includes(clienteFiltrado.toLowerCase())
-  );
+  const clientesLookupDisponivel = canClientes && clientes.length > 0;
+  const clientesSugeridos = clientesLookupDisponivel
+    ? clientes.filter((cliente) => cliente.toLowerCase().includes(clienteFiltrado.toLowerCase()))
+    : [];
 
   return (
-    <div className="min-h-full bg-transparent p-3 sm:p-4 lg:p-5">
+    <div className="flex flex-col h-full overflow-hidden amp-bg px-3 py-2" style={{ borderRadius: "12px" }}>
+      <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-4">
       {notificacao && (
         <div
           className={`fixed right-5 top-5 z-50 rounded-[20px] border px-5 py-3 text-sm font-semibold shadow-[0_18px_48px_rgba(22,18,14,0.2)] ${
@@ -639,7 +653,7 @@ export default function OrdemServico() {
               {colunas.map((coluna) => (
                 <article
                   key={coluna.id}
-                  className={`lane ${colunaDragOver === coluna.id ? "ring-2 ring-[rgba(32,229,203,0.24)]" : ""}`}
+                  className={`lane ${colunaDragOver === coluna.id ? "ring-2 ring-[var(--amp-orange)]" : ""}`}
                   onDragOver={(e) => onDragOver(e, coluna.id)}
                   onDrop={() => onDrop(coluna.id)}
                   onDragLeave={() => setColunaDragOver(null)}
@@ -672,7 +686,7 @@ export default function OrdemServico() {
                             key={card.id}
                             draggable
                             onDragStart={() => onDragStart(card, coluna.id)}
-                            className={`lane-card ${card.id === cardFocoId ? "border-[rgba(32,229,203,0.32)]" : ""}`}
+                            className={`lane-card ${card.id === cardFocoId ? "border-[color:var(--amp-orange)]" : ""}`}
                           >
                             <button type="button" onClick={() => setCardFocoId(card.id)} className="w-full text-left">
                               <strong>{card.os}</strong>
@@ -729,7 +743,7 @@ export default function OrdemServico() {
                     </article>
                     <article className="terminal-metric">
                       <span>Prazo</span>
-                      <strong>{cardFoco.prazo || "Sem prazo"}</strong>
+                      <strong>{formatISODateBR(cardFoco.prazo) || "Sem prazo"}</strong>
                     </article>
                     <article className="terminal-metric">
                       <span>Responsável</span>
@@ -767,7 +781,7 @@ export default function OrdemServico() {
                     <strong>Nenhuma OS selecionada</strong>
                     <p>Selecione uma ordem no quadro para abrir prioridade, origem e contexto operacional.</p>
                   </div>
-                  <span className="status-tag">Idle</span>
+                  <span className="status-tag">Sem seleção</span>
                 </div>
               )}
             </section>
@@ -820,12 +834,14 @@ export default function OrdemServico() {
           mostrarDropdown={mostrarDropdown}
           setMostrarDropdown={setMostrarDropdown}
           clientesSugeridos={clientesSugeridos}
+          clientesLookupDisponivel={clientesLookupDisponivel}
           setCardAtual={setCardAtual}
           onClose={() => setModalAberto(false)}
           onSalvar={salvar}
           salvando={salvando}
         />
       )}
+      </div>
     </div>
   );
 }

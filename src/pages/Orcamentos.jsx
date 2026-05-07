@@ -142,7 +142,7 @@ function EmptyState({ onNovo }) {
 
 function ModalContainer({ children }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(19,18,16,0.52)] p-4 backdrop-blur-md">
+    <div className="amp-modal-overlay fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-[rgba(19,18,16,0.52)] p-3 backdrop-blur-md sm:p-5">
       {children}
     </div>
   );
@@ -166,15 +166,21 @@ function ModalOrcamento({ item, clientes, onClose, onSalvo }) {
   );
   const [erro, setErro] = useState("");
   const [salvando, setSalvando] = useState(false);
+  const [approvalConfirmed, setApprovalConfirmed] = useState(false);
 
   const clienteSelecionado = clientes.find((cliente) => cliente.id === Number(form.cliente_id));
   const statusSelecionado = STATUS[form.status] || STATUS.rascunho;
+  const precisaConfirmarAprovacao = form.status === "aprovado" && item?.status !== "aprovado";
 
   const set = (campo, valor) => setForm((prev) => ({ ...prev, [campo]: valor }));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErro("");
+    if (precisaConfirmarAprovacao && !approvalConfirmed) {
+      setErro("Confirme a aprovação para gerar ou sincronizar OS e financeiro.");
+      return;
+    }
     setSalvando(true);
     try {
       const payload = {
@@ -250,7 +256,10 @@ function ModalOrcamento({ item, clientes, onClose, onSalvo }) {
                   <select
                     id={`${idBase}-status`}
                     value={form.status}
-                    onChange={(e) => set("status", e.target.value)}
+                    onChange={(e) => {
+                      set("status", e.target.value);
+                      if (e.target.value !== "aprovado") setApprovalConfirmed(false);
+                    }}
                     className={INPUT_BASE}
                   >
                     {Object.entries(STATUS).map(([key, status]) => (
@@ -319,6 +328,21 @@ function ModalOrcamento({ item, clientes, onClose, onSalvo }) {
                   />
                 </div>
               </div>
+
+              {precisaConfirmarAprovacao && (
+                <label className="flex gap-3 rounded-[20px] border border-[rgba(180,99,56,0.18)] bg-[rgba(180,99,56,0.1)] px-4 py-3 text-sm text-[var(--cm-text)]">
+                  <input
+                    type="checkbox"
+                    checked={approvalConfirmed}
+                    onChange={(e) => setApprovalConfirmed(e.target.checked)}
+                    className="mt-1"
+                  />
+                  <span>
+                    Confirmo a aprovação de {form.titulo || "este orçamento"} por {form.valor ? fmt(form.valor) : "valor informado"}.
+                    O sistema poderá criar ou sincronizar a OS e o lançamento financeiro vinculados.
+                  </span>
+                </label>
+              )}
 
               <div className="flex flex-wrap gap-3 pt-2">
                 <button
@@ -416,6 +440,78 @@ function ModalExcluir({ item, onClose, onConfirmar }) {
   );
 }
 
+function ModalAprovar({ item, canOS, canFinanceiro, onClose, onConfirmar }) {
+  const [loading, setLoading] = useState(false);
+  const [confirmado, setConfirmado] = useState(false);
+  const cliente = item.cliente_nome || "Cliente não informado";
+  const validade = item.validade ? fmtD(item.validade) : "Sem validade definida";
+
+  return (
+    <ModalContainer>
+      <div className="cm-surface w-full max-w-xl rounded-[32px] p-6 shadow-[0_24px_80px_rgba(22,18,14,0.28)]">
+        <div>
+          <p className="cm-label">Confirmar aprovação</p>
+          <h3 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-[var(--cm-text)]">
+            Aprovar {item.numero}?
+          </h3>
+          <p className="mt-2 text-sm leading-6 text-[var(--cm-muted)]">
+            A aprovação atualiza o orçamento e pode criar ou sincronizar registros nos módulos integrados.
+          </p>
+        </div>
+
+        <div className="mt-5 space-y-3 rounded-[24px] border border-[color:var(--cm-line)] bg-white/42 p-4">
+          <InfoItem label="Cliente" value={cliente} />
+          <InfoItem label="Título" value={item.titulo} />
+          <InfoItem label="Valor" value={fmt(item.valor)} />
+          <InfoItem label="Validade" value={validade} />
+          <InfoItem
+            label="Impacto"
+            value={[
+              canOS ? "OS vinculada" : null,
+              canFinanceiro ? "Contas a receber" : null,
+            ].filter(Boolean).join(" + ") || "Somente orçamento"}
+          />
+        </div>
+
+        <label className="mt-4 flex gap-3 rounded-[20px] border border-[rgba(180,99,56,0.18)] bg-[rgba(180,99,56,0.1)] px-4 py-3 text-sm text-[var(--cm-text)]">
+          <input
+            type="checkbox"
+            checked={confirmado}
+            onChange={(event) => setConfirmado(event.target.checked)}
+            className="mt-1"
+          />
+          <span>
+            Confirmo que {item.numero} será aprovado por {fmt(item.valor)} e que os módulos integrados poderão receber
+            OS e contas a receber vinculados.
+          </span>
+        </label>
+
+        <div className="mt-6 flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-full border border-[color:var(--cm-line)] bg-white/74 px-5 py-3 text-sm font-semibold text-[var(--cm-text)] transition hover:bg-white"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            disabled={loading || !confirmado}
+            onClick={async () => {
+              setLoading(true);
+              await onConfirmar();
+              setLoading(false);
+            }}
+            className="rounded-full bg-[var(--cm-positive)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-92 disabled:cursor-not-allowed disabled:opacity-55"
+          >
+            {loading ? "Aprovando..." : "Confirmar aprovação"}
+          </button>
+        </div>
+      </div>
+    </ModalContainer>
+  );
+}
+
 function transicoesPrincipais(statusAtual) {
   switch (statusAtual) {
     case "rascunho":
@@ -454,6 +550,7 @@ export default function Orcamentos() {
   const [modalForm, setModalForm] = useState(false);
   const [itemEdit, setItemEdit] = useState(null);
   const [itemDel, setItemDel] = useState(null);
+  const [itemApproval, setItemApproval] = useState(null);
   const [toast, setToast] = useState(null);
 
   const notificar = (msg, tipo = "sucesso") => {
@@ -668,6 +765,7 @@ export default function Orcamentos() {
         mensagens.push(`Lançamento financeiro #${lancamentoId} criado.`);
       }
       setItemFocoId(item.id);
+      setItemApproval(null);
       notificar(mensagens.join(" "));
       carregar();
     } catch (err) {
@@ -696,7 +794,8 @@ export default function Orcamentos() {
   ).length;
 
   return (
-    <div className="min-h-full bg-transparent p-3 sm:p-4 lg:p-5">
+    <div className="flex flex-col h-full overflow-hidden amp-bg px-3 py-2" style={{ borderRadius: "12px" }}>
+      <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-4">
       {toast && (
         <div
           className={`fixed right-5 top-5 z-50 rounded-[20px] border px-5 py-3 text-sm font-semibold shadow-[0_18px_48px_rgba(22,18,14,0.2)] ${
@@ -881,7 +980,13 @@ export default function Orcamentos() {
                           <button
                             key={status}
                             type="button"
-                            onClick={() => alterarStatus(item, status)}
+                            onClick={() => {
+                              if (status === "aprovado") {
+                                setItemApproval(item);
+                              } else {
+                                alterarStatus(item, status);
+                              }
+                            }}
                             className="pill"
                           >
                             {STATUS[status].label}
@@ -896,6 +1001,13 @@ export default function Orcamentos() {
                           className="pill"
                         >
                           Editar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setItemDel(item)}
+                          className="pill"
+                        >
+                          Excluir
                         </button>
                       </div>
                     </div>
@@ -932,6 +1044,16 @@ export default function Orcamentos() {
       )}
 
       {itemDel && <ModalExcluir item={itemDel} onClose={() => setItemDel(null)} onConfirmar={excluir} />}
+      {itemApproval && (
+        <ModalAprovar
+          item={itemApproval}
+          canOS={canOS}
+          canFinanceiro={canFinanceiro}
+          onClose={() => setItemApproval(null)}
+          onConfirmar={() => alterarStatus(itemApproval, "aprovado")}
+        />
+      )}
+      </div>
     </div>
   );
 }

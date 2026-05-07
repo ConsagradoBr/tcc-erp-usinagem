@@ -4,6 +4,12 @@ Sistema ERP web/Desktop desenvolvido como TCC para empresas de usinagem de peque
 
 Stack principal: React 18 + Vite, Flask, SQLAlchemy, JWT e PostgreSQL/Supabase.
 
+## Figma / Protótipo visual
+
+Arquivo Figma do projeto para apresentação e ajustes visuais:
+
+https://www.figma.com/design/rWaKAvacY9oAWU1w8aM1HI
+
 ## Situação atual
 
 O projeto está em fase de polimento de MVP e hoje já possui fluxo funcional para:
@@ -30,12 +36,25 @@ backend/
 src/
   components/           sidebar, header e componentes reutilizáveis
   layouts/              layout público e protegido
-  pages/                Auth, Dashboard, Clientes, Financeiro, OrdemServico, Orcamentos
+  pages/                Login, Dashboard, Clientes, Financeiro, OrdemServico, Orcamentos
   api.js                cliente Axios com baseURL configurável por ambiente
 desktop_app.py         launcher desktop usando o frontend buildado
 .env.example            exemplo do frontend
 backend/.env.example    exemplo do backend
 ```
+
+## Rotas oficiais para apresentação
+
+- `/login` - login oficial do sistema
+- `/app/dashboard` - painel principal autenticado
+- `/app/clientes` - clientes e fornecedores
+- `/app/orcamentos` - orçamentos comerciais
+- `/app/ordens-servico` - ordens de serviço
+- `/app/financeiro` - financeiro
+- `/app/usuarios` - usuários
+- `/app/backup` - backup desktop
+
+Não há rota oficial de cadastro público, Notas Fiscais ou preview de login na navegação da apresentação. A rota antiga `/app/ordemservico` existe apenas como compatibilidade e redireciona para `/app/ordens-servico`.
 
 ## Módulos implementados
 
@@ -122,6 +141,8 @@ npm run dev
 Frontend padrão: `http://localhost:5173`
 Backend padrão: `http://127.0.0.1:5000`
 
+O frontend chama a API por `VITE_API_BASE_URL` ou, na ausência da variável, por `http://127.0.0.1:5000`. O Vite não usa proxy local para `/api`.
+
 ## Testes
 
 Foi adicionada uma suíte inicial de testes para os fluxos principais do backend.
@@ -204,6 +225,11 @@ Fluxo recomendado para novas versoes:
    `powershell -ExecutionPolicy Bypass -File scripts/Publish-GitHubRelease.ps1 -Version v2026.03.24.000000`
 
 Esse criterio deixa o historico do Git leve e concentra os artefatos de distribuicao no lugar certo.
+
+## Limpeza para apresentação
+
+Diretórios gerados localmente não devem entrar no zip ou na revisão de apresentação: `node_modules/`, `dist/`, `build/`, `release/`, `__pycache__/`, `.pytest_cache/` e caches equivalentes. Eles podem existir no ambiente de desenvolvimento, mas devem ser regenerados pelos comandos documentados.
+
 ## Próximas prioridades sugeridas
 
 - quebrar `backend/app.py` em módulos menores por domínio
@@ -226,4 +252,3 @@ Desenvolvedor — TCC: ERP para Usinagem Industrial
 ## 📄 Licença
 
 Projeto acadêmico desenvolvido para fins de TCC. Todos os direitos reservados.
-

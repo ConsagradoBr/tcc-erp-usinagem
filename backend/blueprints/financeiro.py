@@ -1,11 +1,21 @@
 import base64
+import binascii
 import io
 import logging
 import re
 from datetime import date, timedelta
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 
 from flask import Blueprint, jsonify, request
+from werkzeug.exceptions import HTTPException
 
+from backend.api_utils import (
+    error_response,
+    get_or_404,
+    http_error_response,
+    internal_error,
+    json_body,
+)
 from backend.extensions import db
 from backend.financeiro_utils import extrair_dados_boleto
 from backend.models import Cliente, Lancamento
@@ -32,13 +42,82 @@ def consultar_grupo(lancamento):
 
 
 def distribuir_valor_total(valor_total, parcelas):
-    parcelas = max(int(parcelas or 1), 1)
-    valor_total = round(float(valor_total), 2)
-    valor_base = round(valor_total / parcelas, 2)
+    parcelas = int(parcelas)
+    centavos = int(
+        (Decimal(str(valor_total)) * Decimal("100")).quantize(
+            Decimal("1"), rounding=ROUND_HALF_UP
+        )
+    )
+    valor_base, sobra = divmod(centavos, parcelas)
     valores = [valor_base for _ in range(parcelas)]
-    diferenca = round(valor_total - sum(valores), 2)
-    valores[-1] = round(valores[-1] + diferenca, 2)
-    return valores
+    valores[-1] += sobra
+    return [float(Decimal(valor) / Decimal("100")) for valor in valores]
+
+
+def _texto_obrigatorio(value, campo):
+    if not isinstance(value, str):
+        return None, error_response(f"{campo} deve ser texto.")
+    texto = value.strip()
+    if not texto:
+        return None, error_response(f"{campo} é obrigatória.")
+    return texto, None
+
+
+def _texto_opcional(value, campo):
+    if value is None:
+        return None, None
+    if not isinstance(value, str):
+        return None, error_response(f"{campo} deve ser texto.")
+    return value.strip() or None, None
+
+
+def _parse_int(value, campo, minimo=None, padrao=None):
+    if value in (None, ""):
+        value = padrao
+    try:
+        numero = int(value)
+    except (TypeError, ValueError):
+        return None, error_response(f"{campo} deve ser um numero inteiro.")
+    if minimo is not None and numero < minimo:
+        return None, error_response(f"{campo} deve ser maior ou igual a {minimo}.")
+    return numero, None
+
+
+def _parse_valor_positivo(value):
+    try:
+        valor = Decimal(str(value))
+    except (InvalidOperation, TypeError, ValueError):
+        return None, error_response("Valor deve ser numerico.")
+    if valor <= 0:
+        return None, error_response("Valor deve ser maior que zero.")
+    return float(valor.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)), None
+
+
+def _parse_data(value, campo, obrigatorio=False):
+    if value in (None, ""):
+        if obrigatorio:
+            return None, error_response(f"{campo} é obrigatória.")
+        return None, None
+    if not isinstance(value, str):
+        return None, error_response(f"{campo} deve usar YYYY-MM-DD.")
+    try:
+        return date.fromisoformat(value), None
+    except ValueError:
+        return None, error_response(f"{campo} invalida. Use YYYY-MM-DD.")
+
+
+def _parse_cliente_id(value):
+    if value in (None, ""):
+        return None, None
+    try:
+        cliente_id = int(value)
+    except (TypeError, ValueError):
+        return None, error_response("Cliente invalido.")
+    if cliente_id <= 0:
+        return None, error_response("Cliente invalido.")
+    if not db.session.get(Cliente, cliente_id):
+        return None, error_response("Cliente nao encontrado.", 404)
+    return cliente_id, None
 
 
 @financeiro_bp.route("", methods=["GET"])
@@ -66,9 +145,10 @@ def listar_lancamentos():
         if status:
             resultado = [item for item in resultado if item["status"] == status]
         return jsonify(resultado), 200
+    except HTTPException as exc:
+        return http_error_response(exc)
     except Exception as exc:
-        logging.error(f"❌ {exc}")
-        return jsonify({"erro": "Erro interno."}), 500
+        return internal_error(exc)
 
 
 @financeiro_bp.route("/resumo", methods=["GET"])
@@ -113,47 +193,76 @@ def resumo():
             ),
             200,
         )
+    except HTTPException as exc:
+        return http_error_response(exc)
     except Exception as exc:
-        logging.error(f"❌ {exc}")
-        return jsonify({"erro": "Erro interno."}), 500
+        return internal_error(exc)
 
 
 @financeiro_bp.route("", methods=["POST"])
 @require_permissions("financeiro")
 def criar_lancamento():
     try:
-        data = request.get_json() or {}
-        tipo = data.get("tipo", "").strip()
-        descricao = data.get("descricao", "").strip()
-        vencimento_str = data.get("vencimento", "")
+        data = json_body()
+        tipo = data.get("tipo", "")
+        tipo = tipo.strip() if isinstance(tipo, str) else ""
+        descricao, error = _texto_obrigatorio(data.get("descricao", ""), "Descrição")
+        if error:
+            return error
+        base_vencimento, error = _parse_data(
+            data.get("vencimento"), "Vencimento", obrigatorio=True
+        )
+        if error:
+            return error
         if tipo not in ("receber", "pagar"):
-            return jsonify({"erro": "Tipo inválido."}), 400
-        if not descricao:
-            return jsonify({"erro": "Descrição é obrigatória."}), 400
-        if not vencimento_str:
-            return jsonify({"erro": "Vencimento é obrigatório."}), 400
-        n_parcelas = int(data.get("parcelas", 1) or 1)
-        valor_total = float(data.get("valor", 0))
-        valor_parcela = round(valor_total / n_parcelas, 2)
-        base_vencimento = date.fromisoformat(vencimento_str)
-        prazo_dias = int(data.get("prazo_dias") or 30)
+            return error_response("Tipo inválido.")
+        n_parcelas, error = _parse_int(
+            data.get("parcelas", 1), "Parcelas", minimo=1, padrao=1
+        )
+        if error:
+            return error
+        valor_total, error = _parse_valor_positivo(data.get("valor", 0))
+        if error:
+            return error
+        cliente_id, error = _parse_cliente_id(data.get("cliente_id"))
+        if error:
+            return error
+        prazo_dias, error = _parse_int(
+            data.get("prazo_dias", 30), "Prazo em dias", minimo=0, padrao=30
+        )
+        if error:
+            return error
+        nfe, error = _texto_opcional(data.get("nfe"), "NFe")
+        if error:
+            return error
+        forma_pagamento, error = _texto_opcional(
+            data.get("forma_pagamento"), "Forma de pagamento"
+        )
+        if error:
+            return error
+        observacao, error = _texto_opcional(data.get("observacao"), "Observacao")
+        if error:
+            return error
+        valores = distribuir_valor_total(valor_total, n_parcelas)
         criados = []
-        for indice in range(n_parcelas):
+        for indice, valor_parcela in enumerate(valores):
             vencimento = base_vencimento + timedelta(days=prazo_dias * indice)
             lancamento = Lancamento(
                 tipo=tipo,
-                cliente_id=data.get("cliente_id") or None,
+                cliente_id=cliente_id,
                 descricao=(
                     descricao
                     if n_parcelas == 1
                     else f"{descricao} ({indice + 1}/{n_parcelas})"
                 ),
-                nfe=data.get("nfe", "").strip() or None,
-                prazo_dias=data.get("prazo_dias") or None,
+                nfe=nfe,
+                prazo_dias=(
+                    prazo_dias if n_parcelas > 1 or "prazo_dias" in data else None
+                ),
                 vencimento=vencimento,
                 valor=valor_parcela,
-                forma_pagamento=data.get("forma_pagamento", "").strip() or None,
-                observacao=data.get("observacao", "").strip() or None,
+                forma_pagamento=forma_pagamento,
+                observacao=observacao,
                 parcelas=n_parcelas,
                 parcela_num=indice + 1,
             )
@@ -168,60 +277,84 @@ def criar_lancamento():
             ),
             201,
         )
-    except ValueError:
-        return jsonify({"erro": "Data inválida. Use YYYY-MM-DD."}), 400
+    except HTTPException as exc:
+        return http_error_response(exc)
     except Exception as exc:
-        logging.error(f"❌ {exc}")
-        return jsonify({"erro": "Erro interno."}), 500
+        return internal_error(exc)
 
 
 @financeiro_bp.route("/<int:id>", methods=["PUT"])
 @require_permissions("financeiro")
 def editar_lancamento(id):
     try:
-        lancamento = Lancamento.query.get_or_404(id)
-        data = request.get_json() or {}
+        lancamento, error = get_or_404(Lancamento, id, "Lancamento nao encontrado.")
+        if error:
+            return error
+        data = json_body()
         grupo_atual = consultar_grupo(lancamento)
         parcelas_atuais = max(int(lancamento.parcelas or 1), 1)
 
         tipo = data.get("tipo", lancamento.tipo)
+        tipo = tipo.strip() if isinstance(tipo, str) else ""
         if tipo not in ("receber", "pagar"):
-            tipo = lancamento.tipo
+            return error_response("Tipo inválido.")
 
         descricao = data.get("descricao", lancamento.descricao)
-        descricao = descricao.strip() if descricao is not None else lancamento.descricao
+        descricao, error = _texto_obrigatorio(descricao, "Descrição")
+        if error:
+            return error
         cliente_id = data.get("cliente_id", lancamento.cliente_id)
-        cliente_id = cliente_id or None
+        cliente_id, error = _parse_cliente_id(cliente_id)
+        if error:
+            return error
         nfe = data.get("nfe", lancamento.nfe)
-        nfe = nfe.strip() if isinstance(nfe, str) else nfe
+        nfe, error = _texto_opcional(nfe, "NFe")
+        if error:
+            return error
         prazo_dias = data.get("prazo_dias", lancamento.prazo_dias)
-        prazo_dias = int(prazo_dias or 30)
-        vencimento = (
-            date.fromisoformat(data["vencimento"])
-            if data.get("vencimento")
-            else lancamento.vencimento
+        prazo_dias, error = _parse_int(
+            prazo_dias, "Prazo em dias", minimo=0, padrao=30
         )
+        if error:
+            return error
+        vencimento, error = _parse_data(data.get("vencimento"), "Vencimento")
+        if error:
+            return error
+        vencimento = vencimento or lancamento.vencimento
         forma_pagamento = data.get("forma_pagamento", lancamento.forma_pagamento)
-        forma_pagamento = (
-            forma_pagamento.strip()
-            if isinstance(forma_pagamento, str)
-            else forma_pagamento
-        ) or None
-        observacao = data.get("observacao", lancamento.observacao)
-        observacao = observacao.strip() if isinstance(observacao, str) else observacao
-        data_pagamento = (
-            date.fromisoformat(data["data_pagamento"])
-            if data.get("data_pagamento")
-            else None if "data_pagamento" in data else lancamento.data_pagamento
+        forma_pagamento, error = _texto_opcional(
+            forma_pagamento, "Forma de pagamento"
         )
-        parcelas_desejadas = max(int(data.get("parcelas", parcelas_atuais) or 1), 1)
+        if error:
+            return error
+        observacao = data.get("observacao", lancamento.observacao)
+        observacao, error = _texto_opcional(observacao, "Observacao")
+        if error:
+            return error
+        data_pagamento, error = _parse_data(data.get("data_pagamento"), "Pagamento")
+        if error:
+            return error
+        if "data_pagamento" not in data:
+            data_pagamento = lancamento.data_pagamento
+        parcelas_desejadas, error = _parse_int(
+            data.get("parcelas", parcelas_atuais),
+            "Parcelas",
+            minimo=1,
+            padrao=parcelas_atuais,
+        )
+        if error:
+            return error
 
         if "valor" in data:
-            valor_total = float(data["valor"])
+            valor_total, error = _parse_valor_positivo(data["valor"])
+            if error:
+                return error
         elif parcelas_atuais > 1:
             valor_total = sum(float(item.valor) for item in grupo_atual)
         else:
             valor_total = float(lancamento.valor)
+        if valor_total <= 0:
+            return error_response("Valor deve ser maior que zero.")
 
         usa_grupo = parcelas_desejadas > 1 or parcelas_atuais > 1
         if usa_grupo:
@@ -256,7 +389,7 @@ def editar_lancamento(id):
                     prazo_dias=(
                         prazo_dias
                         if parcelas_desejadas > 1
-                        else (data.get("prazo_dias") or None)
+                        else (prazo_dias if "prazo_dias" in data else None)
                     ),
                     vencimento=vencimento + timedelta(days=prazo_dias * indice),
                     valor=valor_parcela,
@@ -276,7 +409,7 @@ def editar_lancamento(id):
         lancamento.descricao = descricao
         lancamento.cliente_id = cliente_id
         lancamento.nfe = nfe or None
-        lancamento.prazo_dias = data.get("prazo_dias") or None
+        lancamento.prazo_dias = prazo_dias if "prazo_dias" in data else None
         lancamento.vencimento = vencimento
         lancamento.valor = valor_total
         lancamento.forma_pagamento = forma_pagamento
@@ -285,37 +418,48 @@ def editar_lancamento(id):
 
         db.session.commit()
         return jsonify(lancamento.to_dict()), 200
-    except ValueError:
-        return jsonify({"erro": "Data inválida."}), 400
+    except HTTPException as exc:
+        return http_error_response(exc)
     except Exception as exc:
-        logging.error(f"❌ {exc}")
-        return jsonify({"erro": "Erro interno."}), 500
+        return internal_error(exc)
 
 
 @financeiro_bp.route("/<int:id>/pagar", methods=["PATCH"])
 @require_permissions("financeiro")
 def marcar_pago(id):
     try:
-        lancamento = Lancamento.query.get_or_404(id)
-        data = request.get_json() or {}
-        lancamento.data_pagamento = date.fromisoformat(
-            data.get("data_pagamento", date.today().isoformat())
+        lancamento, error = get_or_404(Lancamento, id, "Lancamento nao encontrado.")
+        if error:
+            return error
+        data = json_body()
+        data_pagamento, error = _parse_data(
+            data.get("data_pagamento", date.today().isoformat()), "Pagamento"
         )
-        lancamento.forma_pagamento = data.get(
-            "forma_pagamento", lancamento.forma_pagamento
+        if error:
+            return error
+        forma_pagamento = data.get("forma_pagamento", lancamento.forma_pagamento)
+        forma_pagamento, error = _texto_opcional(
+            forma_pagamento, "Forma de pagamento"
         )
+        if error:
+            return error
+        lancamento.data_pagamento = data_pagamento
+        lancamento.forma_pagamento = forma_pagamento
         db.session.commit()
         return jsonify(lancamento.to_dict()), 200
+    except HTTPException as exc:
+        return http_error_response(exc)
     except Exception as exc:
-        logging.error(f"❌ {exc}")
-        return jsonify({"erro": "Erro interno."}), 500
+        return internal_error(exc)
 
 
 @financeiro_bp.route("/<int:id>", methods=["DELETE"])
 @require_permissions("financeiro")
 def excluir_lancamento(id):
     try:
-        lancamento = Lancamento.query.get_or_404(id)
+        lancamento, error = get_or_404(Lancamento, id, "Lancamento nao encontrado.")
+        if error:
+            return error
         modo = request.args.get("modo", "unico")
         if modo == "grupo" and lancamento.parcelas and lancamento.parcelas > 1:
             desc_base = re.sub(r"\s*\(\d+/\d+\)$", "", lancamento.descricao).strip()
@@ -333,21 +477,25 @@ def excluir_lancamento(id):
         db.session.delete(lancamento)
         db.session.commit()
         return jsonify({"mensagem": "Lançamento excluído."}), 200
+    except HTTPException as exc:
+        return http_error_response(exc)
     except Exception as exc:
-        logging.error(f"❌ {exc}")
-        return jsonify({"erro": "Erro interno."}), 500
+        return internal_error(exc)
 
 
 @financeiro_bp.route("/boleto", methods=["POST"])
 @require_permissions("financeiro")
 def parsear_boleto():
     try:
-        body = request.get_json() or {}
+        body = json_body()
         pdf_b64 = body.get("pdf_base64", "")
         tipo_hint = body.get("tipo", "pagar")
-        if not pdf_b64:
+        if not isinstance(pdf_b64, str) or not pdf_b64:
             return jsonify({"erro": "PDF não enviado."}), 400
-        pdf_bytes = base64.b64decode(pdf_b64)
+        try:
+            pdf_bytes = base64.b64decode(pdf_b64, validate=True)
+        except (binascii.Error, ValueError):
+            return jsonify({"erro": "PDF invalido."}), 400
         texto_total = ""
         try:
             import pdfplumber
@@ -391,6 +539,8 @@ def parsear_boleto():
             ),
             200,
         )
+    except HTTPException as exc:
+        return http_error_response(exc)
     except Exception as exc:
-        logging.error(f"❌ Boleto: {exc}")
+        logging.exception("Erro ao processar boleto.")
         return jsonify({"erro": f"Erro ao processar PDF: {str(exc)}"}), 500

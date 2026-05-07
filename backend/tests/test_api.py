@@ -1,5 +1,7 @@
 import base64
 import os
+import sqlite3
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -199,6 +201,80 @@ def test_cliente_persiste_campos_fiscais_nfe(client):
     assert editado.get_json()["uf"] == "SP"
 
 
+def test_cruds_retornam_404_sem_virar_500(client):
+    headers = auth_headers(client)
+
+    cliente = client.put("/clientes/9999", headers=headers, json={"nome": "Nao existe"})
+    assert cliente.status_code == 404
+
+    cliente_delete = client.delete("/clientes/9999", headers=headers)
+    assert cliente_delete.status_code == 404
+
+    os_put = client.put(
+        "/ordens-servico/9999", headers=headers, json={"cliente": "X"}
+    )
+    assert os_put.status_code == 404
+
+    os_patch = client.patch(
+        "/ordens-servico/9999/status", headers=headers, json={"status": "concluido"}
+    )
+    assert os_patch.status_code == 404
+
+    os_delete = client.delete("/ordens-servico/9999", headers=headers)
+    assert os_delete.status_code == 404
+
+    financeiro_put = client.put(
+        "/financeiro/9999", headers=headers, json={"descricao": "Nao existe"}
+    )
+    assert financeiro_put.status_code == 404
+
+    financeiro_patch = client.patch("/financeiro/9999/pagar", headers=headers, json={})
+    assert financeiro_patch.status_code == 404
+
+    financeiro_delete = client.delete("/financeiro/9999", headers=headers)
+    assert financeiro_delete.status_code == 404
+
+    orcamento_put = client.put(
+        "/orcamentos/9999", headers=headers, json={"titulo": "Nao existe"}
+    )
+    assert orcamento_put.status_code == 404
+
+    orcamento_patch = client.patch(
+        "/orcamentos/9999/status", headers=headers, json={"status": "aprovado"}
+    )
+    assert orcamento_patch.status_code == 404
+
+    orcamento_delete = client.delete("/orcamentos/9999", headers=headers)
+    assert orcamento_delete.status_code == 404
+
+
+def test_json_invalido_e_tipos_invalidos_retornam_400(client):
+    headers = auth_headers(client)
+
+    malformado = client.post(
+        "/clientes",
+        headers=headers,
+        data="{json",
+        content_type="application/json",
+    )
+    assert malformado.status_code == 400
+
+    content_type_errado = client.post(
+        "/clientes",
+        headers=headers,
+        data='{"nome": "Metal Forte"}',
+        content_type="text/plain",
+    )
+    assert content_type_errado.status_code == 400
+    assert "Content-Type" in content_type_errado.get_json()["erro"]
+
+    lista = client.post("/financeiro", headers=headers, json=["nao", "objeto"])
+    assert lista.status_code == 400
+
+    tipo_errado = client.post("/clientes", headers=headers, json={"nome": 123})
+    assert tipo_errado.status_code == 400
+
+
 def test_bootstrap_rejeita_email_invalido_e_senha_fraca(client):
     email_invalido = client.post(
         "/auth/usuarios",
@@ -337,6 +413,13 @@ def test_edicao_de_orcamento_aprovado_sincroniza_os_e_financeiro(client):
     assert payload["lancamento_financeiro"]["valor"] == 9100.0
     assert payload["lancamento_financeiro"]["descricao"].endswith("Usinagem do lote B")
 
+    data_invalida = client.put(
+        f"/orcamentos/{item_id}",
+        headers=headers,
+        json={"validade": "15/05/2026"},
+    )
+    assert data_invalida.status_code == 400
+
 
 def test_financeiro_summary_e_parcelamento(client):
     headers = auth_headers(client)
@@ -361,6 +444,108 @@ def test_financeiro_summary_e_parcelamento(client):
     assert resumo.status_code == 200
     assert data["a_receber"] >= 1500.0
     assert data["a_pagar"] == 0
+
+
+def test_financeiro_valida_dados_e_preserva_total_parcelado(client):
+    headers = auth_headers(client)
+    cliente_id = criar_cliente(client, headers)
+
+    valor_zero = client.post(
+        "/financeiro",
+        headers=headers,
+        json={
+            "tipo": "receber",
+            "descricao": "Receita",
+            "vencimento": "2026-03-25",
+            "valor": 0,
+        },
+    )
+    assert valor_zero.status_code == 400
+
+    valor_negativo = client.post(
+        "/financeiro",
+        headers=headers,
+        json={
+            "tipo": "receber",
+            "descricao": "Receita",
+            "vencimento": "2026-03-25",
+            "valor": -10,
+        },
+    )
+    assert valor_negativo.status_code == 400
+
+    parcelas_zero = client.post(
+        "/financeiro",
+        headers=headers,
+        json={
+            "tipo": "receber",
+            "descricao": "Receita",
+            "vencimento": "2026-03-25",
+            "valor": 100,
+            "parcelas": 0,
+        },
+    )
+    assert parcelas_zero.status_code == 400
+
+    cliente_inexistente = client.post(
+        "/financeiro",
+        headers=headers,
+        json={
+            "tipo": "receber",
+            "descricao": "Receita",
+            "vencimento": "2026-03-25",
+            "valor": 100,
+            "cliente_id": 9999,
+        },
+    )
+    assert cliente_inexistente.status_code == 404
+
+    data_invalida = client.post(
+        "/financeiro",
+        headers=headers,
+        json={
+            "tipo": "receber",
+            "descricao": "Receita",
+            "vencimento": "25/03/2026",
+            "valor": 100,
+        },
+    )
+    assert data_invalida.status_code == 400
+
+    criado = client.post(
+        "/financeiro",
+        headers=headers,
+        json={
+            "tipo": "pagar",
+            "descricao": "Despesa",
+            "vencimento": "2026-03-25",
+            "valor": 100,
+        },
+    )
+    assert criado.status_code == 201
+    pagamento_invalido = client.patch(
+        f"/financeiro/{criado.get_json()['id']}/pagar",
+        headers=headers,
+        json={"data_pagamento": "25/03/2026"},
+    )
+    assert pagamento_invalido.status_code == 400
+
+    parcelado = client.post(
+        "/financeiro",
+        headers=headers,
+        json={
+            "tipo": "receber",
+            "descricao": "Receita arredondada",
+            "vencimento": "2026-03-25",
+            "valor": 100,
+            "parcelas": 3,
+            "cliente_id": cliente_id,
+        },
+    )
+    assert parcelado.status_code == 201
+    valores = [item["valor"] for item in parcelado.get_json()]
+    assert valores == [33.33, 33.33, 33.34]
+    assert round(sum(valores), 2) == 100.0
 
 
 def test_edicao_de_lancamento_permite_reparcelar_recebimento(client):
@@ -432,6 +617,8 @@ def test_backup_e_restauracao_do_sqlite_local(client):
     info = client.get("/sistema/backup-info", headers=headers)
     assert info.status_code == 200
     assert info.get_json()["suporta_backup_local"] is True
+    assert "caminho_banco" not in info.get_json()
+    assert "pasta_backups" in info.get_json()
 
     backup = client.post("/sistema/backup", headers=headers)
     assert backup.status_code == 200
@@ -451,8 +638,75 @@ def test_backup_e_restauracao_do_sqlite_local(client):
         },
     )
     assert restore.status_code == 200
+    assert "/" not in restore.get_json()["backup_seguranca"]
 
     listar_depois = client.get("/clientes", headers=headers)
     payload = listar_depois.get_json()
     assert len(payload) == 1
     assert payload[0]["id"] == cliente_original_id
+
+
+def test_restore_rejeita_sqlite_sem_schema_minimo(client, tmp_path):
+    headers = auth_headers(client)
+    invalido = tmp_path / "invalido.sqlite3"
+    with sqlite3.connect(invalido) as conn:
+        conn.execute("CREATE TABLE qualquer (id INTEGER PRIMARY KEY)")
+
+    response = client.post(
+        "/sistema/restaurar",
+        headers=headers,
+        json={
+            "nome_arquivo": "invalido.sqlite3",
+            "arquivo_base64": base64.b64encode(invalido.read_bytes()).decode("utf-8"),
+        },
+    )
+
+    assert response.status_code == 400
+    assert "schema minimo" in response.get_json()["erro"]
+
+
+def test_restore_rejeita_payload_acima_do_limite(client, monkeypatch):
+    headers = auth_headers(client)
+    monkeypatch.setenv("BACKUP_MAX_BYTES", "16")
+
+    response = client.post(
+        "/sistema/restaurar",
+        headers=headers,
+        json={
+            "nome_arquivo": "grande.sqlite3",
+            "arquivo_base64": base64.b64encode(b"x" * 32).decode("utf-8"),
+        },
+    )
+
+    assert response.status_code == 413
+
+
+def test_scripts_legados_usam_factory_e_extensions(tmp_path):
+    env = os.environ.copy()
+    env["DATABASE_URL"] = f"sqlite:///{(tmp_path / 'scripts.sqlite3').as_posix()}"
+    env["SECRET_KEY"] = "test-secret-key-with-32-characters!!"
+    env["JWT_SECRET_KEY"] = "test-secret-key-with-32-characters!!"
+    env["APP_ENV"] = "testing"
+    root = Path(__file__).resolve().parents[2]
+
+    create = subprocess.run(
+        [sys.executable, "backend/create_tables.py"],
+        cwd=root,
+        env=env,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert create.returncode == 0, create.stderr
+    assert "Tabelas verificadas/criadas" in create.stdout
+
+    migrate = subprocess.run(
+        [sys.executable, "backend/migrate.py"],
+        cwd=root,
+        env=env,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert migrate.returncode == 0, migrate.stderr
+    assert "Schema ja estava atualizado" in migrate.stdout

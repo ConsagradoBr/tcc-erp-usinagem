@@ -1,10 +1,11 @@
 import logging
 import os
-import traceback
 
 from flask import Flask
 from sqlalchemy import inspect, text
+from werkzeug.exceptions import HTTPException
 
+from backend.api_utils import http_error_response
 from backend.blueprints.auth import auth_bp
 from backend.blueprints.clientes import clientes_bp
 from backend.blueprints.financeiro import financeiro_bp
@@ -95,23 +96,22 @@ def create_app():
             _garantir_colunas_usuarios()
             _garantir_colunas_clientes()
             logging.info("Tabelas verificadas/criadas.")
-        except Exception as exc:
-            logging.error(f"Erro ao criar tabelas: {exc}")
+        except Exception:
+            logging.exception("Erro ao criar/verificar tabelas.")
+            raise
 
     @app.errorhandler(Exception)
     def handle_exception(exc):
-        print("\n" + "=" * 80)
-        print("ERRO DETECTADO - TRACEBACK COMPLETO")
-        print("=" * 80)
-        print(traceback.format_exc())
-        print("=" * 80 + "\n")
+        if isinstance(exc, HTTPException):
+            return http_error_response(exc)
+        logging.exception("Erro interno do servidor nao tratado.")
         return {"error": "Erro interno do servidor"}, 500
 
     return app
 
 
 def run_dev_server(app):
-    host = os.getenv("FLASK_HOST", "0.0.0.0")
+    host = os.getenv("FLASK_HOST", "127.0.0.1")
     port = int(os.getenv("PORT", os.getenv("FLASK_PORT", "5000")))
-    debug = os.getenv("FLASK_DEBUG", "true").lower() == "true"
+    debug = os.getenv("FLASK_DEBUG", "false").lower() == "true"
     app.run(debug=debug, host=host, port=port)

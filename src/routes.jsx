@@ -10,7 +10,6 @@ const OrdemServico = lazy(() => import("./pages/OrdemServico"));
 const Financeiro = lazy(() => import("./pages/Financeiro"));
 const Home = lazy(() => import("./pages/Home"));
 const AuthPage = lazy(() => import("./pages/AuthPage"));
-const LoginPage = lazy(() => import("./pages/Login"));
 const Usuarios = lazy(() => import("./pages/Usuarios"));
 const BackupDesktop = lazy(() => import("./pages/BackupDesktop"));
 
@@ -37,8 +36,7 @@ const routes = createBrowserRouter(
       element: <PublicLayout />,
       children: [
         { index: true, element: <Navigate to="/login" replace /> },
-        { path: "login", element: screen(LoginPage) },
-        { path: "login-preview", element: screen(AuthPage) },
+        { path: "login", element: screen(AuthPage) },
       ],
     },
     {
@@ -49,8 +47,8 @@ const routes = createBrowserRouter(
         { path: "dashboard", element: screen(Dashboard) },
         { path: "clientes", element: screen(Clientes) },
         { path: "orcamentos", element: screen(Orcamentos) },
-        { path: "ordemservico", element: screen(OrdemServico) },
         { path: "ordens-servico", element: screen(OrdemServico) },
+        { path: "ordemservico", element: <Navigate to="/app/ordens-servico" replace /> },
         { path: "financeiro", element: screen(Financeiro) },
         { path: "usuarios", element: screen(Usuarios) },
         { path: "backup", element: screen(BackupDesktop) },

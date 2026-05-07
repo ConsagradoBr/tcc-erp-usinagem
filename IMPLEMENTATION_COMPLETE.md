@@ -18,7 +18,7 @@
 │  • Clientes Ativos ──→ /clientes    │
 │  • Recebido MTD ──────→ /financeiro │
 │  • Aprovado Ativo ────→ /orcamentos │
-│  • Ticket por OS ─────→ /ordemservico
+│  • Ticket por OS ─────→ /ordens-servico
 │                                     │
 │  Navegação Rápida (6):             │
 │  • Clientes      • Orçamentos      │
@@ -41,7 +41,7 @@
 ├── Dashboard ──────────→ /app/dashboard
 ├── Clientes ──────────→ /app/clientes
 ├── Orçamentos ────────→ /app/orcamentos
-├── OS ────────────────→ /app/ordemservico
+├── OS ────────────────→ /app/ordens-servico
 ├── Financeiro ────────→ /app/financeiro
 ├── Usuários ──────────→ /app/usuarios
 └── Backup ────────────→ /app/backup
@@ -196,10 +196,10 @@ Checklist items:               40+
 Dashboard ─┬─ KPI 1 ──→ /clientes
            ├─ KPI 2 ──→ /financeiro
            ├─ KPI 3 ──→ /orcamentos
-           ├─ KPI 4 ──→ /ordemservico
+           ├─ KPI 4 ──→ /ordens-servico
            ├─ Btn 1 ──→ /clientes
            ├─ Btn 2 ──→ /orcamentos
-           ├─ Btn 3 ──→ /ordemservico
+           ├─ Btn 3 ──→ /ordens-servico
            ├─ Btn 4 ──→ /financeiro
            ├─ Btn 5 ──→ /usuarios
            └─ Btn 6 ──→ /backup

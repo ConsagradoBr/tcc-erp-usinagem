@@ -451,7 +451,7 @@ function LedgerRow({
           type="checkbox"
           checked={selected}
           onChange={() => onToggleSelect(cliente.id)}
-          className="h-4 w-4 rounded border-[color:var(--amp-shell-line)] bg-transparent text-[var(--amp-shell-accent)] focus:ring-[rgba(0,212,170,0.2)]"
+          className="h-4 w-4 rounded border-[color:var(--amp-shell-line)] bg-transparent text-[var(--amp-shell-accent)] focus:ring-[var(--amp-shell-accent)]"
           aria-label={`Selecionar ${cliente.nome}`}
         />
       </div>
@@ -543,7 +543,7 @@ function LoadingState() {
 
 function ModalContainer({ children }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(19,18,16,0.52)] p-4 backdrop-blur-md">
+    <div className="amp-modal-overlay fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-[rgba(19,18,16,0.52)] p-3 backdrop-blur-md sm:p-5">
       {children}
     </div>
   );
@@ -1623,7 +1623,8 @@ export default function Clientes() {
   };
 
   return (
-    <div className="amp-rel-page">
+    <div className="flex flex-col h-full overflow-hidden amp-bg px-3 py-2" style={{ borderRadius: "12px" }}>
+      <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-4">
       {notif && (
         <div className={`amp-rel-notice ${notif.tipo === "erro" ? "is-error" : "is-success"}`}>
           {notif.msg}
@@ -1761,7 +1762,7 @@ export default function Clientes() {
                   type="checkbox"
                   checked={todosSelecionados}
                   onChange={toggleTodos}
-                  className="h-4 w-4 rounded border-[color:var(--amp-shell-line)] bg-transparent text-[var(--amp-shell-accent)] focus:ring-[rgba(0,212,170,0.2)]"
+                  className="h-4 w-4 rounded border-[color:var(--amp-shell-line)] bg-transparent text-[var(--amp-shell-accent)] focus:ring-[var(--amp-shell-accent)]"
                   aria-label="Selecionar todas as contas visíveis"
                 />
               </div>
@@ -1952,6 +1953,7 @@ export default function Clientes() {
           onConfirmar={handleExcluir}
         />
       )}
+      </div>
     </div>
   );
 }

@@ -32,29 +32,29 @@ function validateForm(values, isBootstrap) {
 
   if (isBootstrap) {
     if (!values.nome) {
-      errors.nome = "Nome e obrigatorio.";
+      errors.nome = "Nome é obrigatório.";
     } else if (values.nome.length < 3) {
       errors.nome = "Nome precisa ter pelo menos 3 caracteres.";
     }
   }
 
   if (!values.email) {
-    errors.email = "E-mail e obrigatorio.";
+    errors.email = "E-mail é obrigatório.";
   } else if (!emailRegex.test(values.email)) {
-    errors.email = "Informe um e-mail valido.";
+    errors.email = "Informe um e-mail válido.";
   }
 
   if (!values.senha) {
-    errors.senha = "Senha e obrigatoria.";
+    errors.senha = "Senha é obrigatória.";
   } else if (isBootstrap) {
     if (values.senha.length < passwordMinLength) {
       errors.senha = `Senha precisa ter pelo menos ${passwordMinLength} caracteres.`;
     } else if (!/[A-Z]/.test(values.senha)) {
-      errors.senha = "Senha precisa ter ao menos uma letra maiuscula.";
+      errors.senha = "Senha precisa ter ao menos uma letra maiúscula.";
     } else if (!/[a-z]/.test(values.senha)) {
-      errors.senha = "Senha precisa ter ao menos uma letra minuscula.";
+      errors.senha = "Senha precisa ter ao menos uma letra minúscula.";
     } else if (!/\d/.test(values.senha)) {
-      errors.senha = "Senha precisa ter ao menos um numero.";
+      errors.senha = "Senha precisa ter ao menos um número.";
     }
   }
 
@@ -82,7 +82,7 @@ export default function AuthPage() {
         return true;
       } catch {
         if (!active) return false;
-        toast.error("Nao foi possivel verificar o status inicial do sistema.");
+        toast.error("Não foi possível verificar o status inicial do sistema.");
         return false;
       }
     };
@@ -162,7 +162,7 @@ export default function AuthPage() {
     } catch (error) {
       const message =
         error.response?.data?.erro ||
-        "Nao foi possivel concluir a autenticacao local.";
+        "Não foi possível concluir a autenticação local.";
 
       if (bootstrapRequired && [401, 403].includes(error.response?.status)) {
         try {
@@ -305,7 +305,7 @@ export default function AuthPage() {
               />
               <small id="login-senha-hint" className="figma-login-sr-only">
                 {isBootstrap
-                  ? "Minimo de 8 caracteres, com letra maiuscula, minuscula e numero."
+                  ? "Mínimo de 8 caracteres, com letra maiúscula, minúscula e número."
                   : "Use a senha vinculada a este ambiente local."}
               </small>
               {fieldErrors.senha ? (

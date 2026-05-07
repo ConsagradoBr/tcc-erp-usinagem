@@ -93,14 +93,14 @@ export default function ProtectedLayout() {
   }
 
   return (
-    <div className={`amp-ui-scale amp-shell-layout ${open ? "is-expanded" : "is-collapsed"}`}>
+    <div className={`amp-shell-layout ${open ? "is-expanded" : "is-collapsed"}`}>
       <Sidebar user={user} open={open} mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
 
-      <div className="amp-shell-workspace">
+      <div className="amp-shell-workspace min-w-0 max-w-full">
         <Header user={user} onMenuToggle={toggleMenu} />
 
-        <main className="amp-shell-scroll">
-          <div className="mx-auto w-full max-w-[1760px]">
+        <main className="amp-shell-scroll min-w-0 max-w-full">
+          <div className="mx-auto w-full min-w-0 max-w-[1760px]">
             <Outlet context={{ user }} />
           </div>
         </main>

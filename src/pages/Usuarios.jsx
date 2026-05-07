@@ -22,7 +22,7 @@ function AccessModal({
   onClose,
   onSubmit,
 }) {
-  const title = editingId ? "Editar usuario" : "Novo usuario";
+  const title = editingId ? "Editar usuário" : "Novo usuário";
   const [showPassword, setShowPassword] = useState(false);
 
   return (
@@ -30,7 +30,7 @@ function AccessModal({
       <div className="amp-terminal-modal-card surface-panel">
         <div className="section-head">
           <div>
-            <p className="eyebrow">Formulario de acesso</p>
+            <p className="eyebrow">Formulário de acesso</p>
             <h3>{title}</h3>
           </div>
           <button type="button" onClick={onClose} className="pill">
@@ -62,7 +62,7 @@ function AccessModal({
               <button
                 type="button"
                 onClick={() => setShowPassword((current) => !current)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-blue-600 hover:text-blue-800"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-[var(--amp-orange)] hover:text-[var(--amp-text)]"
               >
                 {showPassword ? "Ocultar" : "Mostrar"}
               </button>
@@ -82,7 +82,7 @@ function AccessModal({
 
           <label className="amp-terminal-check">
             <input type="checkbox" checked={form.ativo} onChange={onChange("ativo")} />
-            <span>Usuario ativo para login</span>
+            <span>Usuário ativo para login</span>
           </label>
 
           <div className="amp-terminal-modal-actions">
@@ -90,7 +90,7 @@ function AccessModal({
               Cancelar
             </button>
             <button type="submit" disabled={saving} className="status-tag is-cool amp-terminal-submit-btn">
-              {saving ? "Salvando..." : editingId ? "Salvar alteracoes" : "Criar usuario"}
+              {saving ? "Salvando..." : editingId ? "Salvar alterações" : "Criar usuário"}
             </button>
           </div>
         </form>
@@ -101,8 +101,8 @@ function AccessModal({
             <strong>{currentUser?.nome || "Administrador"}</strong>
           </div>
           <div className="balance-card">
-            <span>Criacao</span>
-            <strong>{editingId ? "Edicao guiada" : "Novo acesso"}</strong>
+            <span>Criação</span>
+            <strong>{editingId ? "Edição guiada" : "Novo acesso"}</strong>
           </div>
         </div>
       </div>
@@ -129,7 +129,7 @@ export default function Usuarios() {
       setUsuarios(usuariosRes.data || []);
       setPerfis(perfisRes.data || []);
     } catch (error) {
-      toast.error(error.response?.data?.erro || "Nao foi possivel carregar os usuarios.");
+      toast.error(error.response?.data?.erro || "Não foi possível carregar os usuários.");
     } finally {
       setLoading(false);
     }
@@ -177,43 +177,44 @@ export default function Usuarios() {
     try {
       if (editingId) {
         await api.put(`/auth/usuarios/${editingId}`, form);
-        toast.success("Usuario atualizado com sucesso!");
+        toast.success("Usuário atualizado com sucesso!");
       } else {
         await api.post("/auth/usuarios", form);
-        toast.success("Usuario criado com sucesso!");
+        toast.success("Usuário criado com sucesso!");
       }
       closeModal();
       await loadData();
     } catch (error) {
-      toast.error(error.response?.data?.erro || "Nao foi possivel salvar o usuario.");
+      toast.error(error.response?.data?.erro || "Não foi possível salvar o usuário.");
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <>
+    <div className="flex flex-col h-full overflow-hidden amp-bg px-3 py-2" style={{ borderRadius: "12px" }}>
+      <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-4">
       <div className="screen-grid screen-grid-admin">
         <section className="surface-panel">
           <div className="section-head">
             <div>
-              <p className="eyebrow">Administracao</p>
-              <h3>Usuarios e papeis internos</h3>
+              <p className="eyebrow">Administração</p>
+              <h3>Usuários e papéis internos</h3>
             </div>
             <button type="button" onClick={openNew} className="pill is-solid">
-              Novo usuario
+              Novo usuário
             </button>
           </div>
 
           {loading ? (
             <div className="amp-shell-loading min-h-[240px]">
               <div className="amp-shell-loader" />
-              <p>Sincronizando usuarios...</p>
+              <p>Sincronizando usuários...</p>
             </div>
           ) : (
             <div className="table-shell slim">
               <div className="table-head table-grid-users">
-                <span>Usuario</span>
+                <span>Usuário</span>
                 <span>Papel</span>
                 <span>Status</span>
                 <span>Acesso</span>
@@ -245,8 +246,7 @@ export default function Usuarios() {
           <p className="eyebrow">Mensagem oficial</p>
           <h3>Acesso controlado</h3>
           <p className="muted">
-            A AMP V2 reforca que o sistema nao trabalha com cadastro publico. Usuarios sao criados e
-            liberados pela administracao.
+            O sistema não trabalha com cadastro público. Usuários são criados e liberados pela administração.
           </p>
 
           <div className="balance-stack">
@@ -255,11 +255,11 @@ export default function Usuarios() {
               <strong>{currentUser?.nome || "Administrador"}</strong>
             </div>
             <div className="balance-card">
-              <span>Usuarios ativos</span>
+              <span>Usuários ativos</span>
               <strong>{usuariosAtivos}</strong>
             </div>
             <div className="balance-card">
-              <span>Papeis disponiveis</span>
+              <span>Papéis disponíveis</span>
               <strong>{perfis.length}</strong>
             </div>
           </div>
@@ -278,6 +278,7 @@ export default function Usuarios() {
           onSubmit={handleSubmit}
         />
       )}
-    </>
+      </div>
+    </div>
   );
 }

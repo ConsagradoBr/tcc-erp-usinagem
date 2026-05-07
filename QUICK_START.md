@@ -4,24 +4,27 @@
 
 - **Dashboard** é o hub central (`/app/dashboard`)
 - **6 páginas principais** estão todas linkadas com botões clicáveis no Dashboard
-- **Header** aparece em todas as páginas e tem logo clicável para dashboard
+- **Header** aparece em todas as páginas com menu, tema e saída
 - **Sidebar** oferece menu persistente com filtro de permissões
 - **Tema** (light/dark) sincroniza via localStorage automaticamente
+- **Login oficial** fica em `/login`; não há cadastro público ou preview de login no fluxo de apresentação
 
 ## 📍 Arquitetura de Rotas
 
 ```
 /                    → Redireciona para /login
-/login              → Página de autenticação
+/login              → Login oficial
 /app                → Redireciona para /app/dashboard
-└── /app/dashboard  → Hub central (coloca links para tudo)
-    ├── /clientes
-    ├── /orcamentos
-    ├── /ordemservico
-    ├── /financeiro
-    ├── /usuarios
-    └── /backup
+└── /app/dashboard       → Hub central
+    ├── /app/clientes
+    ├── /app/orcamentos
+    ├── /app/ordens-servico
+    ├── /app/financeiro
+    ├── /app/usuarios
+    └── /app/backup
 ```
+
+Compatibilidade: `/app/ordemservico` redireciona para `/app/ordens-servico`. Use sempre `/app/ordens-servico` em docs, botões novos e apresentação.
 
 ## 🎯 Os 10 Links do Dashboard
 
@@ -39,7 +42,7 @@
   Aprovado Ativo: R$ 120.000
 </button>
 
-<button onClick={() => navigate("/app/ordemservico")}>
+<button onClick={() => navigate("/app/ordens-servico")}>
   Ticket por OS: 85%
 </button>
 ```
@@ -48,7 +51,7 @@
 ```jsx
 <button onClick={() => navigate("/app/clientes")}>Clientes</button>
 <button onClick={() => navigate("/app/orcamentos")}>Orçamentos</button>
-<button onClick={() => navigate("/app/ordemservico")}>Ordens de Serviço</button>
+<button onClick={() => navigate("/app/ordens-servico")}>Ordens de Serviço</button>
 <button onClick={() => navigate("/app/financeiro")}>Financeiro</button>
 <button onClick={() => navigate("/app/usuarios")}>Usuários</button>
 <button onClick={() => navigate("/app/backup")}>Backup</button>
@@ -56,13 +59,10 @@
 
 ## 🔄 Como Voltar ao Dashboard
 
-### Opção 1: Clique no Logo (Automático)
-Logo no Header em todas as páginas clica para `/app/dashboard`
-
-### Opção 2: Menu Sidebar
+### Opção 1: Menu Sidebar
 Item "Dashboard" no menu lateral vai para `/app/dashboard`
 
-### Opção 3: Programático
+### Opção 2: Programático
 ```jsx
 const navigate = useNavigate();
 navigate("/app/dashboard");
@@ -82,7 +82,7 @@ src/
 │   ├── Usuarios.jsx           ← Com useNavigate
 │   └── BackupDesktop.jsx      ← Com useNavigate
 ├── components/
-│   ├── Header.jsx             ← Logo clicável
+│   ├── Header.jsx             ← Menu, tema e sair
 │   ├── Sidebar.jsx            ← Menu com links
 │   └── ...
 └── auth.js                    ← Autenticação e permissões
@@ -108,17 +108,9 @@ export default function MinhaPage() {
 
 ## 🎨 Estilos Aplicados
 
-### Dashboard KPIs
-- Border-left com cores diferentes
-- Hover: scale 1.05
-- Transição: 200ms ease
-- Responsivo: 1-4 colunas
-
-### Dashboard Nav. Rápida
-- Grid responsivo
-- Cards com descrição
-- Hover: scale 1.05
-- Cores consistentes com tema
+- As páginas protegidas usam o wrapper padrão `amp-bg` com cards `amp-card`.
+- A identidade visual é controlada por tokens `--amp-*` em `src/index.css`.
+- O Dashboard e os módulos operacionais respeitam permissões para links e ações.
 
 ## 📱 Responsividade
 
@@ -154,14 +146,8 @@ const menuItems = MENU_ITEMS.filter(
 Sincroniza automaticamente via localStorage:
 
 ```javascript
-// Header.jsx muda tema
+// ThemeProvider.jsx persiste tema
 localStorage.setItem("amp-theme", isDark ? "dark" : "light");
-window.dispatchEvent(new Event("storage")); // Notifica outras abas
-
-// Dashboard.jsx (e todas as páginas) escutam
-window.addEventListener("storage", () => {
-  setDark(localStorage.getItem("amp-theme") === "dark");
-});
 ```
 
 ## 🔗 Fluxo de Login
@@ -171,9 +157,9 @@ window.addEventListener("storage", () => {
 2. api.post("/auth/login", { email, senha })
 3. persistSession(token, user)
 4. navigate(getDefaultAppRoute(user))
-5. → /app/dashboard (padrão)
+5. → primeira rota permitida, normalmente /app/dashboard
 6. Header + Sidebar + Dashboard aparecem
-7. 10 links para outras páginas estão disponíveis
+7. Links e ações são filtrados por permissão
 ```
 
 ## ✅ Checklist para Novos Desenvolvedores
@@ -181,7 +167,6 @@ window.addEventListener("storage", () => {
 - [ ] Entendi que Dashboard é o hub central
 - [ ] Vi os 10 links no Dashboard (4 KPIs + 6 botões)
 - [ ] Testei clique em pelo menos 3 links
-- [ ] Testei voltar ao Dashboard via Header logo
 - [ ] Testei voltar via Sidebar menu
 - [ ] Testei toggle de tema (light/dark)
 - [ ] Testei em mobile, tablet e desktop
@@ -204,9 +189,6 @@ R: localStorage depende de `window.dispatchEvent("storage")`. Verifique console.
 
 ### P: Como navego com dados?
 R: `navigate("/app/clientes", { state: { id: 123 } })`
-
-### P: Logo não funciona?
-R: Verifique se `useNavigate` está importado em Header.jsx e se `/app/dashboard` está na rota.
 
 ### P: Menu sidebar não aparece?
 R: Verifique permissões via `hasPermission(user, permissao)`
@@ -231,6 +213,10 @@ npm run dev
 # Teste tema light/dark
 ```
 
+API local padrão: `http://127.0.0.1:5000`. Para outro backend, defina `VITE_API_BASE_URL`; o Vite não usa proxy `/api`.
+
+Não inclua no zip de apresentação diretórios gerados como `node_modules/`, `dist/`, `build/`, `release/`, `__pycache__/` e `.pytest_cache/`.
+
 ### Para Estender
 ```bash
 # Adicione uma nova página em src/pages/
@@ -241,6 +227,6 @@ npm run dev
 
 ---
 
-**Última atualização**: 29 de Abril de 2026
+**Última atualização**: 6 de Maio de 2026
 **Status**: ✅ Produção
 **Suporte**: Veja documentação em root do projeto

@@ -1,19 +1,70 @@
 from datetime import date
 
 from flask import Blueprint, jsonify, request
+from werkzeug.exceptions import HTTPException
 
-from backend.api_utils import (error_response, get_or_404, internal_error,
-                               json_body)
+from backend.api_utils import (
+    error_response,
+    get_or_404,
+    http_error_response,
+    internal_error,
+    json_body,
+)
 from backend.extensions import db
-from backend.models import (STATUS_ORCAMENTO_VALIDOS, Cliente, Lancamento,
-                            Orcamento)
+from backend.models import STATUS_ORCAMENTO_VALIDOS, Cliente, Lancamento, Orcamento
 from backend.security import require_permissions
-from backend.services import (garantir_lancamento_para_orcamento,
-                              garantir_os_para_orcamento, marcador_orcamento,
-                              proximo_numero_orcamento,
-                              serializar_orcamento_integrado)
+from backend.services import (
+    garantir_lancamento_para_orcamento,
+    garantir_os_para_orcamento,
+    marcador_orcamento,
+    proximo_numero_orcamento,
+    serializar_orcamento_integrado,
+)
 
 orc_bp = Blueprint("orcamentos", __name__, url_prefix="/orcamentos")
+
+
+def _parse_cliente_id(value):
+    try:
+        cliente_id = int(value)
+    except (TypeError, ValueError):
+        return None
+    return cliente_id if cliente_id > 0 else None
+
+
+def _texto_obrigatorio(value):
+    if not isinstance(value, str):
+        return None
+    return value.strip()
+
+
+def _texto_opcional(value):
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        raise ValueError
+    return value.strip() or None
+
+
+def _parse_valor_positivo(value):
+    try:
+        valor = float(value or 0)
+    except (TypeError, ValueError):
+        return None, error_response("Valor deve ser numerico.")
+    if valor <= 0:
+        return None, error_response("Valor deve ser maior que zero.")
+    return valor, None
+
+
+def _parse_validade(value):
+    if not value:
+        return None, None
+    if not isinstance(value, str):
+        return None, error_response("Validade deve usar YYYY-MM-DD.")
+    try:
+        return date.fromisoformat(value), None
+    except ValueError:
+        return None, error_response("Validade invalida. Use YYYY-MM-DD.")
 
 
 @orc_bp.route("", methods=["GET"])
@@ -42,6 +93,8 @@ def listar_orcamentos():
             ),
             200,
         )
+    except HTTPException as exc:
+        return http_error_response(exc)
     except Exception as exc:
         return internal_error(exc)
 
@@ -84,6 +137,8 @@ def resumo_orcamentos():
             2,
         )
         return jsonify(resultado), 200
+    except HTTPException as exc:
+        return http_error_response(exc)
     except Exception as exc:
         return internal_error(exc)
 
@@ -93,17 +148,20 @@ def resumo_orcamentos():
 def criar_orcamento():
     try:
         data = json_body()
-        titulo = (data.get("titulo") or "").strip()
-        cliente_id = data.get("cliente_id")
-        valor = float(data.get("valor") or 0)
+        titulo = _texto_obrigatorio(data.get("titulo") or "")
+        cliente_id = _parse_cliente_id(data.get("cliente_id"))
+        valor, error = _parse_valor_positivo(data.get("valor"))
+        if error:
+            return error
+        validade, error = _parse_validade(data.get("validade"))
+        if error:
+            return error
         if not cliente_id:
             return error_response("Cliente é obrigatório.")
         if not db.session.get(Cliente, cliente_id):
             return error_response("Cliente não encontrado.", 404)
         if not titulo:
             return error_response("Título é obrigatório.")
-        if valor <= 0:
-            return error_response("Valor deve ser maior que zero.")
         status = data.get("status", "rascunho")
         if status not in STATUS_ORCAMENTO_VALIDOS:
             status = "rascunho"
@@ -111,13 +169,11 @@ def criar_orcamento():
             numero=data.get("numero") or proximo_numero_orcamento(),
             cliente_id=cliente_id,
             titulo=titulo,
-            descricao=(data.get("descricao") or "").strip() or None,
+            descricao=_texto_opcional(data.get("descricao")),
             valor=valor,
-            validade=(
-                date.fromisoformat(data["validade"]) if data.get("validade") else None
-            ),
+            validade=validade,
             status=status,
-            observacao=(data.get("observacao") or "").strip() or None,
+            observacao=_texto_opcional(data.get("observacao")),
         )
         db.session.add(orcamento)
         ordem_servico, ordem_servico_criada = garantir_os_para_orcamento(orcamento)
@@ -135,7 +191,9 @@ def criar_orcamento():
             ),
             201,
         )
-    except ValueError:
+    except HTTPException as exc:
+        return http_error_response(exc)
+    except (TypeError, ValueError):
         return error_response("Dados inválidos para orçamento.")
     except Exception as exc:
         return internal_error(exc)
@@ -150,32 +208,33 @@ def editar_orcamento(id):
             return error
         data = json_body()
         if "cliente_id" in data:
-            cliente_id = data["cliente_id"]
+            cliente_id = _parse_cliente_id(data["cliente_id"])
             if not cliente_id:
                 return error_response("Cliente é obrigatório.")
             if not db.session.get(Cliente, cliente_id):
                 return error_response("Cliente não encontrado.", 404)
             orcamento.cliente_id = cliente_id
         if "titulo" in data:
-            titulo = (data["titulo"] or "").strip()
+            titulo = _texto_obrigatorio(data["titulo"])
             if not titulo:
                 return error_response("Título é obrigatório.")
             orcamento.titulo = titulo
         if "descricao" in data:
-            orcamento.descricao = (data["descricao"] or "").strip() or None
+            orcamento.descricao = _texto_opcional(data["descricao"])
         if "valor" in data:
-            valor = float(data["valor"] or 0)
-            if valor <= 0:
-                return error_response("Valor deve ser maior que zero.")
+            valor, error = _parse_valor_positivo(data["valor"])
+            if error:
+                return error
             orcamento.valor = valor
         if "validade" in data:
-            orcamento.validade = (
-                date.fromisoformat(data["validade"]) if data["validade"] else None
-            )
+            validade, error = _parse_validade(data["validade"])
+            if error:
+                return error
+            orcamento.validade = validade
         if "status" in data and data["status"] in STATUS_ORCAMENTO_VALIDOS:
             orcamento.status = data["status"]
         if "observacao" in data:
-            orcamento.observacao = (data["observacao"] or "").strip() or None
+            orcamento.observacao = _texto_opcional(data["observacao"])
         ordem_servico, ordem_servico_criada = garantir_os_para_orcamento(orcamento)
         lancamento, lancamento_criado = garantir_lancamento_para_orcamento(orcamento)
         db.session.commit()
@@ -191,7 +250,9 @@ def editar_orcamento(id):
             ),
             200,
         )
-    except ValueError:
+    except HTTPException as exc:
+        return http_error_response(exc)
+    except (TypeError, ValueError):
         return error_response("Dados inválidos para orçamento.")
     except Exception as exc:
         return internal_error(exc)
@@ -224,6 +285,8 @@ def alterar_status_orcamento(id):
             ),
             200,
         )
+    except HTTPException as exc:
+        return http_error_response(exc)
     except Exception as exc:
         return internal_error(exc)
 
@@ -238,5 +301,7 @@ def excluir_orcamento(id):
         db.session.delete(orcamento)
         db.session.commit()
         return jsonify({"mensagem": "Orçamento excluído."}), 200
+    except HTTPException as exc:
+        return http_error_response(exc)
     except Exception as exc:
         return internal_error(exc)

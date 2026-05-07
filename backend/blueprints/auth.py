@@ -1,15 +1,22 @@
 import logging
 import re
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify
 from flask_jwt_extended import create_access_token, verify_jwt_in_request
 from flask_jwt_extended.exceptions import JWTExtendedException
+from werkzeug.exceptions import HTTPException
 
+from backend.api_utils import http_error_response, internal_error, json_body
 from backend.extensions import db
 from backend.models import Usuario
-from backend.security import (PERFIS_SISTEMA, get_current_usuario,
-                              normalizar_perfil, require_permissions,
-                              serializar_usuario, usuario_tem_permissoes)
+from backend.security import (
+    PERFIS_SISTEMA,
+    get_current_usuario,
+    normalizar_perfil,
+    require_permissions,
+    serializar_usuario,
+    usuario_tem_permissoes,
+)
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
 
@@ -21,7 +28,7 @@ PASSWORD_MIN_LENGTH = 8
 
 
 def _payload_json():
-    return request.get_json() or {}
+    return json_body()
 
 
 def _coerce_bool(value, default=True):
@@ -35,7 +42,15 @@ def _coerce_bool(value, default=True):
 
 
 def _normalizar_email(value):
-    return (value or "").strip().lower()
+    if not isinstance(value, str):
+        return ""
+    return value.strip().lower()
+
+
+def _normalizar_texto(value):
+    if not isinstance(value, str):
+        return ""
+    return value.strip()
 
 
 def _resposta_erro(mensagem, status=400):
@@ -77,9 +92,9 @@ def _validar_senha(senha):
 
 
 def _validar_campos_usuario(data, permitir_senha_vazia=False):
-    nome = (data.get("nome") or "").strip()
+    nome = _normalizar_texto(data.get("nome"))
     email = _normalizar_email(data.get("email"))
-    senha = (data.get("senha") or "").strip()
+    senha = _normalizar_texto(data.get("senha"))
 
     erro_nome = _validar_nome(nome)
     if erro_nome:
@@ -99,7 +114,7 @@ def _validar_campos_usuario(data, permitir_senha_vazia=False):
 
 def _validar_credenciais_login(data):
     email = _normalizar_email(data.get("email"))
-    senha = (data.get("senha") or "").strip()
+    senha = _normalizar_texto(data.get("senha"))
 
     erro_email = _validar_email(email)
     if erro_email:
@@ -183,9 +198,10 @@ def criar_usuario():
             ),
             201,
         )
+    except HTTPException as exc:
+        return http_error_response(exc)
     except Exception as exc:
-        logging.error(f"Erro ao criar usuario: {exc}")
-        return jsonify({"erro": "Erro interno."}), 500
+        return internal_error(exc)
 
 
 @auth_bp.route("/usuarios", methods=["GET"])
@@ -205,7 +221,7 @@ def editar_usuario(usuario_id):
 
         data = _payload_json()
         if "nome" in data:
-            nome = (data.get("nome") or "").strip()
+            nome = _normalizar_texto(data.get("nome"))
             erro_nome = _validar_nome(nome)
             if erro_nome:
                 return jsonify({"erro": erro_nome}), 400
@@ -249,7 +265,7 @@ def editar_usuario(usuario_id):
         usuario.perfil = novo_perfil
         usuario.ativo = novo_ativo
 
-        senha = (data.get("senha") or "").strip()
+        senha = _normalizar_texto(data.get("senha"))
         if senha:
             erro_senha = _validar_senha(senha)
             if erro_senha:
@@ -266,9 +282,10 @@ def editar_usuario(usuario_id):
             ),
             200,
         )
+    except HTTPException as exc:
+        return http_error_response(exc)
     except Exception as exc:
-        logging.error(f"Erro ao editar usuario: {exc}")
-        return jsonify({"erro": "Erro interno."}), 500
+        return internal_error(exc)
 
 
 @auth_bp.route("/perfis", methods=["GET"])
@@ -326,9 +343,10 @@ def login():
             ),
             200,
         )
+    except HTTPException as exc:
+        return http_error_response(exc)
     except Exception as exc:
-        logging.error(f"Erro no login: {exc}")
-        return jsonify({"erro": "Erro interno."}), 500
+        return internal_error(exc)
 
 
 @auth_bp.route("/perfil", methods=["GET"])

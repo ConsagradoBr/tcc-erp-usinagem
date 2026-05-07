@@ -9,6 +9,15 @@ from dotenv import load_dotenv
 from flask_cors import CORS
 
 
+DEV_ENV_NAMES = {"dev", "development", "local", "test", "testing"}
+LOCAL_FRONTEND_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+
+
 def get_runtime_data_dir():
     if getattr(sys, "frozen", False):
         base_dir = (
@@ -56,6 +65,29 @@ def build_engine_options(database_uri):
     }
 
 
+def is_development_env():
+    env = os.getenv("APP_ENV", os.getenv("FLASK_ENV", "development"))
+    return env.strip().lower() in DEV_ENV_NAMES
+
+
+def get_secret_config(name, dev_default):
+    value = os.getenv(name)
+    if value:
+        return value
+    if is_development_env():
+        logging.warning("%s nao definido; usando valor padrao apenas para dev.", name)
+        return dev_default
+    raise RuntimeError(f"{name} deve ser definido fora do ambiente de desenvolvimento.")
+
+
+def get_cors_origins():
+    raw_origins = os.getenv("CORS_ORIGINS", "")
+    if not raw_origins.strip():
+        return LOCAL_FRONTEND_ORIGINS
+    origins = [origin.strip() for origin in raw_origins.split(",") if origin.strip()]
+    return origins or LOCAL_FRONTEND_ORIGINS
+
+
 def configure_app(app):
     load_dotenv()
     logging.basicConfig(
@@ -63,7 +95,7 @@ def configure_app(app):
     )
     CORS(
         app,
-        origins="*",
+        origins=get_cors_origins(),
         allow_headers=["Content-Type", "Authorization"],
         methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
         supports_credentials=False,
@@ -73,6 +105,8 @@ def configure_app(app):
     app.config["SQLALCHEMY_DATABASE_URI"] = database_uri
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     app.config["SQLALCHEMY_ENGINE_OPTIONS"] = build_engine_options(database_uri)
-    app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "amp_secret_dev")
-    app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "chave_jwt_segura")
+    app.config["SECRET_KEY"] = get_secret_config("SECRET_KEY", "amp_secret_dev")
+    app.config["JWT_SECRET_KEY"] = get_secret_config(
+        "JWT_SECRET_KEY", "chave_jwt_segura"
+    )
     app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=8)

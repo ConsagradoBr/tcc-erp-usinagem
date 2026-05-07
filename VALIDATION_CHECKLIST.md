@@ -2,11 +2,11 @@
 
 ## Rotas Configuradas
 
-- [x] `/login` → AuthPage (público)
+- [x] `/login` → Login (público)
 - [x] `/app/dashboard` → Dashboard (protegido)
 - [x] `/app/clientes` → Clientes (protegido)
 - [x] `/app/orcamentos` → Orcamentos (protegido)
-- [x] `/app/ordemservico` → OrdemServico (protegido)
+- [x] `/app/ordens-servico` → OrdemServico (protegido)
 - [x] `/app/financeiro` → Financeiro (protegido)
 - [x] `/app/usuarios` → Usuarios (protegido)
 - [x] `/app/backup` → BackupDesktop (protegido)
@@ -28,7 +28,7 @@
 - [x] Dashboard → `/app/dashboard`
 - [x] Clientes → `/app/clientes`
 - [x] Orçamentos → `/app/orcamentos`
-- [x] OS → `/app/ordemservico`
+- [x] OS → `/app/ordens-servico`
 - [x] Financeiro → `/app/financeiro`
 - [x] Usuários → `/app/usuarios`
 - [x] Backup → `/app/backup`
@@ -46,14 +46,14 @@
 - [x] Clientes Ativos → `/app/clientes`
 - [x] Recebido MTD → `/app/financeiro`
 - [x] Aprovado Ativo → `/app/orcamentos`
-- [x] Ticket por OS → `/app/ordemservico`
+- [x] Ticket por OS → `/app/ordens-servico`
 - [x] Efeito hover (scale 1.05)
 - [x] Transição suave
 
 ### Navegação Rápida (6 botões)
 - [x] Clientes → `/app/clientes`
 - [x] Orçamentos → `/app/orcamentos`
-- [x] Ordens de Serviço → `/app/ordemservico`
+- [x] Ordens de Serviço → `/app/ordens-servico`
 - [x] Financeiro → `/app/financeiro`
 - [x] Usuários → `/app/usuarios`
 - [x] Backup → `/app/backup`

@@ -22,11 +22,11 @@
 - [x] `useNavigate` em Header.jsx
 
 ### 4. Rotas Verificadas
-- [x] `/login` → AuthPage
+- [x] `/login` → Login
 - [x] `/app/dashboard` → Dashboard (HUB CENTRAL)
 - [x] `/app/clientes` → Clientes
 - [x] `/app/orcamentos` → Orcamentos
-- [x] `/app/ordemservico` → OrdemServico
+- [x] `/app/ordens-servico` → OrdemServico
 - [x] `/app/financeiro` → Financeiro
 - [x] `/app/usuarios` → Usuarios
 - [x] `/app/backup` → BackupDesktop
@@ -44,10 +44,10 @@ Dashboard (HUB)
 ├── KPI "Clientes Ativos" ──────→ /app/clientes
 ├── KPI "Recebido MTD" ─────────→ /app/financeiro
 ├── KPI "Aprovado Ativo" ───────→ /app/orcamentos
-├── KPI "Ticket por OS" ────────→ /app/ordemservico
+├── KPI "Ticket por OS" ────────→ /app/ordens-servico
 ├── Nav. Rápida "Clientes" ─────→ /app/clientes
 ├── Nav. Rápida "Orçamentos" ───→ /app/orcamentos
-├── Nav. Rápida "OS" ───────────→ /app/ordemservico
+├── Nav. Rápida "OS" ───────────→ /app/ordens-servico
 ├── Nav. Rápida "Financeiro" ───→ /app/financeiro
 ├── Nav. Rápida "Usuários" ─────→ /app/usuarios
 └── Nav. Rápida "Backup" ───────→ /app/backup
@@ -103,10 +103,10 @@ Qualquer Página ←─→ Qualquer Outra Página
 KPI: Clientes Ativos → /app/clientes
 KPI: Recebido MTD → /app/financeiro
 KPI: Aprovado Ativo → /app/orcamentos
-KPI: Ticket por OS → /app/ordemservico
+KPI: Ticket por OS → /app/ordens-servico
 Nav. Btn: Clientes → /app/clientes
 Nav. Btn: Orçamentos → /app/orcamentos
-Nav. Btn: Ordens de Serviço → /app/ordemservico
+Nav. Btn: Ordens de Serviço → /app/ordens-servico
 Nav. Btn: Financeiro → /app/financeiro
 Nav. Btn: Usuários → /app/usuarios
 Nav. Btn: Backup → /app/backup
