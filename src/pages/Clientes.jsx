@@ -388,15 +388,21 @@ function EmptyState({ filtroAtivo, onNovo, onImportar }) {
   );
 }
 
-function SelectionBanner({ total, onExportar, onLimpar }) {
+function SelectionBanner({ total, onCopiarContatos, onExportar, onExcluir, onLimpar }) {
   return (
     <div className="amp-rel-selection">
       <p className="amp-rel-kicker">Seleção ativa</p>
       <strong>{fmtNumber(total)} conta(s) prontas para ação em lote</strong>
-      <p>Exporte o recorte atual ou limpe a seleção para voltar à leitura completa da carteira.</p>
+      <p>Copie contatos, exporte o recorte ou remova cadastros selecionados quando for uma limpeza real da carteira.</p>
       <div className="amp-rel-selection-actions">
+        <button type="button" onClick={onCopiarContatos} className="amp-rel-secondary-btn">
+          Copiar contatos
+        </button>
         <button type="button" onClick={onExportar} className="amp-rel-primary-btn">
           Exportar seleção
+        </button>
+        <button type="button" onClick={onExcluir} className="amp-rel-ghost-chip is-danger">
+          Excluir seleção
         </button>
         <button type="button" onClick={onLimpar} className="amp-rel-secondary-btn">
           Limpar seleção
@@ -1514,6 +1520,40 @@ export default function Clientes() {
     mostrar("Seleção exportada com sucesso!");
   };
 
+  const copiarContatosSelecionados = async () => {
+    if (!selecionadosDetalhados.length) return;
+    const linhas = selecionadosDetalhados.map((cliente) =>
+      [
+        cliente.nome,
+        cliente.telefone || "sem telefone",
+        cliente.email || "sem e-mail",
+      ].join(" | ")
+    );
+    try {
+      await navigator.clipboard.writeText(linhas.join("\n"));
+      mostrar("Contatos copiados para a área de transferência.");
+    } catch {
+      mostrar("Não foi possível copiar os contatos neste navegador.", "erro");
+    }
+  };
+
+  const excluirSelecionados = async () => {
+    if (!selecionadosDetalhados.length) return;
+    const ok = window.confirm(
+      `Excluir ${selecionadosDetalhados.length} cliente(s) selecionado(s)? Esta ação não pode ser desfeita.`
+    );
+    if (!ok) return;
+    try {
+      await Promise.all(selecionadosDetalhados.map((cliente) => api.delete(`/clientes/${cliente.id}`)));
+      mostrar("Clientes selecionados excluídos com sucesso!");
+      setSelecionados([]);
+      setClienteFocoId(null);
+      await Promise.all([carregarClientes(), carregarContexto()]);
+    } catch {
+      mostrar("Erro ao excluir a seleção de clientes.", "erro");
+    }
+  };
+
   const handleArquivoNFe = (e) => {
     const arquivo = e.target.files?.[0];
     if (inputFileRef.current) inputFileRef.current.value = "";
@@ -1772,6 +1812,16 @@ export default function Clientes() {
               <span className="text-right">Ações</span>
             </div>
 
+            {selecionados.length > 0 && (
+              <SelectionBanner
+                total={selecionados.length}
+                onCopiarContatos={copiarContatosSelecionados}
+                onExportar={exportarSelecionados}
+                onExcluir={excluirSelecionados}
+                onLimpar={() => setSelecionados([])}
+              />
+            )}
+
             {carregando ? (
               <LoadingState />
             ) : !clientesVisiveis.length ? (
@@ -1899,14 +1949,6 @@ export default function Clientes() {
                   ))}
                 </div>
               </div>
-            )}
-
-            {selecionados.length > 0 && (
-              <SelectionBanner
-                total={selecionados.length}
-                onExportar={exportarSelecionados}
-                onLimpar={() => setSelecionados([])}
-              />
             )}
           </aside>
         </div>

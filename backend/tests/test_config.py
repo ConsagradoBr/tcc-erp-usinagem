@@ -43,17 +43,23 @@ def test_build_database_uri_falls_back_to_sqlite(monkeypatch, tmp_path):
     assert uri == f"sqlite:///{(tmp_path / 'amp-runtime' / 'app.sqlite3').as_posix()}"
 
 
-def test_get_runtime_data_dir_uses_local_path_in_dev(monkeypatch, tmp_path):
-    fake_config_file = tmp_path / "backend" / "config.py"
-    fake_config_file.parent.mkdir(parents=True, exist_ok=True)
-    fake_config_file.write_text("# test", encoding="utf-8")
-
+def test_get_runtime_data_dir_uses_user_data_dir(monkeypatch, tmp_path):
     monkeypatch.setattr(config.sys, "frozen", False, raising=False)
-    monkeypatch.setattr(config, "__file__", str(fake_config_file))
+    monkeypatch.delenv("AMP_RUNTIME_DIR", raising=False)
+    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "data-home"))
 
     runtime_dir = config.get_runtime_data_dir()
 
-    assert runtime_dir == Path(fake_config_file).resolve().parent
+    assert runtime_dir == tmp_path / "data-home" / "amp-usinagem-erp"
+    assert runtime_dir.exists()
+
+
+def test_get_runtime_data_dir_honors_env(monkeypatch, tmp_path):
+    monkeypatch.setenv("AMP_RUNTIME_DIR", str(tmp_path / "runtime"))
+
+    runtime_dir = config.get_runtime_data_dir()
+
+    assert runtime_dir == tmp_path / "runtime"
     assert runtime_dir.exists()
 
 

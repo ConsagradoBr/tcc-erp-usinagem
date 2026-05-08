@@ -1,5 +1,9 @@
 const TOKEN_KEY = "token";
 const USER_KEY = "amp_user";
+let tokenMemory = sessionStorage.getItem(TOKEN_KEY);
+
+localStorage.removeItem(TOKEN_KEY);
+localStorage.removeItem(USER_KEY);
 
 export const PERFIS_SISTEMA = {
   administrador: {
@@ -32,15 +36,16 @@ export const ROUTE_PERMISSIONS = [
 ];
 
 export function getStoredToken() {
-  return localStorage.getItem(TOKEN_KEY);
+  return tokenMemory || sessionStorage.getItem(TOKEN_KEY);
 }
 
 export function setStoredToken(token) {
-  localStorage.setItem(TOKEN_KEY, token);
+  tokenMemory = token;
+  sessionStorage.setItem(TOKEN_KEY, token);
 }
 
 export function getStoredUser() {
-  const raw = localStorage.getItem(USER_KEY);
+  const raw = sessionStorage.getItem(USER_KEY);
   if (!raw) return null;
   try {
     return JSON.parse(raw);
@@ -50,7 +55,7 @@ export function getStoredUser() {
 }
 
 export function setStoredUser(user) {
-  localStorage.setItem(USER_KEY, JSON.stringify(user));
+  sessionStorage.setItem(USER_KEY, JSON.stringify(user));
 }
 
 export function persistSession(token, user) {
@@ -59,8 +64,9 @@ export function persistSession(token, user) {
 }
 
 export function clearSession() {
-  localStorage.removeItem(TOKEN_KEY);
-  localStorage.removeItem(USER_KEY);
+  tokenMemory = null;
+  sessionStorage.removeItem(TOKEN_KEY);
+  sessionStorage.removeItem(USER_KEY);
 }
 
 export function getPermissions(user) {

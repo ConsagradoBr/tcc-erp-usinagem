@@ -1,13 +1,16 @@
 import logging
+import os
 import re
+import time
 
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 from flask_jwt_extended import create_access_token, verify_jwt_in_request
 from flask_jwt_extended.exceptions import JWTExtendedException
 from werkzeug.exceptions import HTTPException
 
 from backend.api_utils import http_error_response, internal_error, json_body
 from backend.extensions import db
+from backend.config import is_development_env
 from backend.models import Usuario
 from backend.security import (
     PERFIS_SISTEMA,
@@ -25,6 +28,9 @@ NOME_MIN_LENGTH = 3
 NOME_MAX_LENGTH = 120
 EMAIL_MAX_LENGTH = 120
 PASSWORD_MIN_LENGTH = 8
+LOGIN_RATE_WINDOW_SECONDS = 15 * 60
+LOGIN_RATE_MAX_ATTEMPTS = 5
+_LOGIN_ATTEMPTS = {}
 
 
 def _payload_json():
@@ -133,6 +139,58 @@ def _contar_administradores_ativos(excluir_id=None):
     return query.count()
 
 
+def _client_ip():
+    forwarded = request.headers.get("X-Forwarded-For", "")
+    return (forwarded.split(",")[0].strip() or request.remote_addr or "unknown").lower()
+
+
+def _login_rate_key(email):
+    return f"{_client_ip()}:{email}"
+
+
+def _limpar_tentativas_login(agora=None):
+    agora = agora or time.time()
+    expirados = [
+        key
+        for key, item in _LOGIN_ATTEMPTS.items()
+        if agora - item["first_seen"] > LOGIN_RATE_WINDOW_SECONDS
+    ]
+    for key in expirados:
+        _LOGIN_ATTEMPTS.pop(key, None)
+
+
+def _login_bloqueado(email):
+    _limpar_tentativas_login()
+    item = _LOGIN_ATTEMPTS.get(_login_rate_key(email))
+    return bool(item and item["count"] >= LOGIN_RATE_MAX_ATTEMPTS)
+
+
+def _registrar_falha_login(email):
+    agora = time.time()
+    _limpar_tentativas_login(agora)
+    key = _login_rate_key(email)
+    item = _LOGIN_ATTEMPTS.get(key)
+    if not item:
+        _LOGIN_ATTEMPTS[key] = {"count": 1, "first_seen": agora}
+        return
+    item["count"] += 1
+
+
+def _limpar_falhas_login(email):
+    _LOGIN_ATTEMPTS.pop(_login_rate_key(email), None)
+
+
+def _bootstrap_autorizado(data):
+    token_esperado = os.getenv("BOOTSTRAP_ADMIN_TOKEN", "").strip()
+    if not token_esperado and is_development_env():
+        return True
+    token_recebido = (
+        request.headers.get("X-Bootstrap-Token", "").strip()
+        or str(data.get("bootstrap_token") or "").strip()
+    )
+    return bool(token_esperado and token_recebido == token_esperado)
+
+
 @auth_bp.route("/bootstrap-status", methods=["GET"])
 def bootstrap_status():
     return jsonify({"bootstrap_required": Usuario.query.count() == 0}), 200
@@ -149,6 +207,8 @@ def criar_usuario():
             return jsonify({"erro": "Usuario ja existe."}), 400
 
         if Usuario.query.count() == 0:
+            if not _bootstrap_autorizado(data):
+                return jsonify({"erro": "Bootstrap inicial bloqueado."}), 403
             novo = Usuario(nome=nome, email=email, perfil="administrador", ativo=True)
             novo.set_password(senha)
             db.session.add(novo)
@@ -288,6 +348,34 @@ def editar_usuario(usuario_id):
         return internal_error(exc)
 
 
+@auth_bp.route("/usuarios/<int:usuario_id>", methods=["DELETE"])
+@require_permissions("usuarios")
+def excluir_usuario(usuario_id):
+    try:
+        usuario = db.session.get(Usuario, usuario_id)
+        if not usuario:
+            return jsonify({"erro": "Usuario nao encontrado."}), 404
+
+        usuario_atual = get_current_usuario()
+        if usuario_atual and usuario.id == usuario_atual.id:
+            return jsonify({"erro": "Nao e possivel excluir o proprio usuario logado."}), 400
+
+        if (
+            usuario.perfil == "administrador"
+            and usuario.ativo
+            and _contar_administradores_ativos(excluir_id=usuario.id) == 0
+        ):
+            return jsonify({"erro": "O sistema precisa manter pelo menos um administrador ativo."}), 400
+
+        db.session.delete(usuario)
+        db.session.commit()
+        return jsonify({"mensagem": "Usuario excluido com sucesso."}), 200
+    except HTTPException as exc:
+        return http_error_response(exc)
+    except Exception as exc:
+        return internal_error(exc)
+
+
 @auth_bp.route("/perfis", methods=["GET"])
 @require_permissions("usuarios")
 def listar_perfis():
@@ -313,8 +401,11 @@ def login():
         email, senha, erro = _validar_credenciais_login(data)
         if erro:
             return erro
+        if _login_bloqueado(email):
+            return jsonify({"erro": "Muitas tentativas. Aguarde alguns minutos e tente novamente."}), 429
         usuario = Usuario.query.filter_by(email=email).first()
         if not usuario or not usuario.check_password(senha):
+            _registrar_falha_login(email)
             return jsonify({"erro": "Credenciais invalidas."}), 401
         if not usuario.ativo:
             return (
@@ -324,6 +415,7 @@ def login():
                 403,
             )
         user_payload = serializar_usuario(usuario)
+        _limpar_falhas_login(email)
         token = create_access_token(
             identity=str(usuario.id),
             additional_claims={

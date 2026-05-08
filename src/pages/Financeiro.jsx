@@ -110,17 +110,23 @@ function InfoItem({ label, value, subtle = false, title }) {
   );
 }
 
-function SelectionBanner({ count, total, onExport, onClear }) {
+function SelectionBanner({ count, total, onMarkPaid, onExport, onDelete, onClear }) {
   return (
     <section className="amp-fin-selection">
       <div>
         <p className="amp-terminal-kicker">Seleção ativa</p>
         <h3>{count} título(s) no lote</h3>
-        <p>{total} preparados para exportação e conferência financeira.</p>
+        <p>{total} preparados para baixa, exportação ou limpeza financeira.</p>
       </div>
       <div className="amp-fin-selection-actions">
+        <button type="button" onClick={onMarkPaid} className="amp-rel-secondary-btn">
+          Marcar pagos
+        </button>
         <button type="button" onClick={onExport} className="amp-rel-primary-btn">
           Exportar seleção
+        </button>
+        <button type="button" onClick={onDelete} className="amp-rel-ghost-chip is-danger">
+          Excluir seleção
         </button>
         <button type="button" onClick={onClear} className="amp-rel-secondary-btn">
           Limpar seleção
@@ -180,6 +186,12 @@ function groupKey(item) {
     item.nfe || "sem-nfe",
     baseDescricaoParcelas(item.descricao),
   ].join("|");
+}
+
+function csvCell(value) {
+  const raw = String(value ?? "");
+  const safe = /^[=+\-@]/.test(raw) ? `'${raw}` : raw;
+  return `"${safe.replace(/"/g, '""')}"`;
 }
 
 function diasParaVencimento(iso) {
@@ -1150,18 +1162,6 @@ export default function Financeiro() {
     };
   }, [dados, resumo, totaisLista.totalAtrasado, totaisLista.totalPagar, totaisLista.totalReceber]);
 
-  const saldoProjetado = resumoMetricas.aReceber - resumoMetricas.aPagar;
-
-  const filaPrioritaria = useMemo(() => {
-    return [...dadosEnriquecidos]
-      .sort((a, b) => {
-        if (b.prioridade !== a.prioridade) return b.prioridade - a.prioridade;
-        return Number(b.valor_total) - Number(a.valor_total);
-      })
-      .filter((item) => item.prioridade > 1)
-      .slice(0, 4);
-  }, [dadosEnriquecidos]);
-
   const contagemFiltros = useMemo(() => {
     return {
       todos: dadosEnriquecidos.length,
@@ -1172,23 +1172,6 @@ export default function Financeiro() {
       sem_vinculo: dadosEnriquecidos.filter((item) => item.semVinculo).length,
     };
   }, [dadosEnriquecidos]);
-
-  const recebimentosSensiveis = useMemo(
-    () =>
-      dadosEnriquecidos
-        .filter(
-          (item) =>
-            item.tipo === "receber" &&
-            item.status !== "pago" &&
-            (item.status === "atrasado" || (item.dias != null && item.dias <= 5))
-        )
-        .sort((a, b) => {
-          if ((a.dias ?? 9999) !== (b.dias ?? 9999)) return (a.dias ?? 9999) - (b.dias ?? 9999);
-          return Number(b.valor_total) - Number(a.valor_total);
-        })
-        .slice(0, 4),
-    [dadosEnriquecidos]
-  );
 
   const titulosSelecionados = useMemo(
     () => dadosVisiveis.filter((item) => selecionados.includes(item.id)),
@@ -1212,11 +1195,6 @@ export default function Financeiro() {
     }
   }, [dadosVisiveis, itemFocoId]);
 
-  const itemFoco = useMemo(
-    () => dadosVisiveis.find((item) => item.id === itemFocoId) || null,
-    [dadosVisiveis, itemFocoId]
-  );
-
   const toggleSel = (id) => {
     setSelecionados((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]));
   };
@@ -1239,7 +1217,20 @@ export default function Financeiro() {
     const linhas = itens
       .map(
         (item) =>
-          `${item.tipo},${item.status},${item.cliente_nome || ""},${item.descricao},${item.nfe || ""},${item.vencimento},${item.valor},${item.juros},${item.valor_total},${item.forma_pagamento || ""}`
+          [
+            item.tipo,
+            item.status,
+            item.cliente_nome || "",
+            item.descricao,
+            item.nfe || "",
+            item.vencimento,
+            item.valor,
+            item.juros,
+            item.valor_total,
+            item.forma_pagamento || "",
+          ]
+            .map(csvCell)
+            .join(",")
       )
       .join("\n");
     const blob = new Blob([cab + linhas], { type: "text/csv" });
@@ -1250,6 +1241,46 @@ export default function Financeiro() {
     a.click();
     URL.revokeObjectURL(url);
     show("Seleção exportada!");
+  };
+
+  const marcarSelecionadosPagos = async () => {
+    const abertos = titulosSelecionados.filter((item) => item.status !== "pago");
+    if (!abertos.length) {
+      show("A seleção não possui títulos em aberto.", "erro");
+      return;
+    }
+    const hoje = new Date().toISOString().slice(0, 10);
+    try {
+      await Promise.all(
+        abertos.map((item) =>
+          api.patch(`/financeiro/${item.id}/pagar`, {
+            data_pagamento: hoje,
+            forma_pagamento: item.forma_pagamento || null,
+          })
+        )
+      );
+      show(`${abertos.length} título(s) marcado(s) como pago(s).`);
+      setSelecionados([]);
+      carregar();
+    } catch {
+      show("Erro ao marcar seleção como paga.", "erro");
+    }
+  };
+
+  const excluirSelecionados = async () => {
+    if (!titulosSelecionados.length) return;
+    const ok = window.confirm(
+      `Excluir ${titulosSelecionados.length} lançamento(s) selecionado(s)? Esta ação não pode ser desfeita.`
+    );
+    if (!ok) return;
+    try {
+      await Promise.all(titulosSelecionados.map((item) => api.delete(`/financeiro/${item.id}`)));
+      show("Lançamentos selecionados excluídos.");
+      setSelecionados([]);
+      carregar();
+    } catch {
+      show("Erro ao excluir seleção.", "erro");
+    }
   };
 
   const abrirNovo = () => {
@@ -1268,7 +1299,7 @@ export default function Financeiro() {
       {notif && <div className={`amp-rel-notice ${notif.tipo === "erro" ? "is-error" : "is-success"}`}>{notif.msg}</div>}
 
       <div className="screen-grid screen-grid-fin">
-        <section className="surface-panel">
+        <section className="surface-panel full-span">
           <div className="section-head">
             <div>
               <p className="eyebrow">Financeiro</p>
@@ -1373,7 +1404,9 @@ export default function Financeiro() {
             <SelectionBanner
               count={selecionados.length}
               total={fmt(totalSelecionado)}
+              onMarkPaid={marcarSelecionadosPagos}
               onExport={exportarSelecionados}
+              onDelete={excluirSelecionados}
               onClear={() => setSelecionados([])}
             />
           )}
@@ -1496,89 +1529,6 @@ export default function Financeiro() {
           </div>
         </section>
 
-        <aside className="inspector-panel finance-side">
-          <p className="eyebrow">Receita x pagamento</p>
-          <h3>Leitura limpa do caixa</h3>
-
-          <div className="balance-stack">
-            <div className="balance-card">
-              <span>A receber</span>
-              <strong>{fmt(resumoMetricas.aReceber)}</strong>
-            </div>
-            <div className="balance-card">
-              <span>Parcelas abertas</span>
-              <strong>{String(contagemFiltros.parcelado)}</strong>
-            </div>
-            <div className="balance-card">
-              <span>Sem vínculo</span>
-              <strong>{String(contagemFiltros.sem_vinculo)}</strong>
-            </div>
-            <div className="balance-card">
-              <span>Saldo projetado</span>
-              <strong>{fmt(saldoProjetado)}</strong>
-            </div>
-          </div>
-
-          <p className="muted inspector-summary">
-            O lado direito não compete com a tabela. Ele orienta leitura, risco e prioridade financeira.
-          </p>
-
-          <div className="action-list">
-            {recebimentosSensiveis.slice(0, 2).map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => setItemFocoId(item.id)}
-                className="action-row w-full text-left"
-              >
-                <div>
-                  <strong>{item.cliente_nome || "Sem cliente"}</strong>
-                  <p>{item.descricao}</p>
-                </div>
-                <span className={`status-tag ${item.status === "atrasado" ? "is-warm" : ""}`}>
-                  {item.status === "atrasado" ? `${Math.abs(item.dias ?? 0)}d atraso` : `${item.dias ?? 0}d`}
-                </span>
-              </button>
-            ))}
-
-            {itemFoco && (
-              <div className="action-row">
-                <div>
-                  <strong>{itemFoco.nextAction}</strong>
-                  <p>
-                    {itemFoco.cliente_nome || "Sem vínculo"} · {fmt(itemFoco.valor_total)}
-                  </p>
-                </div>
-                <span
-                  className={`status-tag ${
-                    itemFoco.statusTone === "danger"
-                      ? "is-warm"
-                      : itemFoco.statusTone === "positive"
-                      ? "is-cool"
-                      : ""
-                  }`}
-                >
-                  {itemFoco.statusLabel}
-                </span>
-              </div>
-            )}
-
-            {filaPrioritaria.slice(0, 2).map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => setItemFocoId(item.id)}
-                className="action-row w-full text-left"
-              >
-                <div>
-                  <strong>{item.descricao}</strong>
-                  <p>{item.nextAction}</p>
-                </div>
-                <span className="status-tag is-cool">{TIPO_META[item.tipo]?.short || item.tipo}</span>
-              </button>
-            ))}
-          </div>
-        </aside>
       </div>
 
       {modalBoleto && (

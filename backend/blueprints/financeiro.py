@@ -22,6 +22,7 @@ from backend.models import Cliente, Lancamento
 from backend.security import require_permissions
 
 financeiro_bp = Blueprint("financeiro", __name__, url_prefix="/financeiro")
+MAX_BOLETO_PDF_BYTES = 5 * 1024 * 1024
 
 
 def descricao_base(texto):
@@ -492,10 +493,16 @@ def parsear_boleto():
         tipo_hint = body.get("tipo", "pagar")
         if not isinstance(pdf_b64, str) or not pdf_b64:
             return jsonify({"erro": "PDF não enviado."}), 400
+        if len(pdf_b64) > (MAX_BOLETO_PDF_BYTES * 4 // 3) + 8:
+            return jsonify({"erro": "PDF excede o tamanho maximo permitido."}), 413
         try:
             pdf_bytes = base64.b64decode(pdf_b64, validate=True)
         except (binascii.Error, ValueError):
             return jsonify({"erro": "PDF invalido."}), 400
+        if len(pdf_bytes) > MAX_BOLETO_PDF_BYTES:
+            return jsonify({"erro": "PDF excede o tamanho maximo permitido."}), 413
+        if not pdf_bytes.startswith(b"%PDF"):
+            return jsonify({"erro": "Arquivo enviado nao parece ser um PDF valido."}), 400
         texto_total = ""
         try:
             import pdfplumber

@@ -19,12 +19,16 @@ LOCAL_FRONTEND_ORIGINS = [
 
 
 def get_runtime_data_dir():
-    if getattr(sys, "frozen", False):
+    configured_dir = os.getenv("AMP_RUNTIME_DIR", "").strip()
+    if configured_dir:
+        base_dir = Path(configured_dir).expanduser()
+    elif getattr(sys, "frozen", False):
         base_dir = (
             Path(os.getenv("LOCALAPPDATA") or Path.home()) / "AMP Usinagem Industrial"
         )
     else:
-        base_dir = Path(__file__).resolve().parent
+        data_home = Path(os.getenv("XDG_DATA_HOME", Path.home() / ".local" / "share"))
+        base_dir = data_home / "amp-usinagem-erp"
     base_dir.mkdir(parents=True, exist_ok=True)
     return base_dir
 
@@ -101,6 +105,7 @@ def configure_app(app):
         supports_credentials=False,
     )
 
+    app.config["MAX_CONTENT_LENGTH"] = int(os.getenv("MAX_CONTENT_LENGTH", str(16 * 1024 * 1024)))
     database_uri = build_database_uri()
     app.config["SQLALCHEMY_DATABASE_URI"] = database_uri
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
@@ -109,4 +114,5 @@ def configure_app(app):
     app.config["JWT_SECRET_KEY"] = get_secret_config(
         "JWT_SECRET_KEY", "chave_jwt_segura"
     )
-    app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=8)
+    token_minutes = int(os.getenv("JWT_ACCESS_TOKEN_MINUTES", "30"))
+    app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(minutes=token_minutes)

@@ -377,6 +377,7 @@ export default function OrdemServico() {
   const [mostrarDropdown, setMostrarDropdown] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [cardFocoId, setCardFocoId] = useState(null);
+  const [colunasExpandidas, setColunasExpandidas] = useState({});
   const dragCard = useRef(null);
 
   const notificar = useCallback((msg, tipo = "sucesso") => {
@@ -568,6 +569,11 @@ export default function OrdemServico() {
     }
   };
 
+  const limitePorColuna = 4;
+  const toggleColunaExpandida = (colunaId) => {
+    setColunasExpandidas((prev) => ({ ...prev, [colunaId]: !prev[colunaId] }));
+  };
+
   const clientesLookupDisponivel = canClientes && clientes.length > 0;
   const clientesSugeridos = clientesLookupDisponivel
     ? clientes.filter((cliente) => cliente.toLowerCase().includes(clienteFiltrado.toLowerCase()))
@@ -638,6 +644,9 @@ export default function OrdemServico() {
               <button type="button" onClick={() => abrirCriar("solicitado")} className="pill is-solid">
                 Nova OS
               </button>
+              <button type="button" onClick={() => setColunasExpandidas({})} className="pill">
+                Compactar quadro
+              </button>
               <button type="button" onClick={carregar} className="pill">
                 Atualizar
               </button>
@@ -678,7 +687,9 @@ export default function OrdemServico() {
                         </div>
                       </div>
                     ) : (
-                      coluna.cards.map((card) => {
+                      coluna.cards
+                        .slice(0, colunasExpandidas[coluna.id] ? coluna.cards.length : limitePorColuna)
+                        .map((card) => {
                         const prioridade = PRIORIDADE[card.prioridade] || PRIORIDADE.media;
                         const origem = extrairMarcadorOrcamento(card.descricao);
                         return (
@@ -692,7 +703,9 @@ export default function OrdemServico() {
                               <strong>{card.os}</strong>
                               <p className="muted mt-2">{card.cliente}</p>
                               <p className="muted mt-2">{card.servico}</p>
-                              <p className="muted mt-2">{card.descricao || "Sem descrição operacional"}</p>
+                              {colunasExpandidas[coluna.id] && (
+                                <p className="muted mt-2">{card.descricao || "Sem descrição operacional"}</p>
+                              )}
                             </button>
                             <div className="pill-row mt-4">
                               <ToneBadge tone={prioridade.tone}>{prioridade.label}</ToneBadge>
@@ -705,10 +718,24 @@ export default function OrdemServico() {
                               <button type="button" onClick={() => abrirEditar(card)} className="pill">
                                 Editar
                               </button>
+                              <button type="button" onClick={() => excluir(card.id, card.os)} className="pill">
+                                Excluir
+                              </button>
                             </div>
                           </article>
                         );
                       })
+                    )}
+                    {coluna.cards.length > limitePorColuna && (
+                      <button
+                        type="button"
+                        onClick={() => toggleColunaExpandida(coluna.id)}
+                        className="pill w-full justify-center"
+                      >
+                        {colunasExpandidas[coluna.id]
+                          ? "Recolher pacote"
+                          : `Ver mais ${coluna.cards.length - limitePorColuna} OS`}
+                      </button>
                     )}
                   </div>
                 </article>

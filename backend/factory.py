@@ -13,6 +13,7 @@ from backend.blueprints.orcamentos import orc_bp
 from backend.blueprints.ordens_servico import os_bp
 from backend.blueprints.sistema import sistema_bp
 from backend.config import configure_app
+from backend.config import is_development_env
 from backend.extensions import db, jwt
 
 
@@ -113,5 +114,8 @@ def create_app():
 def run_dev_server(app):
     host = os.getenv("FLASK_HOST", "127.0.0.1")
     port = int(os.getenv("PORT", os.getenv("FLASK_PORT", "5000")))
-    debug = os.getenv("FLASK_DEBUG", "false").lower() == "true"
+    debug_requested = os.getenv("FLASK_DEBUG", "false").lower() == "true"
+    if debug_requested and not is_development_env():
+        raise RuntimeError("FLASK_DEBUG=true bloqueado fora de ambiente de desenvolvimento.")
+    debug = debug_requested and is_development_env()
     app.run(debug=debug, host=host, port=port)

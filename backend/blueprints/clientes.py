@@ -9,7 +9,7 @@ from backend.api_utils import (
     json_body,
 )
 from backend.extensions import db
-from backend.models import Cliente
+from backend.models import Cliente, Orcamento
 from backend.security import require_permissions
 
 clientes_bp = Blueprint("clientes", __name__, url_prefix="/clientes")
@@ -137,6 +137,11 @@ def excluir_cliente(id):
         cliente, error = get_or_404(Cliente, id, "Cliente nao encontrado.")
         if error:
             return error
+        if Orcamento.query.filter_by(cliente_id=id).first():
+            return error_response(
+                "Cliente possui orcamentos vinculados. Remova ou reatribua os orcamentos antes de excluir.",
+                409,
+            )
         db.session.delete(cliente)
         db.session.commit()
         return jsonify({"mensagem": "Cliente excluido."}), 200

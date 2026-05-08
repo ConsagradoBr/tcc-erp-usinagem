@@ -363,6 +363,17 @@ def test_clientes_e_orcamentos_flow(client):
     assert resumo_atualizado.get_json()["valor_aprovado_ativo"] == 8500.0
 
 
+def test_excluir_cliente_com_orcamento_retorna_conflito(client):
+    headers = auth_headers(client)
+    cliente_id = criar_cliente(client, headers)
+    criar_orcamento(client, headers, cliente_id)
+
+    response = client.delete(f"/clientes/{cliente_id}", headers=headers)
+
+    assert response.status_code == 409
+    assert "orcamentos vinculados" in response.get_json()["erro"]
+
+
 def test_reaprovar_orcamento_nao_duplica_os_ou_financeiro(client):
     headers = auth_headers(client)
     cliente_id = criar_cliente(client, headers)

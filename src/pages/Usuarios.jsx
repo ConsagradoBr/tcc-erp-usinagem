@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 
 import api from "../api";
@@ -120,8 +120,6 @@ export default function Usuarios() {
   const [saving, setSaving] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
 
-  const usuariosAtivos = useMemo(() => usuarios.filter((usuario) => usuario.ativo).length, [usuarios]);
-
   const loadData = async () => {
     setLoading(true);
     try {
@@ -191,11 +189,27 @@ export default function Usuarios() {
     }
   };
 
+  const handleDelete = async (usuario) => {
+    if (usuario.id === currentUser?.id) {
+      toast.error("Você não pode excluir o próprio usuário logado.");
+      return;
+    }
+    const ok = window.confirm(`Excluir o usuário ${usuario.nome}? Esta ação não pode ser desfeita.`);
+    if (!ok) return;
+    try {
+      await api.delete(`/auth/usuarios/${usuario.id}`);
+      toast.success("Usuário excluído com sucesso!");
+      await loadData();
+    } catch (error) {
+      toast.error(error.response?.data?.erro || "Não foi possível excluir o usuário.");
+    }
+  };
+
   return (
     <div className="flex flex-col h-full overflow-hidden amp-bg px-3 py-2" style={{ borderRadius: "12px" }}>
       <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-4">
       <div className="screen-grid screen-grid-admin">
-        <section className="surface-panel">
+        <section className="surface-panel full-span">
           <div className="section-head">
             <div>
               <p className="eyebrow">Administração</p>
@@ -217,53 +231,38 @@ export default function Usuarios() {
                 <span>Usuário</span>
                 <span>Papel</span>
                 <span>Status</span>
-                <span>Acesso</span>
+                <span>Ações</span>
               </div>
               <div className="table-body">
                 {usuarios.map((usuario) => (
-                  <button
+                  <div
                     key={usuario.id}
-                    type="button"
-                    onClick={() => openEdit(usuario)}
                     className="table-row table-grid-users is-clickable"
                   >
-                    <span>{usuario.nome}</span>
+                    <button type="button" onClick={() => openEdit(usuario)} className="text-left">
+                      <span>{usuario.nome}</span>
+                      <small className="muted block">{usuario.email}</small>
+                    </button>
                     <span>{usuario.perfil_label || usuario.perfil}</span>
                     <span>
                       <span className={`status-tag ${usuario.ativo ? "is-cool" : ""}`}>
                         {usuario.ativo ? "Ativo" : "Inativo"}
                       </span>
                     </span>
-                    <span>{usuario.permissoes?.length ? "Liberado" : "Restrito"}</span>
-                  </button>
+                    <span className="pill-row">
+                      <button type="button" onClick={() => openEdit(usuario)} className="pill">
+                        Editar
+                      </button>
+                      <button type="button" onClick={() => handleDelete(usuario)} className="pill">
+                        Excluir
+                      </button>
+                    </span>
+                  </div>
                 ))}
               </div>
             </div>
           )}
         </section>
-
-        <aside className="inspector-panel">
-          <p className="eyebrow">Mensagem oficial</p>
-          <h3>Acesso controlado</h3>
-          <p className="muted">
-            O sistema não trabalha com cadastro público. Usuários são criados e liberados pela administração.
-          </p>
-
-          <div className="balance-stack">
-            <div className="balance-card">
-              <span>Admin atual</span>
-              <strong>{currentUser?.nome || "Administrador"}</strong>
-            </div>
-            <div className="balance-card">
-              <span>Usuários ativos</span>
-              <strong>{usuariosAtivos}</strong>
-            </div>
-            <div className="balance-card">
-              <span>Papéis disponíveis</span>
-              <strong>{perfis.length}</strong>
-            </div>
-          </div>
-        </aside>
       </div>
 
       {modalOpen && (
