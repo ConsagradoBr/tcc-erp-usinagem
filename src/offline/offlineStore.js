@@ -27,7 +27,7 @@ function requireEntityTable(tableName) {
   }
 }
 
-function getRemoteId(tableName, item) {
+export function getRemoteId(tableName, item) {
   if (item?.id != null) return String(item.id);
   if (tableName === "ordensServico" && item?.numero != null) return String(item.numero);
   if (tableName === "ordensServico" && item?.os != null) return String(item.os);
@@ -53,12 +53,14 @@ export async function saveEntityList(tableName, rows, options = {}) {
   }
 
   const now = new Date().toISOString();
-  const records = ensureArray(rows)
-    .map((item) => {
+  const records = [];
+  for (const item of ensureArray(rows)) {
       const remoteId = getRemoteId(tableName, item);
-      if (!remoteId) return null;
+      if (!remoteId) continue;
+      const current = await db.table(tableName).get([scope.scopeId, remoteId]);
+      if (current?.dirty || current?.deletedLocal) continue;
 
-      return {
+      records.push({
         scopeId: scope.scopeId,
         ownerUserId: scope.ownerUserId,
         remoteId,
@@ -69,9 +71,8 @@ export async function saveEntityList(tableName, rows, options = {}) {
         sourceEndpoint: options.endpoint || "",
         sourceParams: options.params || null,
         payload: item,
-      };
-    })
-    .filter(Boolean);
+      });
+  }
 
   if (records.length) {
     await db.table(tableName).bulkPut(records);
@@ -99,6 +100,64 @@ export async function readEntityList(tableName, options = {}) {
 
   const rows = records.map((record) => record.payload);
   return typeof options.filter === "function" ? rows.filter(options.filter) : rows;
+}
+
+export async function upsertLocalEntity(tableName, item, options = {}) {
+  requireEntityTable(tableName);
+  const scope = getScopeForUser(options.user);
+  if (!scope) return null;
+
+  if (tableName === "financeiro" && !hasPermission(scope.user, "financeiro")) {
+    return null;
+  }
+
+  const now = new Date().toISOString();
+  const remoteId = String(options.remoteId || getRemoteId(tableName, item) || "");
+  if (!remoteId) {
+    throw new Error(`Entidade offline sem identificador: ${tableName}`);
+  }
+
+  const payload = { ...item, id: item?.id ?? remoteId };
+  const record = {
+    scopeId: scope.scopeId,
+    ownerUserId: scope.ownerUserId,
+    remoteId,
+    updatedAt: getUpdatedAt(payload, now),
+    syncedAt: options.syncedAt ?? null,
+    dirty: Boolean(options.dirty),
+    deletedLocal: Boolean(options.deletedLocal),
+    sourceEndpoint: options.endpoint || "",
+    sourceParams: options.params || null,
+    payload,
+  };
+
+  await db.table(tableName).put(record);
+  return record.payload;
+}
+
+export async function markLocalEntityDeleted(tableName, remoteId, options = {}) {
+  requireEntityTable(tableName);
+  const scope = getScopeForUser(options.user);
+  if (!scope || !remoteId) return;
+
+  const key = [scope.scopeId, String(remoteId)];
+  const current = await db.table(tableName).get(key);
+  if (!current) return;
+
+  await db.table(tableName).put({
+    ...current,
+    dirty: true,
+    deletedLocal: true,
+    updatedAt: new Date().toISOString(),
+  });
+}
+
+export async function removeLocalEntity(tableName, remoteId, options = {}) {
+  requireEntityTable(tableName);
+  const scope = getScopeForUser(options.user);
+  if (!scope || !remoteId) return;
+
+  await db.table(tableName).delete([scope.scopeId, String(remoteId)]);
 }
 
 export async function setMetadata(key, value, options = {}) {

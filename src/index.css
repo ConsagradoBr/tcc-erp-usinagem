@@ -1139,6 +1139,59 @@ button {
   background: rgba(224, 83, 99, 0.1);
 }
 
+.amp-sync-queue {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin: 0 12px 10px;
+  border: 1px solid rgba(63, 141, 114, 0.24);
+  border-radius: 16px;
+  background: rgba(63, 141, 114, 0.12);
+  color: var(--amp-shell-ink);
+  padding: 10px 14px;
+  font-size: 12px;
+  box-shadow: 0 16px 40px rgba(44, 82, 68, 0.08);
+}
+
+.amp-sync-queue.is-conflict {
+  border-color: rgba(224, 83, 99, 0.28);
+  background: rgba(224, 83, 99, 0.1);
+}
+
+.amp-sync-queue strong {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--amp-shell-ink);
+}
+
+.amp-sync-queue span {
+  color: var(--amp-shell-soft);
+}
+
+.amp-sync-queue-btn {
+  flex: 0 0 auto;
+  border: 1px solid var(--amp-shell-line-strong);
+  border-radius: 999px;
+  background: var(--amp-shell-surface-strong);
+  color: var(--amp-shell-ink);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 8px 12px;
+  text-transform: uppercase;
+  transition: transform 0.18s ease, opacity 0.18s ease;
+}
+
+.amp-sync-queue-btn:hover {
+  transform: translateY(-1px);
+}
+
+.amp-sync-queue-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 /* === AMP SHELL SIDEBAR === */
 .amp-shell-sidebar {
   /* Sidebar principal - coluna com scroll */

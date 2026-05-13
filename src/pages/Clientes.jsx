@@ -4,6 +4,8 @@ import api from "../api";
 import { getStoredUser, hasPermission } from "../auth";
 import OfflineDataNotice from "../components/OfflineDataNotice";
 import { useOfflineClientes } from "../hooks/useOfflineClientes";
+import { deleteClienteWithOffline, saveClienteWithOffline } from "../offline/offlineMutations";
+import { isOfflineNow } from "../offline/networkStatus";
 import {
   IconClients,
   IconDollar,
@@ -468,6 +470,7 @@ function LedgerRow({
         <div className="amp-rel-ledger-title">
           <strong>{cliente.nome}</strong>
           <ToneBadge tone={cliente.statusTone}>{cliente.statusLabel}</ToneBadge>
+          {cliente.offlineStatus === "pending" && <ToneBadge tone="warning">Sync pendente</ToneBadge>}
         </div>
         <p>{cliente.nextAction}</p>
         <div className="amp-rel-ledger-meta">
@@ -684,7 +687,7 @@ function ModalDuplicata({ existente, novo, onSubstituir, onCadastrarMesmo, onCan
   );
 }
 
-function ModalCliente({ cliente, isImportado, onClose, onSalvo }) {
+function ModalCliente({ cliente, isImportado, onClose, onSalvo, user }) {
   const [form, setForm] = useState(cliente ? { ...cliente } : { ...FORM_VAZIO });
   const [salvando, setSalvando] = useState(false);
   const [notif, mostrar] = useNotificacao();
@@ -722,10 +725,8 @@ function ModalCliente({ cliente, isImportado, onClose, onSalvo }) {
         codigo_pais: form.codigo_pais?.trim() || "",
         pais: form.pais?.trim() || "",
       };
-      const res = cliente?.id
-        ? await api.put(`/clientes/${cliente.id}`, payload)
-        : await api.post("/clientes", payload);
-      onSalvo({ acao: cliente?.id ? "atualizado" : "criado", cliente: res.data });
+      const res = await saveClienteWithOffline({ cliente, payload, user });
+      onSalvo({ acao: cliente?.id ? "atualizado" : "criado", cliente: res.data, queued: res.queued });
       onClose();
     } catch (err) {
       mostrar(err.response?.data?.erro || "Erro ao salvar.", "erro");
@@ -1557,20 +1558,41 @@ export default function Clientes() {
     }
   };
 
+  const clienteTemVinculoLocal = useCallback(
+    (cliente) => {
+      const clienteId = String(cliente?.id || "");
+      const nomeNormalizado = normalizarNomeCliente(cliente?.nome);
+      return (
+        (Array.isArray(contexto.orcamentos) && contexto.orcamentos.some((item) => String(item.cliente_id) === clienteId)) ||
+        (Array.isArray(contexto.financeiro) && contexto.financeiro.some((item) => String(item.cliente_id) === clienteId)) ||
+        (Array.isArray(contexto.ordens) && contexto.ordens.some((item) => normalizarNomeCliente(item.cliente) === nomeNormalizado))
+      );
+    },
+    [contexto.financeiro, contexto.orcamentos, contexto.ordens]
+  );
+
   const excluirSelecionados = async () => {
     if (!selecionadosDetalhados.length) return;
     const ok = window.confirm(
       `Excluir ${selecionadosDetalhados.length} cliente(s) selecionado(s)? Esta ação não pode ser desfeita.`
     );
     if (!ok) return;
+    if (isOfflineNow() && selecionadosDetalhados.some(clienteTemVinculoLocal)) {
+      mostrar("Há cliente selecionado com vínculo local. Exclua online para validar as regras do servidor.", "erro");
+      return;
+    }
     try {
-      await Promise.all(selecionadosDetalhados.map((cliente) => api.delete(`/clientes/${cliente.id}`)));
-      mostrar("Clientes selecionados excluídos com sucesso!");
+      const results = await Promise.all(
+        selecionadosDetalhados.map((cliente) => deleteClienteWithOffline({ cliente, user }))
+      );
+      const queued = results.some((item) => item.queued);
+      mostrar(queued ? "Exclusões salvas localmente e aguardando sincronização." : "Clientes selecionados excluídos com sucesso!");
       setSelecionados([]);
       setClienteFocoId(null);
+      setClientes((prev) => prev.filter((cliente) => !selecionados.includes(cliente.id)));
       await Promise.all([carregarClientes(), carregarContexto()]);
-    } catch {
-      mostrar("Erro ao excluir a seleção de clientes.", "erro");
+    } catch (err) {
+      mostrar(err.response?.data?.erro || "Erro ao excluir a seleção de clientes.", "erro");
     }
   };
 
@@ -1649,13 +1671,18 @@ export default function Clientes() {
   };
 
   const handleExcluir = async () => {
+    if (isOfflineNow() && clienteTemVinculoLocal(clienteDelete)) {
+      mostrar("Cliente possui vínculo local. Exclua online para validar as regras do servidor.", "erro");
+      return;
+    }
     try {
-      await api.delete(`/clientes/${clienteDelete.id}`);
-      mostrar("Cliente excluído.");
+      const res = await deleteClienteWithOffline({ cliente: clienteDelete, user });
+      mostrar(res.queued ? "Exclusão salva localmente e aguardando sincronização." : "Cliente excluído.");
+      setClientes((prev) => prev.filter((cliente) => cliente.id !== clienteDelete.id));
       setClienteDelete(null);
       await carregarClientes();
-    } catch {
-      mostrar("Erro ao excluir cliente.", "erro");
+    } catch (err) {
+      mostrar(err.response?.data?.erro || "Erro ao excluir cliente.", "erro");
     }
   };
 
@@ -2000,10 +2027,16 @@ export default function Clientes() {
         <ModalCliente
           cliente={clienteEdit}
           isImportado={isImportado}
+          user={user}
           onClose={fecharModal}
-          onSalvo={({ acao, cliente }) => {
-            mostrar(`Cliente ${acao} com sucesso!`);
+          onSalvo={({ acao, cliente, queued }) => {
+            mostrar(queued ? `Cliente ${acao} localmente. Sincronize ao reconectar.` : `Cliente ${acao} com sucesso!`);
             if (cliente?.id) setClienteFocoId(cliente.id);
+            setClientes((prev) =>
+              prev.some((item) => item.id === cliente.id)
+                ? prev.map((item) => (item.id === cliente.id ? cliente : item))
+                : [...prev, cliente]
+            );
             carregarClientes();
           }}
         />

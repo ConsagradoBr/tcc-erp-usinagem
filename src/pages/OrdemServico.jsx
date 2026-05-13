@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 
-import api, { formatISODateBR, normalizeISODate } from "../api";
+import { formatISODateBR, normalizeISODate } from "../api";
 import { getStoredUser, hasPermission } from "../auth";
 import OfflineDataNotice from "../components/OfflineDataNotice";
 import { useOfflineOrdensServico } from "../hooks/useOfflineOrdensServico";
+import { deleteOSWithOffline, moveOSWithOffline, saveOSWithOffline } from "../offline/offlineMutations";
 
 const COLUNAS_CONFIG = [
   { id: "solicitado", titulo: "Solicitado", tone: "accent", note: "Entrada de demanda e definição de prioridade." },
@@ -506,9 +507,10 @@ export default function OrdemServico() {
     setOrdens((prev) => prev.map((ordem) => (ordem.id === card.id ? { ...ordem, status: dest } : ordem)));
 
     try {
-      await api.patch(`/ordens-servico/${card.id}/status`, { status: dest });
+      const res = await moveOSWithOffline({ ordem: card, status: dest, user });
+      setOrdens((prev) => prev.map((ordem) => (ordem.id === card.id ? res.data : ordem)));
       const tituloDestino = COLUNAS_CONFIG.find((coluna) => coluna.id === dest)?.titulo;
-      notificar(`${card.os} movida para ${tituloDestino}.`);
+      notificar(res.queued ? `${card.os} movida localmente para ${tituloDestino}.` : `${card.os} movida para ${tituloDestino}.`);
     } catch {
       setOrdens((prev) => prev.map((ordem) => (ordem.id === card.id ? { ...ordem, status: origem } : ordem)));
       notificar("Erro ao mover OS.", "erro");
@@ -549,15 +551,15 @@ export default function OrdemServico() {
         prazo: normalizeISODate(cardAtual.prazo) || "",
       };
       if (modoModal === "criar") {
-        const res = await api.post("/ordens-servico", { ...payload, status: colunaDestino });
+        const res = await saveOSWithOffline({ payload, status: colunaDestino, user });
         setOrdens((prev) => [...prev, res.data]);
         setCardFocoId(res.data.id);
-        notificar(`${res.data.os} criada com sucesso.`);
+        notificar(res.queued ? `${res.data.os} criada localmente e aguardando sincronização.` : `${res.data.os} criada com sucesso.`);
       } else {
-        const res = await api.put(`/ordens-servico/${cardAtual.id}`, payload);
+        const res = await saveOSWithOffline({ ordem: cardAtual, payload, user });
         setOrdens((prev) => prev.map((ordem) => (ordem.id === res.data.id ? res.data : ordem)));
         setCardFocoId(res.data.id);
-        notificar(`${res.data.os} atualizada.`);
+        notificar(res.queued ? `${res.data.os} atualizada localmente e aguardando sincronização.` : `${res.data.os} atualizada.`);
       }
       setModalAberto(false);
     } catch {
@@ -569,12 +571,14 @@ export default function OrdemServico() {
 
   const excluir = async (cardId, numeroOS) => {
     if (!window.confirm("Deseja excluir esta Ordem de Serviço?")) return;
+    const ordem = ordens.find((item) => item.id === cardId);
+    if (!ordem) return;
     try {
-      await api.delete(`/ordens-servico/${cardId}`);
+      const res = await deleteOSWithOffline({ ordem, user });
       setOrdens((prev) => prev.filter((ordem) => ordem.id !== cardId));
-      notificar(`${numeroOS} excluída.`);
-    } catch {
-      notificar("Erro ao excluir OS.", "erro");
+      notificar(res.queued ? `${numeroOS} excluída localmente e aguardando sincronização.` : `${numeroOS} excluída.`);
+    } catch (err) {
+      notificar(err.response?.data?.erro || "Erro ao excluir OS.", "erro");
     }
   };
 
@@ -720,6 +724,7 @@ export default function OrdemServico() {
                             <div className="pill-row mt-4">
                               <ToneBadge tone={prioridade.tone}>{prioridade.label}</ToneBadge>
                               {origem && <span className="status-tag is-cool">{`ORC ${origem}`}</span>}
+                              {card.offlineStatus === "pending" && <span className="status-tag is-warm">Sync pendente</span>}
                             </div>
                             <div className="pill-row mt-4">
                               <button type="button" onClick={() => abrirVer(card)} className="pill">

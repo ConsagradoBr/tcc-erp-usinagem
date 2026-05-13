@@ -6,6 +6,7 @@ import { canAccessPath, clearSession, getDefaultAppRoute, getStoredToken, getSto
 import Sidebar from "../components/Sidebar";
 import Header from "../components/Header";
 import OfflineStatus from "../components/OfflineStatus";
+import SyncQueueStatus from "../components/SyncQueueStatus";
 import { isNetworkError } from "../offline/networkStatus";
 import { clearFinanceiroForUser, clearOfflineDataForUser } from "../offline/offlineStore";
 
@@ -122,6 +123,7 @@ export default function ProtectedLayout() {
       <div className="amp-shell-workspace min-w-0 max-w-full">
         <Header user={user} onMenuToggle={toggleMenu} />
         <OfflineStatus />
+        <SyncQueueStatus user={user} />
 
         <main className="amp-shell-scroll min-w-0 max-w-full">
           <div className="mx-auto w-full min-w-0 max-w-[1760px]">

@@ -17,4 +17,19 @@ db.version(1).stores({
     "[scopeId+key], scopeId, ownerUserId, key, updatedAt, syncedAt",
 });
 
+db.version(2).stores({
+  clientes:
+    "[scopeId+remoteId], scopeId, ownerUserId, remoteId, updatedAt, syncedAt, dirty, deletedLocal",
+  orcamentos:
+    "[scopeId+remoteId], scopeId, ownerUserId, remoteId, updatedAt, syncedAt, dirty, deletedLocal",
+  ordensServico:
+    "[scopeId+remoteId], scopeId, ownerUserId, remoteId, updatedAt, syncedAt, dirty, deletedLocal",
+  financeiro:
+    "[scopeId+remoteId], scopeId, ownerUserId, remoteId, updatedAt, syncedAt, dirty, deletedLocal",
+  syncQueue:
+    "++id, [scopeId+status], scopeId, ownerUserId, entityType, entityId, status, createdAt, retries, lastError, idempotencyKey",
+  metadata:
+    "[scopeId+key], scopeId, ownerUserId, key, updatedAt, syncedAt",
+});
+
 export default db;
