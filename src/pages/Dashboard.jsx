@@ -5,8 +5,10 @@ import {
   XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from "recharts";
 
-import api, { parseISODate } from "../api";
+import { parseISODate } from "../api";
 import { getStoredUser, hasPermission } from "../auth";
+import OfflineDataNotice from "../components/OfflineDataNotice";
+import { useOfflineDashboard } from "../hooks/useOfflineDashboard";
 
 const MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 const STATUS_ABERTOS_OS = new Set(["solicitado", "em_andamento", "revisao"]);
@@ -99,11 +101,20 @@ export default function Dashboard() {
 
   const now = useClock();  
   const navigate = useNavigate();
-  const user = getStoredUser();
+  const user = useMemo(() => getStoredUser(), []);
   const canClientes = hasPermission(user, "clientes");
   const canFinanceiro = hasPermission(user, "financeiro");
   const canOS = hasPermission(user, "ordens_servico");
   const canOrcamentos = hasPermission(user, "orcamentos");
+  const {
+    offlineInfo,
+    updateOfflineInfo,
+    getClientes,
+    getFinanceiro,
+    getFinanceiroResumo,
+    getOrcamentosResumo,
+    getOrdensServico,
+  } = useOfflineDashboard(user);
   const [dados, setDados] = useState({
     clientes: [],
     financeiro: [],
@@ -117,19 +128,20 @@ export default function Dashboard() {
     let ativo = true;
     const requests = [];
 
-    if (canClientes) requests.push(["clientes", api.get("/clientes")]);
+    if (canClientes) requests.push(["clientes", getClientes()]);
     if (canFinanceiro) {
-      requests.push(["financeiro", api.get("/financeiro")]);
-      requests.push(["financeiroResumo", api.get("/financeiro/resumo")]);
+      requests.push(["financeiro", getFinanceiro()]);
+      requests.push(["financeiroResumo", getFinanceiroResumo()]);
     }
     if (canOrcamentos) {
-      requests.push(["orcamentosResumo", api.get("/orcamentos/resumo")]);
+      requests.push(["orcamentosResumo", getOrcamentosResumo()]);
     }
-    if (canOS) requests.push(["ordens", api.get("/ordens-servico")]);
+    if (canOS) requests.push(["ordens", getOrdensServico()]);
 
     Promise.allSettled(requests.map(([, request]) => request)).then((results) => {
       if (!ativo) return;
       setErroCarga(results.some((result) => result.status === "rejected"));
+      updateOfflineInfo(results);
       setDados((prev) => {
         const next = { ...prev };
         results.forEach((result, index) => {
@@ -144,7 +156,18 @@ export default function Dashboard() {
     return () => {
       ativo = false;
     };
-  }, [canClientes, canFinanceiro, canOS, canOrcamentos]);
+  }, [
+    canClientes,
+    canFinanceiro,
+    canOS,
+    canOrcamentos,
+    getClientes,
+    getFinanceiro,
+    getFinanceiroResumo,
+    getOrcamentosResumo,
+    getOrdensServico,
+    updateOfflineInfo,
+  ]);
 
   const metricas = useMemo(() => {
     const listaClientes = Array.isArray(dados.clientes) ? dados.clientes : [];
@@ -303,6 +326,7 @@ export default function Dashboard() {
     <div className="flex flex-col h-full overflow-hidden amp-bg px-3 py-2" style={{ borderRadius: "12px" }}>
       {/* ══ CONTEÚDO (sem header — já existe no ProtectedLayout) ══ */}
       <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-4">
+          <OfflineDataNotice info={offlineInfo} />
 
           {/* ── Sub-header analítico ── */}
           <div className="amp-card rounded-2xl px-6 py-4">

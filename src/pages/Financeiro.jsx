@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import api from "../api";
+import { getStoredUser } from "../auth";
+import OfflineDataNotice from "../components/OfflineDataNotice";
+import { useOfflineFinanceiro } from "../hooks/useOfflineFinanceiro";
 
 const STATUS_META = {
   pago: { label: "Pago", tone: "positive" },
@@ -999,6 +1002,14 @@ function ModalConfirmar({ item, onClose, onConfirmar }) {
 }
 
 export default function Financeiro() {
+  const user = useMemo(() => getStoredUser(), []);
+  const {
+    offlineInfo,
+    updateOfflineInfo,
+    getFinanceiro,
+    getClientes,
+    getResumo,
+  } = useOfflineFinanceiro(user);
   const [dados, setDados] = useState([]);
   const [clientes, setClientes] = useState([]);
   const [resumo, setResumo] = useState(null);
@@ -1026,10 +1037,11 @@ export default function Financeiro() {
       if (filtroStatus) params.status = filtroStatus;
       if (filtro) params.q = filtro;
       const [res, resClientes, resResumo] = await Promise.all([
-        api.get("/financeiro", { params }),
-        api.get("/clientes"),
-        api.get("/financeiro/resumo"),
+        getFinanceiro({ filtro, tipo: filtroTipo, status: filtroStatus }),
+        getClientes(),
+        getResumo(),
       ]);
+      updateOfflineInfo([res, resClientes, resResumo]);
       setDados(res.data);
       setClientes(resClientes.data);
       setResumo(resResumo.data);
@@ -1038,7 +1050,7 @@ export default function Financeiro() {
     } finally {
       setCarregando(false);
     }
-  }, [filtro, filtroStatus, filtroTipo, show]);
+  }, [filtro, filtroStatus, filtroTipo, getClientes, getFinanceiro, getResumo, show, updateOfflineInfo]);
 
   useEffect(() => {
     const timer = setTimeout(() => carregar(), 280);
@@ -1296,6 +1308,7 @@ export default function Financeiro() {
   return (
     <div className="flex flex-col h-full overflow-hidden amp-bg px-3 py-2" style={{ borderRadius: "12px" }}>
       <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-4">
+      <OfflineDataNotice info={offlineInfo} />
       {notif && <div className={`amp-rel-notice ${notif.tipo === "erro" ? "is-error" : "is-success"}`}>{notif.msg}</div>}
 
       <div className="screen-grid screen-grid-fin">

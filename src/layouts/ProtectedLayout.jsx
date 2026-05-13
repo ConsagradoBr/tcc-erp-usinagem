@@ -2,9 +2,12 @@ import { useEffect, useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 
 import api from "../api";
-import { canAccessPath, clearSession, getDefaultAppRoute, getStoredToken, getStoredUser, setStoredUser } from "../auth";
+import { canAccessPath, clearSession, getDefaultAppRoute, getStoredToken, getStoredUser, hasPermission, setStoredUser } from "../auth";
 import Sidebar from "../components/Sidebar";
 import Header from "../components/Header";
+import OfflineStatus from "../components/OfflineStatus";
+import { isNetworkError } from "../offline/networkStatus";
+import { clearFinanceiroForUser, clearOfflineDataForUser } from "../offline/offlineStore";
 
 const mobileBreakpoint = 1024;
 const expandedSidebarBreakpoint = 1480;
@@ -31,16 +34,36 @@ export default function ProtectedLayout() {
     }
 
     let active = true;
+    const cachedUser = getStoredUser();
     api
       .get("/auth/perfil")
       .then((response) => {
         if (!active) return;
         const nextUser = response.data?.user;
+        if (!nextUser) {
+          clearSession();
+          navigate("/login", { replace: true });
+          return;
+        }
+        if (cachedUser?.id && nextUser?.id && String(cachedUser.id) !== String(nextUser.id)) {
+          clearOfflineDataForUser(cachedUser).catch(() => {});
+        }
+        if (nextUser && !hasPermission(nextUser, "financeiro")) {
+          clearFinanceiroForUser(nextUser).catch(() => {});
+        }
         setStoredUser(nextUser);
         setUser(nextUser);
       })
-      .catch(() => {
+      .catch((error) => {
         if (!active) return;
+        if (isNetworkError(error) && cachedUser) {
+          setUser(cachedUser);
+          return;
+        }
+        if (error?.response?.status === 403 && cachedUser) {
+          setUser(cachedUser);
+          return;
+        }
         clearSession();
         navigate("/login", { replace: true });
       })
@@ -98,6 +121,7 @@ export default function ProtectedLayout() {
 
       <div className="amp-shell-workspace min-w-0 max-w-full">
         <Header user={user} onMenuToggle={toggleMenu} />
+        <OfflineStatus />
 
         <main className="amp-shell-scroll min-w-0 max-w-full">
           <div className="mx-auto w-full min-w-0 max-w-[1760px]">

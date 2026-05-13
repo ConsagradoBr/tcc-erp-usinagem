@@ -3,6 +3,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import api, { formatISODateBR, normalizeISODate } from "../api";
 import { getStoredUser, hasPermission } from "../auth";
+import OfflineDataNotice from "../components/OfflineDataNotice";
+import { useOfflineOrdensServico } from "../hooks/useOfflineOrdensServico";
 
 const COLUNAS_CONFIG = [
   { id: "solicitado", titulo: "Solicitado", tone: "accent", note: "Entrada de demanda e definição de prioridade." },
@@ -360,8 +362,14 @@ function ModalOS({
 }
 
 export default function OrdemServico() {
-  const user = getStoredUser();
+  const user = useMemo(() => getStoredUser(), []);
   const canClientes = hasPermission(user, "clientes");
+  const {
+    offlineInfo,
+    updateOfflineInfo,
+    getOrdensServico,
+    getClientes,
+  } = useOfflineOrdensServico(user);
   const [ordens, setOrdens] = useState([]);
   const [clientes, setClientes] = useState([]);
   const [carregando, setCarregando] = useState(true);
@@ -390,9 +398,10 @@ export default function OrdemServico() {
     setCarregando(true);
     try {
       const [resOS, resClientes] = await Promise.allSettled([
-        api.get("/ordens-servico"),
-        canClientes ? api.get("/clientes") : Promise.resolve({ data: [] }),
+        getOrdensServico(),
+        canClientes ? getClientes() : Promise.resolve({ data: [] }),
       ]);
+      updateOfflineInfo([resOS, resClientes]);
       if (resOS.status !== "fulfilled") {
         throw new Error("Erro ao carregar ordens de serviço.");
       }
@@ -408,7 +417,7 @@ export default function OrdemServico() {
     } finally {
       setCarregando(false);
     }
-  }, [canClientes, notificar]);
+  }, [canClientes, getClientes, getOrdensServico, notificar, updateOfflineInfo]);
 
   useEffect(() => {
     carregar();
@@ -582,6 +591,7 @@ export default function OrdemServico() {
   return (
     <div className="flex flex-col h-full overflow-hidden amp-bg px-3 py-2" style={{ borderRadius: "12px" }}>
       <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-4">
+      <OfflineDataNotice info={offlineInfo} />
       {notificacao && (
         <div
           className={`fixed right-5 top-5 z-50 rounded-[20px] border px-5 py-3 text-sm font-semibold shadow-[0_18px_48px_rgba(22,18,14,0.2)] ${

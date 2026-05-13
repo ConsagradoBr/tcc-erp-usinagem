@@ -3,6 +3,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import api from "../api";
 import { getStoredUser, hasPermission } from "../auth";
 import { IconQuotes } from "../assets/assets-map";
+import OfflineDataNotice from "../components/OfflineDataNotice";
+import { useOfflineOrcamentos } from "../hooks/useOfflineOrcamentos";
 
 const STATUS = {
   rascunho: { label: "Rascunho", tone: "default" },
@@ -530,9 +532,18 @@ function transicoesPrincipais(statusAtual) {
 }
 
 export default function Orcamentos() {
-  const user = getStoredUser();
+  const user = useMemo(() => getStoredUser(), []);
   const canOS = hasPermission(user, "ordens_servico");
   const canFinanceiro = hasPermission(user, "financeiro");
+  const {
+    offlineInfo,
+    updateOfflineInfo,
+    getOrcamentos,
+    getClientes,
+    getResumo,
+    getOrdensServico,
+    getFinanceiro,
+  } = useOfflineOrcamentos(user);
 
   const [dados, setDados] = useState([]);
   const [clientes, setClientes] = useState([]);
@@ -566,14 +577,15 @@ export default function Orcamentos() {
     setContextoErro(false);
     try {
       const requests = [
-        api.get("/orcamentos", { params: { q: filtro || undefined, status: filtroStatus || undefined } }),
-        api.get("/clientes"),
-        api.get("/orcamentos/resumo"),
+        getOrcamentos({ filtro, status: filtroStatus }),
+        getClientes(),
+        getResumo(),
       ];
-      if (canOS) requests.push(api.get("/ordens-servico"));
-      if (canFinanceiro) requests.push(api.get("/financeiro"));
+      if (canOS) requests.push(getOrdensServico());
+      if (canFinanceiro) requests.push(getFinanceiro());
 
       const results = await Promise.allSettled(requests);
+      updateOfflineInfo(results);
       const [orcamentosRes, clientesRes, resumoRes, ordensRes, financeiroRes] = results;
 
       if (orcamentosRes.status !== "fulfilled" || clientesRes.status !== "fulfilled" || resumoRes.status !== "fulfilled") {
@@ -610,7 +622,18 @@ export default function Orcamentos() {
       setCarregando(false);
       setCarregandoContexto(false);
     }
-  }, [canFinanceiro, canOS, filtro, filtroStatus]);
+  }, [
+    canFinanceiro,
+    canOS,
+    filtro,
+    filtroStatus,
+    getClientes,
+    getFinanceiro,
+    getOrcamentos,
+    getOrdensServico,
+    getResumo,
+    updateOfflineInfo,
+  ]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => carregar(), 240);
@@ -796,6 +819,7 @@ export default function Orcamentos() {
   return (
     <div className="flex flex-col h-full overflow-hidden amp-bg px-3 py-2" style={{ borderRadius: "12px" }}>
       <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-4">
+      <OfflineDataNotice info={offlineInfo} />
       {toast && (
         <div
           className={`fixed right-5 top-5 z-50 rounded-[20px] border px-5 py-3 text-sm font-semibold shadow-[0_18px_48px_rgba(22,18,14,0.2)] ${

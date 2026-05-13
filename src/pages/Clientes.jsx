@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import api from "../api";
 import { getStoredUser, hasPermission } from "../auth";
+import OfflineDataNotice from "../components/OfflineDataNotice";
+import { useOfflineClientes } from "../hooks/useOfflineClientes";
 import {
   IconClients,
   IconDollar,
@@ -1057,10 +1059,18 @@ function ModalConfirmacao({ cliente, onClose, onConfirmar }) {
 }
 
 export default function Clientes() {
-  const user = getStoredUser();
+  const user = useMemo(() => getStoredUser(), []);
   const canOrcamentos = hasPermission(user, "orcamentos");
   const canFinanceiro = hasPermission(user, "financeiro");
   const canOS = hasPermission(user, "ordens_servico");
+  const {
+    offlineInfo,
+    updateOfflineInfo,
+    getClientes,
+    getOrcamentosContexto,
+    getFinanceiroContexto,
+    getOrdensContexto,
+  } = useOfflineClientes(user);
 
   const [clientes, setClientes] = useState([]);
   const [filtro, setFiltro] = useState("");
@@ -1086,21 +1096,22 @@ export default function Clientes() {
   const carregarClientes = useCallback(async () => {
     setCarregando(true);
     try {
-      const res = await api.get("/clientes", { params: filtro ? { q: filtro } : {} });
+      const res = await getClientes(filtro);
+      updateOfflineInfo(res);
       setClientes(res.data);
     } catch {
       mostrar("Erro ao carregar clientes.", "erro");
     } finally {
       setCarregando(false);
     }
-  }, [filtro, mostrar]);
+  }, [filtro, getClientes, mostrar, updateOfflineInfo]);
 
   const carregarContexto = useCallback(async () => {
     const requests = [];
 
-    if (canOrcamentos) requests.push(["orcamentos", api.get("/orcamentos")]);
-    if (canFinanceiro) requests.push(["financeiro", api.get("/financeiro")]);
-    if (canOS) requests.push(["ordens", api.get("/ordens-servico")]);
+    if (canOrcamentos) requests.push(["orcamentos", getOrcamentosContexto()]);
+    if (canFinanceiro) requests.push(["financeiro", getFinanceiroContexto()]);
+    if (canOS) requests.push(["ordens", getOrdensContexto()]);
 
     if (!requests.length) {
       setContexto(CONTEXTO_VAZIO);
@@ -1117,6 +1128,7 @@ export default function Clientes() {
 
     try {
       const resultado = await Promise.allSettled(requests.map(([, promise]) => promise));
+      updateOfflineInfo(resultado);
       let houveErro = false;
       resultado.forEach((item, index) => {
         const key = requests[index][0];
@@ -1131,7 +1143,15 @@ export default function Clientes() {
     } finally {
       setCarregandoContexto(false);
     }
-  }, [canFinanceiro, canOS, canOrcamentos]);
+  }, [
+    canFinanceiro,
+    canOS,
+    canOrcamentos,
+    getFinanceiroContexto,
+    getOrcamentosContexto,
+    getOrdensContexto,
+    updateOfflineInfo,
+  ]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -1665,6 +1685,7 @@ export default function Clientes() {
   return (
     <div className="flex flex-col h-full overflow-hidden amp-bg px-3 py-2" style={{ borderRadius: "12px" }}>
       <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-4">
+      <OfflineDataNotice info={offlineInfo} />
       {notif && (
         <div className={`amp-rel-notice ${notif.tipo === "erro" ? "is-error" : "is-success"}`}>
           {notif.msg}

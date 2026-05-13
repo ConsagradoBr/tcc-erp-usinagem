@@ -64,9 +64,14 @@ export function persistSession(token, user) {
 }
 
 export function clearSession() {
+  const user = getStoredUser();
   tokenMemory = null;
   sessionStorage.removeItem(TOKEN_KEY);
   sessionStorage.removeItem(USER_KEY);
+
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("amp:session-cleared", { detail: { user } }));
+  }
 }
 
 export function getPermissions(user) {

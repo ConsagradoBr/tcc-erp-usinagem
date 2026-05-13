@@ -1096,6 +1096,49 @@ button {
   border-color: var(--amp-shell-line-strong);
 }
 
+.amp-offline-global,
+.amp-offline-notice {
+  border: 1px solid rgba(173, 122, 62, 0.28);
+  background: rgba(173, 122, 62, 0.12);
+  color: var(--amp-shell-ink);
+  box-shadow: 0 16px 40px rgba(92, 64, 35, 0.08);
+}
+
+.amp-offline-global {
+  margin: 0 12px 10px;
+  border-radius: 16px;
+  padding: 10px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.amp-offline-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+  border-radius: 18px;
+  padding: 10px 14px;
+  font-size: 12px;
+}
+
+.amp-offline-notice strong {
+  margin-right: 4px;
+  color: var(--amp-shell-warn);
+}
+
+.amp-offline-notice > span {
+  color: var(--amp-shell-soft);
+  white-space: nowrap;
+}
+
+.amp-offline-notice.is-warning {
+  border-color: rgba(224, 83, 99, 0.24);
+  background: rgba(224, 83, 99, 0.1);
+}
+
 /* === AMP SHELL SIDEBAR === */
 .amp-shell-sidebar {
   /* Sidebar principal - coluna com scroll */
