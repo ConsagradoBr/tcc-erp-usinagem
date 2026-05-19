@@ -72,7 +72,7 @@ export default function Header({ onMenuToggle }) {
 
         <button
           type="button"
-          className="amp-shell-control-btn is-strong"
+          className="amp-exit-btn"
           onClick={() => {
             clearSession();
             navigate("/login");

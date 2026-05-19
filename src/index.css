@@ -1041,6 +1041,7 @@ button {
   font: inherit;
   cursor: pointer;
   transition: 220ms ease;
+  background: var(--amp-orange);
 }
 
 .amp-shell-theme-btn {
@@ -1075,15 +1076,26 @@ button {
   min-height: 42px;
   padding: 0 14px;
   border-radius: 999px;
-  border: 1px solid var(--amp-shell-line);
-  background: var(--amp-shell-surface-strong);
-  color: var(--amp-shell-soft);
-  font-size: 0.82rem;
-  letter-spacing: 0.12em;
+  border: 1px solid var(--amp-shell-ink);
+  color: var(--amp-shell-soft-3);
+  font-size: 13px;
+  font-weight: 700;
   text-transform: uppercase;
   white-space: nowrap;
 }
-
+.amp-exit-btn {
+  /* Botão de saída - vermelho para destaque */
+  font-size: 12px;
+  font-weight: 700;
+  color: #dc2626;
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: opacity .15s;
+}
 .amp-shell-control-btn:hover,
 .amp-shell-theme-btn:hover {
   /* Hover - eleva levemente */
@@ -6868,6 +6880,7 @@ body[data-theme="light"] .balance-card {
   --amp-shell-ink: var(--amp-text);
   --amp-shell-soft: var(--amp-muted);
   --amp-shell-soft-2: var(--amp-muted);
+  --amp-shell-soft-3: var(--amp-orange);
   --amp-shell-accent: var(--amp-orange);
   --amp-shell-blue: var(--amp-orange);
   --amp-shell-warn: var(--amp-orange);
