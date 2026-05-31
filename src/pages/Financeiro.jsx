@@ -164,7 +164,7 @@ function EmptyState({ onCreate }) {
 
 function ModalContainer({ children }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-[rgba(19,18,16,0.52)] p-3 backdrop-blur-md sm:items-center sm:p-5">
+    <div className="amp-modal-overlay fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-[rgba(19,18,16,0.52)] p-3 backdrop-blur-md sm:items-center sm:p-5">
       {children}
     </div>
   );

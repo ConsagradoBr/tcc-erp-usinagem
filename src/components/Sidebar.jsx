@@ -1,7 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 
 import { hasPermission } from "../auth";
-import logoGif from "../assets/Gif-Logo.gif";
+import logoGif from "../assets/gif_transparente.png";
 
 const NAV_ITEMS = [
   { id: "DB", label: "Dashboard", tone: "teal", path: "/app/dashboard", permissao: "dashboard" },
@@ -28,9 +28,7 @@ export default function Sidebar({ user, open, mobileOpen, onClose }) {
 
           {!collapsed && (
             <div className="amp-shell-brand-copy min-w-0">
-              <p className="amp-shell-brand-kicker">AMP Terminal</p>
               <h2>AMP Usinagem</h2>
-              <p>Painel industrial local-first</p>
             </div>
           )}
         </div>

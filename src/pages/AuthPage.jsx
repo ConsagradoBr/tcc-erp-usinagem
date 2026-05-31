@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 import api from "../api";
 import { getDefaultAppRoute, persistSession } from "../auth";
-import logoGif from "../assets/Gif-Logo.gif";
+import logoGif from "../assets/gif_transparente.png";
 
 const GearIcon = ({ className }) => (
   <svg
@@ -42,7 +42,7 @@ export default function AuthPage() {
   );
 
   const handleOpenSignup = () => {
-    navigate("/signup");
+    // sem rota de cadastro — contate o administrador
   };
 
   useEffect(() => {

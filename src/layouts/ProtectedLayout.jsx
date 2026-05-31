@@ -116,9 +116,18 @@ export default function ProtectedLayout() {
     );
   }
 
+  const closeMobile = () => setMobileOpen(false);
+
   return (
     <div className={`amp-shell-layout ${open ? "is-expanded" : "is-collapsed"}`}>
-      <Sidebar user={user} open={open} mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
+      {/* Backdrop do menu mobile */}
+      <div
+        className={`amp-sidebar-backdrop${mobileOpen ? " is-visible" : ""}`}
+        onClick={closeMobile}
+        aria-hidden="true"
+      />
+
+      <Sidebar user={user} open={open} mobileOpen={mobileOpen} onClose={closeMobile} />
 
       <div className="amp-shell-workspace min-w-0 max-w-full">
         <Header user={user} onMenuToggle={toggleMenu} />
