@@ -211,7 +211,7 @@ export default function BackupDesktop() {
         </div>
       </div>
       {restoreFile && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(19,18,16,0.52)] p-4 backdrop-blur-md">
+        <div className="amp-modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-[rgba(19,18,16,0.52)] p-4 backdrop-blur-md">
           <div className="surface-panel max-w-xl">
             <div className="section-head">
               <div>

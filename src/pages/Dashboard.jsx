@@ -44,12 +44,12 @@ function DashboardCard({ canAccess, onClick, borderColor, label, value, detail }
     <button
       type="button"
       onClick={onClick}
-      className="amp-card rounded-xl px-5 py-4 flex flex-col gap-1 hover:scale-105 transition-transform cursor-pointer border-l-4"
+      className="amp-card rounded-xl px-5 py-4 flex flex-col gap-1 hover:scale-105 transition-transform cursor-pointer border-l-4 min-w-0"
       style={{ borderLeftColor: borderColor }}
     >
-      <p className="amp-label">{label}</p>
-      <p className="amp-kpi-val">{value}</p>
-      <p className="text-xs amp-orange">{detail}</p>
+      <p className="amp-label truncate">{label}</p>
+      <p className="amp-kpi-val truncate">{value}</p>
+      <p className="text-xs amp-orange truncate">{detail}</p>
     </button>
   );
 }
@@ -334,17 +334,10 @@ export default function Dashboard() {
               <div>
                 <p className="amp-label mb-1">Painel AMP</p>
                 <h2 className="text-2xl font-extrabold amp-text">Centro analítico industrial</h2>
-                <p className="text-sm amp-muted mt-1">
-                  Visão consolidada dos módulos liberados para o seu perfil.
-                </p>
               </div>
               <div className="flex items-center gap-8 flex-wrap">
                 <div className="text-right">
                   <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-[var(--amp-green)] animate-pulse" />
-                  <span className="text-[10px] font-bold amp-muted uppercase tracking-wider">
-                    Operação em curso
-                  </span>
                 </div>
                   <p className="text-2xl font-extrabold amp-orange font-mono">{timeStr}</p>
                   <p className="text-[9px] amp-muted">{dateStr}</p>
@@ -411,7 +404,7 @@ export default function Dashboard() {
 
             {/* Faturamento + Pipeline */}
             {(canFinanceiro || canOrcamentos) && (
-              <div className="amp-card rounded-xl p-5 flex flex-col gap-4">
+              <div className="amp-card rounded-xl p-5 flex flex-col gap-4 overflow-hidden">
                 {canFinanceiro && (
                   <div>
                     <p className="amp-label mb-4">● Faturamento mensal</p>
@@ -457,7 +450,7 @@ export default function Dashboard() {
             )}
 
             {/* Fila de OS + Carga × Capacidade */}
-            {canOS && <div className="amp-card rounded-xl p-5 flex flex-col gap-4">
+            {canOS && <div className="amp-card rounded-xl p-5 flex flex-col gap-4 overflow-hidden">
               <div>
                 <p className="amp-label mb-3">● Fila de OS</p>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -508,7 +501,7 @@ export default function Dashboard() {
                 </div>
               </div>
               <div className="amp-card rounded-xl p-5 flex-1 flex flex-col items-center justify-center">
-                <p className="amp-label mb-3">● Throughput Operacional</p>
+                <p className="amp-label mb-3">● Produtividade Operacional</p>
                 <div className="relative w-20 h-20">
                   <svg className="w-full h-full -rotate-90" viewBox="0 0 40 40">
                     <circle cx="20" cy="20" r="15" fill="none" stroke="var(--amp-bar)" strokeWidth="3" />
