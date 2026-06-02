@@ -12,7 +12,6 @@ const ROUTE_TITLES = {
   "/app/financeiro": "Financeiro",
   "/app/usuarios": "Usuários",
   "/app/backup": "Backup",
-  "/app/home": "Home",
 };
 
 const MONTH_ABBR = {

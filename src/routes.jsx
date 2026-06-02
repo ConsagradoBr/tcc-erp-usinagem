@@ -8,7 +8,6 @@ const Clientes = lazy(() => import("./pages/Clientes"));
 const Orcamentos = lazy(() => import("./pages/Orcamentos"));
 const OrdemServico = lazy(() => import("./pages/OrdemServico"));
 const Financeiro = lazy(() => import("./pages/Financeiro"));
-const Home = lazy(() => import("./pages/Home"));
 const AuthPage = lazy(() => import("./pages/AuthPage"));
 const Usuarios = lazy(() => import("./pages/Usuarios"));
 const BackupDesktop = lazy(() => import("./pages/BackupDesktop"));
@@ -52,7 +51,6 @@ const routes = createBrowserRouter(
         { path: "financeiro", element: screen(Financeiro) },
         { path: "usuarios", element: screen(Usuarios) },
         { path: "backup", element: screen(BackupDesktop) },
-        { path: "home", element: screen(Home) },
       ],
     },
     { path: "*", element: <Navigate to="/login" replace /> },

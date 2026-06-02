@@ -69,10 +69,14 @@ function finiteOrNull(value) {
 
 function useNotif() {
   const [notif, setNotif] = useState(null);
+  const timerRef = useRef(null);
+
+  useEffect(() => () => window.clearTimeout(timerRef.current), []);
+
   const show = useCallback((msg, tipo = "sucesso") => {
     setNotif({ msg, tipo });
-    window.clearTimeout(window.__finToastTimer);
-    window.__finToastTimer = window.setTimeout(() => setNotif(null), 3200);
+    window.clearTimeout(timerRef.current);
+    timerRef.current = window.setTimeout(() => setNotif(null), 3200);
   }, []);
   return [notif, show];
 }

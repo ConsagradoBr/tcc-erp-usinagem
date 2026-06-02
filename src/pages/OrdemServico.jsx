@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-
 import { formatISODateBR, normalizeISODate } from "../api";
 import { getStoredUser, hasPermission } from "../auth";
 import OfflineDataNotice from "../components/OfflineDataNotice";
@@ -388,11 +387,14 @@ export default function OrdemServico() {
   const [cardFocoId, setCardFocoId] = useState(null);
   const [colunasExpandidas, setColunasExpandidas] = useState({});
   const dragCard = useRef(null);
+  const toastTimerRef = useRef(null);
+
+  useEffect(() => () => window.clearTimeout(toastTimerRef.current), []);
 
   const notificar = useCallback((msg, tipo = "sucesso") => {
     setNotificacao({ msg, tipo });
-    window.clearTimeout(window.__osToastTimer);
-    window.__osToastTimer = window.setTimeout(() => setNotificacao(null), 3200);
+    window.clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = window.setTimeout(() => setNotificacao(null), 3200);
   }, []);
 
   const carregar = useCallback(async () => {

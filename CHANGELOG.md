@@ -158,35 +158,14 @@ Página pronta para usar navegação programática
 - Mapeamento de rotas
 - ~400 linhas
 
-### 2. `NAVIGATION_DIAGRAM.md`
-- Diagramas ASCII visuais
-- Fluxos de navegação
-- Sincronização de tema
-- ~250 linhas
-
-### 3. `VALIDATION_CHECKLIST.md`
-- Checklist de validação (40+ itens)
-- Status de cada componente
-- Próximos passos opcionais
-- ~200 linhas
-
-### 4. `NAVIGATION_EXAMPLES.md`
-- 12+ exemplos práticos
-- Padrões de código
-- Boas práticas
-- ~400 linhas
-
-### 5. `LINKAGE_SUMMARY.md`
-- Status final de implementação
-- Matriz de conectividade
-- Estatísticas do projeto
-- ~250 linhas
-
-### 6. `QUICK_START.md`
+### 2. `QUICK_START.md`
 - Resumo em 5 minutos
 - Os 10 links do Dashboard
 - FAQ rápido
 - ~150 linhas
+
+### Observação
+- Documentos auxiliares de status, exemplos e checklist foram consolidados em `README_INDEX.md`, `QUICK_START.md` e `ROUTES_NAVIGATION.md` para reduzir duplicidade e evitar referências desatualizadas.
 
 ### 7. `README_INDEX.md`
 - Índice de documentação

@@ -1,7 +1,15 @@
 [tool.ruff]
 line-length = 88
-select = ["E", "F", "W", "C", "B", "N", "I"]
 exclude = [".git", "__pycache__", "build", "dist", "node_modules"]
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint]
+select = ["E", "F", "W", "C", "B", "N", "I"]
+ignore = [
+    "C901",  # complexidade sera tratada em refatoracoes dedicadas
+    "E402",  # scripts de entrada ajustam sys.path antes dos imports locais
+    "E501",  # textos longos existentes serao revisados separadamente
+    "I001",  # organizacao de imports fica fora do gate inicial do CI
+]
+
+[tool.ruff.lint.per-file-ignores]
 "backend/tests/*" = ["D"]

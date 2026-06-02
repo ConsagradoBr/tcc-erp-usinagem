@@ -22,7 +22,6 @@ O fluxo oficial não possui cadastro público, rota de Notas Fiscais ou preview 
 /app/financeiro              -> gestão financeira
 /app/usuarios                -> administração de usuários
 /app/backup                  -> backup desktop
-/app/home                    -> rota reservada
 ```
 
 Compatibilidade: `/app/ordemservico` redireciona para `/app/ordens-servico`. Novos links, exemplos e documentação devem usar somente `/app/ordens-servico`.
@@ -98,7 +97,7 @@ Como as chamadas usam uma base absoluta, o Vite não precisa de proxy local `/ap
 
 | Página | Rota oficial | Componente | Tipo |
 |--------|--------------|------------|------|
-| Login | `/login` | `Login` | pública |
+| Login | `/login` | `AuthPage` | pública |
 | Dashboard | `/app/dashboard` | `Dashboard` | protegida |
 | Clientes | `/app/clientes` | `Clientes` | protegida |
 | Orçamentos | `/app/orcamentos` | `Orcamentos` | protegida |
