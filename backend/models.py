@@ -25,6 +25,28 @@ class Usuario(db.Model):
         return check_password_hash(self.senha_hash, senha)
 
 
+class TermoAceite(db.Model):
+    __tablename__ = "termo_aceite"
+    __table_args__ = (
+        db.UniqueConstraint("usuario_id", "versao_termo", name="uq_termo_usuario_versao"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    usuario_id = db.Column(
+        db.Integer, db.ForeignKey("usuarios.id", ondelete="CASCADE"), nullable=False
+    )
+    versao_termo = db.Column(db.String(40), nullable=False)
+    data_aceite = db.Column(db.DateTime, nullable=False, server_default=db.func.now())
+    ip_usuario = db.Column(db.String(45), nullable=True)
+    user_agent = db.Column(db.String(255), nullable=True)
+
+    usuario = db.relationship(
+        "Usuario",
+        backref=db.backref("termos_aceitos", cascade="all, delete-orphan"),
+        lazy=True,
+    )
+
+
 class Cliente(db.Model):
     __tablename__ = "clientes"
     id = db.Column(db.Integer, primary_key=True)

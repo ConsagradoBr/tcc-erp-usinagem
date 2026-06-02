@@ -11,7 +11,7 @@ from werkzeug.exceptions import HTTPException
 from backend.api_utils import http_error_response, internal_error, json_body
 from backend.extensions import db
 from backend.config import is_development_env
-from backend.models import Usuario
+from backend.models import TermoAceite, Usuario
 from backend.security import (
     PERFIS_SISTEMA,
     get_current_usuario,
@@ -30,6 +30,7 @@ EMAIL_MAX_LENGTH = 120
 PASSWORD_MIN_LENGTH = 8
 LOGIN_RATE_WINDOW_SECONDS = 15 * 60
 LOGIN_RATE_MAX_ATTEMPTS = 5
+TERMS_VERSION = "2026.06.02"
 _LOGIN_ATTEMPTS = {}
 
 
@@ -142,6 +143,31 @@ def _contar_administradores_ativos(excluir_id=None):
 def _client_ip():
     forwarded = request.headers.get("X-Forwarded-For", "")
     return (forwarded.split(",")[0].strip() or request.remote_addr or "unknown").lower()
+
+
+def _usuario_aceitou_termos_vigentes(usuario):
+    return (
+        TermoAceite.query.filter_by(
+            usuario_id=usuario.id,
+            versao_termo=TERMS_VERSION,
+        ).first()
+        is not None
+    )
+
+
+def _registrar_aceite_termos(usuario):
+    if _usuario_aceitou_termos_vigentes(usuario):
+        return
+
+    db.session.add(
+        TermoAceite(
+            usuario_id=usuario.id,
+            versao_termo=TERMS_VERSION,
+            ip_usuario=_client_ip(),
+            user_agent=(request.headers.get("User-Agent") or "")[:255],
+        )
+    )
+    db.session.commit()
 
 
 def _login_rate_key(email):
@@ -414,6 +440,20 @@ def login():
                 ),
                 403,
             )
+        if not _usuario_aceitou_termos_vigentes(usuario):
+            if not _coerce_bool(data.get("aceite_termos"), default=False):
+                return (
+                    jsonify(
+                        {
+                            "erro": "E necessario aceitar os termos para acessar o sistema.",
+                            "codigo": "TERMS_REQUIRED",
+                            "versao_termo": TERMS_VERSION,
+                        }
+                    ),
+                    403,
+                )
+            _registrar_aceite_termos(usuario)
+
         user_payload = serializar_usuario(usuario)
         _limpar_falhas_login(email)
         token = create_access_token(

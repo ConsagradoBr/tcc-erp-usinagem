@@ -16,7 +16,9 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from backend.app import app
+from backend.blueprints.auth import TERMS_VERSION
 from backend.extensions import db
+from backend.models import TermoAceite
 
 
 @pytest.fixture()
@@ -42,8 +44,12 @@ def criar_admin_inicial(client, nome="Teste", email="teste@amp.com", senha="Senh
     return response.get_json()["user"]
 
 
-def login(client, email="teste@amp.com", senha="Senha123"):
-    response = client.post("/auth/login", json={"email": email, "senha": senha})
+def login(client, email="teste@amp.com", senha="Senha123", aceite_termos=True):
+    payload = {"email": email, "senha": senha}
+    if aceite_termos is not None:
+        payload["aceite_termos"] = aceite_termos
+        payload["versao_termo"] = TERMS_VERSION
+    response = client.post("/auth/login", json=payload)
     assert response.status_code == 200
     return response.get_json()
 
@@ -317,6 +323,57 @@ def test_login_exige_campos_validos(client):
     sem_senha = client.post("/auth/login", json={"email": "teste@amp.com"})
     assert sem_senha.status_code == 400
     assert sem_senha.get_json()["erro"] == "Senha e obrigatoria."
+
+
+def test_login_exige_aceite_termos_vigentes(client):
+    criar_admin_inicial(client)
+
+    response = client.post(
+        "/auth/login",
+        json={"email": "teste@amp.com", "senha": "Senha123"},
+    )
+
+    assert response.status_code == 403
+    payload = response.get_json()
+    assert payload["codigo"] == "TERMS_REQUIRED"
+    assert payload["versao_termo"] == TERMS_VERSION
+
+    with app.app_context():
+        assert TermoAceite.query.count() == 0
+
+
+def test_login_registra_aceite_termos_e_nao_duplica(client):
+    criar_admin_inicial(client)
+
+    response = client.post(
+        "/auth/login",
+        headers={"X-Forwarded-For": "203.0.113.10", "User-Agent": "pytest-agent"},
+        json={
+            "email": "teste@amp.com",
+            "senha": "Senha123",
+            "aceite_termos": True,
+            "versao_termo": TERMS_VERSION,
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.get_json()["token"]
+
+    with app.app_context():
+        aceite = TermoAceite.query.one()
+        assert aceite.usuario_id == 1
+        assert aceite.versao_termo == TERMS_VERSION
+        assert aceite.ip_usuario == "203.0.113.10"
+        assert aceite.user_agent == "pytest-agent"
+
+    segundo_login = client.post(
+        "/auth/login",
+        json={"email": "teste@amp.com", "senha": "Senha123"},
+    )
+
+    assert segundo_login.status_code == 200
+    with app.app_context():
+        assert TermoAceite.query.count() == 1
 
 
 def test_clientes_e_orcamentos_flow(client):

@@ -18,7 +18,8 @@ const GearIcon = ({ className }) => (
   </svg>
 );
 
-const TERMS_ACCEPTED_KEY = "amp_terms_eula_accepted_v1";
+const TERMS_VERSION = "2026.06.02";
+const TERMS_ACCEPTED_KEY = `amp_terms_eula_accepted_${TERMS_VERSION}`;
 
 function TermsModal({ checked, onCheckedChange, onAccept, onDecline, error }) {
   return (
@@ -38,6 +39,9 @@ function TermsModal({ checked, onCheckedChange, onAccept, onDecline, error }) {
           </h2>
           <p className="mt-2 text-sm text-neutral-300">
             Contrato de Licença de Usuário Final (EULA) e condições de uso do sistema.
+          </p>
+          <p className="mt-1 text-xs text-neutral-400">
+            Versão vigente: {TERMS_VERSION}
           </p>
         </div>
 
@@ -298,6 +302,8 @@ export default function AuthPage() {
       const response = await api.post("/auth/login", {
         email,
         senha: password,
+        aceite_termos: termsAccepted,
+        versao_termo: TERMS_VERSION,
       });
       const { token, user } = response.data;
       persistSession(token, user);
@@ -305,6 +311,12 @@ export default function AuthPage() {
     } catch (err) {
       if (err.code === "ERR_NETWORK" || err.message?.includes("Network Error")) {
         setError("Servidor indisponível. Verifique sua conexão.");
+      } else if (err.response?.data?.codigo === "TERMS_REQUIRED") {
+        localStorage.removeItem(TERMS_ACCEPTED_KEY);
+        setTermsAccepted(false);
+        setTermsChecked(false);
+        setTermsError(err.response.data.erro);
+        setError("");
       } else {
         setError(err.response?.data?.erro || "Erro ao fazer login. Tente novamente.");
       }
