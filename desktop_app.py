@@ -7,6 +7,12 @@ import webbrowser
 from pathlib import Path
 from threading import Thread
 
+# O desktop roda como aplicacao local e precisa inicializar o backend antes de
+# qualquer .env externo. Sem isso, as regras de producao bloqueiam SQLite local.
+os.environ.setdefault("APP_ENV", "development")
+os.environ.setdefault("SECRET_KEY", "amp-desktop-local-secret-key-32-chars")
+os.environ.setdefault("JWT_SECRET_KEY", "amp-desktop-local-jwt-secret-32-chars")
+
 from flask import send_from_directory
 from waitress import serve
 

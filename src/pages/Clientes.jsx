@@ -210,11 +210,14 @@ function parsearJsonNFe(obj) {
 
 function useNotificacao() {
   const [notif, setNotif] = useState(null);
+  const timerRef = useRef(null);
+
+  useEffect(() => () => window.clearTimeout(timerRef.current), []);
 
   const mostrar = useCallback((msg, tipo = "sucesso") => {
     setNotif({ msg, tipo });
-    window.clearTimeout(window.__ampClientesToast);
-    window.__ampClientesToast = window.setTimeout(() => setNotif(null), 3200);
+    window.clearTimeout(timerRef.current);
+    timerRef.current = window.setTimeout(() => setNotif(null), 3200);
   }, []);
 
   return [notif, mostrar];

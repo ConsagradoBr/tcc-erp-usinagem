@@ -41,10 +41,6 @@ export default function AuthPage() {
     []
   );
 
-  const handleOpenSignup = () => {
-    // sem rota de cadastro — contate o administrador
-  };
-
   useEffect(() => {
     let active = true;
 
@@ -259,12 +255,9 @@ export default function AuthPage() {
                 >
                   Senha
                 </label>
-                <button
-                  type="button"
-                  className="text-xs text-neutral-600 transition hover:text-neutral-900 hover:underline"
-                >
-                  Esqueceu a senha?
-                </button>
+                <span className="text-xs text-neutral-600">
+                  Recuperação com administrador
+                </span>
               </div>
               <div className="relative flex items-center">
                 <svg
@@ -349,13 +342,9 @@ export default function AuthPage() {
 
           <p className="mt-6 text-center text-xs text-neutral-600">
             Não tem acesso?{" "}
-            <button
-              type="button"
-              onClick={handleOpenSignup}
-              className="font-bold text-neutral-900 transition hover:underline"
-            >
+            <strong className="font-bold text-neutral-900">
               Fale com o administrador
-            </button>
+            </strong>
           </p>
         </div>
       </div>

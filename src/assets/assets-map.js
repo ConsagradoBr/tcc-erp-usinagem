@@ -1,4 +1,3 @@
-export { default as LogoMain } from "./logo.png";
 export { default as IconClients } from "./clientes.png";
 export { default as IconDollar } from "./dolar.png";
 export { default as IconQuotes } from "./nfs.png";

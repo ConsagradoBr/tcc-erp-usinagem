@@ -10,6 +10,7 @@ from flask_cors import CORS
 
 
 DEV_ENV_NAMES = {"dev", "development", "local", "test", "testing"}
+MIN_SECRET_LENGTH = 32
 LOCAL_FRONTEND_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
@@ -52,6 +53,12 @@ def build_database_uri():
             f"@{db_host}:{db_port}/{db_name}?sslmode=require"
         )
 
+    if not is_development_env():
+        raise RuntimeError(
+            "DATABASE_URL ou DB_USER/DB_PASS deve ser definido fora do ambiente "
+            "de desenvolvimento."
+        )
+
     default_sqlite_path = get_runtime_data_dir() / "app.sqlite3"
     logging.warning(
         "DATABASE_URL/credenciais nao informadas; usando SQLite local para desenvolvimento."
@@ -70,13 +77,18 @@ def build_engine_options(database_uri):
 
 
 def is_development_env():
-    env = os.getenv("APP_ENV", os.getenv("FLASK_ENV", "development"))
+    env = os.getenv("APP_ENV", os.getenv("FLASK_ENV", "production"))
     return env.strip().lower() in DEV_ENV_NAMES
 
 
 def get_secret_config(name, dev_default):
     value = os.getenv(name)
     if value:
+        if not is_development_env() and len(value.strip()) < MIN_SECRET_LENGTH:
+            raise RuntimeError(
+                f"{name} deve ter pelo menos {MIN_SECRET_LENGTH} caracteres fora "
+                "do ambiente de desenvolvimento."
+            )
         return value
     if is_development_env():
         logging.warning("%s nao definido; usando valor padrao apenas para dev.", name)
@@ -87,6 +99,10 @@ def get_secret_config(name, dev_default):
 def get_cors_origins():
     raw_origins = os.getenv("CORS_ORIGINS", "")
     if not raw_origins.strip():
+        if not is_development_env():
+            raise RuntimeError(
+                "CORS_ORIGINS deve ser definido fora do ambiente de desenvolvimento."
+            )
         return LOCAL_FRONTEND_ORIGINS
     origins = [origin.strip() for origin in raw_origins.split(",") if origin.strip()]
     return origins or LOCAL_FRONTEND_ORIGINS

@@ -5,10 +5,9 @@ Use estes arquivos como referência oficial para apresentação e manutenção:
 - [README.md](README.md): visão geral, módulos, ambiente, testes e desktop.
 - [QUICK_START.md](QUICK_START.md): execução rápida e rotas principais.
 - [ROUTES_NAVIGATION.md](ROUTES_NAVIGATION.md): mapa técnico das rotas e permissões.
-- [VALIDATION_CHECKLIST.md](VALIDATION_CHECKLIST.md): checklist manual de validação.
 - [CHANGELOG.md](CHANGELOG.md): histórico de mudanças.
 
-Os demais arquivos Markdown na raiz são registros auxiliares de fases anteriores. Para explicar o sistema no TCC, priorize os documentos acima e o código em `src/routes.jsx`, `src/auth.js`, `src/pages/` e `backend/blueprints/`.
+Documentos redundantes de fases anteriores foram removidos para manter a raiz enxuta. Para explicar o sistema no TCC, priorize os documentos acima e o código em `src/routes.jsx`, `src/auth.js`, `src/pages/` e `backend/blueprints/`.
 
 ## Rotas Oficiais
 

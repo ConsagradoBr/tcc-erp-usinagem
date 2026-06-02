@@ -1,0 +1,81 @@
+name: Desktop Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version, for example v2026.06.02.000000"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve version
+        shell: pwsh
+        run: |
+          if ("${{ github.event_name }}" -eq "workflow_dispatch") {
+            "RELEASE_VERSION=${{ inputs.version }}" | Out-File -FilePath $env:GITHUB_ENV -Append
+          } else {
+            "RELEASE_VERSION=${{ github.ref_name }}" | Out-File -FilePath $env:GITHUB_ENV -Append
+          }
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: |
+            backend/requirements.txt
+            desktop-requirements.txt
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Install Python dependencies
+        shell: pwsh
+        run: |
+          python -m venv backend\venv
+          backend\venv\Scripts\python.exe -m pip install --upgrade pip
+          backend\venv\Scripts\python.exe -m pip install -r backend\requirements.txt -r desktop-requirements.txt
+
+      - name: Build desktop executable
+        run: npm run build:desktop
+
+      - name: Prepare release assets
+        shell: pwsh
+        run: powershell -ExecutionPolicy Bypass -File scripts\Prepare-GitHubRelease.ps1 -Version $env:RELEASE_VERSION
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.RELEASE_VERSION }}
+          name: ${{ env.RELEASE_VERSION }}
+          make_latest: true
+          files: |
+            release/AMP-Usinagem-Industrial-${{ env.RELEASE_VERSION }}.exe
+            release/AMP-Usinagem-Industrial-${{ env.RELEASE_VERSION }}.zip
+          body: |
+            ## Destaques
+            - release desktop gerada automaticamente em Windows pelo GitHub Actions
+            - executavel atualizado a partir do codigo atual do ERP
+            - limpeza de arquivos obsoletos, docs duplicadas e assets sem uso
+            - CI, ambiente de producao e testes backend endurecidos
+
+            ## Arquivos
+            - AMP-Usinagem-Industrial-${{ env.RELEASE_VERSION }}.exe
+            - AMP-Usinagem-Industrial-${{ env.RELEASE_VERSION }}.zip

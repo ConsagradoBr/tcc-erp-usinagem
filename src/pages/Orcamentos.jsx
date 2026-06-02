@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import api from "../api";
 import { getStoredUser, hasPermission } from "../auth";
@@ -563,11 +563,14 @@ export default function Orcamentos() {
   const [itemDel, setItemDel] = useState(null);
   const [itemApproval, setItemApproval] = useState(null);
   const [toast, setToast] = useState(null);
+  const toastTimerRef = useRef(null);
+
+  useEffect(() => () => window.clearTimeout(toastTimerRef.current), []);
 
   const notificar = (msg, tipo = "sucesso") => {
     setToast({ msg, tipo });
-    window.clearTimeout(window.__orcToastTimer);
-    window.__orcToastTimer = window.setTimeout(() => setToast(null), 3200);
+    window.clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = window.setTimeout(() => setToast(null), 3200);
   };
 
   const carregar = useCallback(async () => {

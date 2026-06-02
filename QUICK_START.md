@@ -171,7 +171,6 @@ localStorage.setItem("amp-theme", isDark ? "dark" : "light");
 - [ ] Testei toggle de tema (light/dark)
 - [ ] Testei em mobile, tablet e desktop
 - [ ] Li ROUTES_NAVIGATION.md para detalhes
-- [ ] Li NAVIGATION_EXAMPLES.md para exemplos
 - [ ] Entendi como adicionar novas páginas
 
 ## 🆘 FAQ Rápido
@@ -197,10 +196,8 @@ R: Verifique permissões via `hasPermission(user, permissao)`
 
 Para detalhes completos, leia:
 - **ROUTES_NAVIGATION.md** - Referência técnica
-- **NAVIGATION_DIAGRAM.md** - Diagramas visuais
-- **NAVIGATION_EXAMPLES.md** - 12+ exemplos de código
-- **VALIDATION_CHECKLIST.md** - Checklist de validação
-- **LINKAGE_SUMMARY.md** - Status e estatísticas
+- **README_INDEX.md** - Índice enxuto da documentação oficial
+- **CHANGELOG.md** - Histórico de mudanças relevantes
 
 ## 🎬 Próximos Passos
 

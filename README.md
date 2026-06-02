@@ -36,7 +36,7 @@ backend/
 src/
   components/           sidebar, header e componentes reutilizáveis
   layouts/              layout público e protegido
-  pages/                Login, Dashboard, Clientes, Financeiro, OrdemServico, Orcamentos
+  pages/                AuthPage, Dashboard, Clientes, Financeiro, OrdemServico, Orcamentos
   api.js                cliente Axios com baseURL configurável por ambiente
 desktop_app.py         launcher desktop usando o frontend buildado
 .env.example            exemplo do frontend
@@ -106,20 +106,37 @@ VITE_API_BASE_URL=http://127.0.0.1:5000
 ### Backend
 Crie `backend/.env` com base em `backend/.env.example`.
 
-Opção recomendada para deploy e testes:
+Desenvolvimento local:
 
 ```env
-DATABASE_URL=postgresql+psycopg2://usuario:senha@host:5432/postgres?sslmode=require
-JWT_SECRET_KEY=uma_chave_segura_com_32_ou_mais_caracteres
-SECRET_KEY=outra_chave_segura_com_32_ou_mais_caracteres
-FLASK_HOST=0.0.0.0
+APP_ENV=development
+DATABASE_URL=sqlite:///app.sqlite3
+JWT_SECRET_KEY=dev_jwt_secret_local
+SECRET_KEY=dev_secret_local
+FLASK_HOST=127.0.0.1
 FLASK_PORT=5000
 FLASK_DEBUG=true
 ```
 
+Produção/deploy:
+
+```env
+APP_ENV=production
+DATABASE_URL=postgresql+psycopg2://usuario:senha@host:5432/postgres?sslmode=require
+JWT_SECRET_KEY=uma_chave_segura_com_32_ou_mais_caracteres
+SECRET_KEY=outra_chave_segura_com_32_ou_mais_caracteres
+BOOTSTRAP_ADMIN_TOKEN=token_longo_unico_para_criar_o_primeiro_admin
+CORS_ORIGINS=https://seu-frontend.vercel.app
+FLASK_HOST=0.0.0.0
+FLASK_PORT=5000
+FLASK_DEBUG=false
+```
+
 Também é possível usar `DB_USER`, `DB_PASS`, `DB_HOST`, `DB_PORT` e `DB_NAME` separadamente.
 
-Se nenhuma configuração de banco for informada, o backend cai para SQLite local em desenvolvimento.
+Sem `APP_ENV`, o backend assume comportamento de produção. Fora de desenvolvimento, `DATABASE_URL` ou `DB_USER`/`DB_PASS`, `JWT_SECRET_KEY`, `SECRET_KEY` e `CORS_ORIGINS` são obrigatórios. O `BOOTSTRAP_ADMIN_TOKEN` é necessário para criar o primeiro administrador com segurança em produção.
+
+Se nenhuma configuração de banco for informada, o backend só cai para SQLite local quando `APP_ENV=development` ou `APP_ENV=testing` estiver explícito.
 
 ## Como rodar
 
@@ -169,12 +186,12 @@ npm run build
 ```
 
 ### Backend
-Defina `DATABASE_URL`, `JWT_SECRET_KEY`, `SECRET_KEY` e `PORT` no provedor de deploy.
+Defina `APP_ENV=production`, `DATABASE_URL`, `JWT_SECRET_KEY`, `SECRET_KEY`, `BOOTSTRAP_ADMIN_TOKEN`, `CORS_ORIGINS` e `PORT` no provedor de deploy.
 
 O backend agora aceita:
 - `DATABASE_URL` para ambientes como Railway, Render e containers
 - `PORT` e `FLASK_HOST` para execução configurável
-- fallback local em SQLite para desenvolvimento rápido
+- fallback local em SQLite apenas com `APP_ENV=development` ou `APP_ENV=testing`
 
 ## Desktop
 
@@ -192,7 +209,7 @@ Para gerar o executável desktop oficial:
 npm run build:desktop
 ```
 
-O build oficial usa o spec `AMP Usinagem Industrial.spec`.
+O build oficial usa o spec `AMP Usinagem Industrial.spec` e deve ser executado em Windows. Instale as dependências de `desktop-requirements.txt` junto com `backend/requirements.txt`.
 
 Para preparar os artefatos de release do desktop:
 
@@ -205,24 +222,16 @@ Esse script gera:
 - a pasta versionada com `LEIA-ME.txt`
 - o `.zip` pronto para publicar no GitHub Releases
 
-Para publicar a release completa no GitHub de forma automatizada:
-
-```bash
-powershell -ExecutionPolicy Bypass -File scripts/Publish-GitHubRelease.ps1 -Version v2026.03.24.000000
-```
-
 ## Releases Desktop
 
 Os binarios de distribuicao nao devem mais ser versionados no Git. O codigo-fonte permanece no repositório, e o `.exe`/`.zip` devem ser publicados em **GitHub Releases**.
 
 Fluxo recomendado para novas versoes:
 
-1. gerar o build web com `npm run build`
-2. gerar o executavel desktop com `npm run build:desktop`
-3. preparar a pasta e o `.zip` com:
-   `powershell -ExecutionPolicy Bypass -File scripts/Prepare-GitHubRelease.ps1 -Version v2026.03.24.000000`
-4. publicar a release com:
-   `powershell -ExecutionPolicy Bypass -File scripts/Publish-GitHubRelease.ps1 -Version v2026.03.24.000000`
+1. garantir que a branch esteja com CI verde
+2. criar uma tag no formato `vYYYY.MM.DD.HHMMSS`
+3. enviar a tag para o GitHub
+4. o workflow `Desktop Release` gera o `.exe` em Windows e publica o release automaticamente
 
 Esse criterio deixa o historico do Git leve e concentra os artefatos de distribuicao no lugar certo.
 

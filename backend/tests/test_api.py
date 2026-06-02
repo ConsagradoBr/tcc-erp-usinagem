@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 TEST_DB = Path(__file__).resolve().parents[1] / "test_app.sqlite3"
+os.environ["APP_ENV"] = "testing"
 os.environ["DATABASE_URL"] = f"sqlite:///{TEST_DB.as_posix()}"
 os.environ["JWT_SECRET_KEY"] = "test-secret-key-with-32-characters!!"
 os.environ["SECRET_KEY"] = "test-secret-key-with-32-characters!!"
