@@ -18,6 +18,196 @@ const GearIcon = ({ className }) => (
   </svg>
 );
 
+const TERMS_ACCEPTED_KEY = "amp_terms_eula_accepted_v1";
+
+function TermsModal({ checked, onCheckedChange, onAccept, onDecline, error }) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-950/75 px-4 py-6 backdrop-blur-sm"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="terms-title"
+    >
+      <div className="flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-white/20 bg-white shadow-2xl">
+        <div className="border-b border-neutral-200 bg-neutral-950 px-6 py-5 text-white">
+          <p className="text-xs font-bold uppercase tracking-[3px] text-orange-300">
+            AMP Usinagem ERP
+          </p>
+          <h2 id="terms-title" className="mt-2 text-xl font-semibold">
+            Termos de Uso e Política de Privacidade
+          </h2>
+          <p className="mt-2 text-sm text-neutral-300">
+            Contrato de Licença de Usuário Final (EULA) e condições de uso do sistema.
+          </p>
+        </div>
+
+        <div className="max-h-[54vh] overflow-y-auto px-6 py-5 text-sm leading-relaxed text-neutral-700">
+          <section>
+            <h3 className="text-base font-bold text-neutral-900">
+              1. Aceitação dos termos
+            </h3>
+            <p className="mt-2">
+              Ao acessar ou utilizar o sistema AMP Usinagem ERP, o usuário declara
+              que leu, compreendeu e concorda com estes Termos de Uso, com o
+              Contrato de Licença de Usuário Final (EULA) e com a Política de
+              Privacidade aqui descrita. Caso não concorde, o acesso ao sistema
+              não deve ser realizado.
+            </p>
+          </section>
+
+          <section className="mt-5">
+            <h3 className="text-base font-bold text-neutral-900">
+              2. Licença de uso
+            </h3>
+            <p className="mt-2">
+              A AMP Usinagem concede ao usuário autorizado uma licença limitada,
+              não exclusiva, intransferível e revogável para utilização do sistema
+              apenas nas atividades internas relacionadas à gestão empresarial,
+              incluindo clientes, orçamentos, ordens de serviço, financeiro,
+              usuários e backups.
+            </p>
+          </section>
+
+          <section className="mt-5">
+            <h3 className="text-base font-bold text-neutral-900">
+              3. Responsabilidades do usuário
+            </h3>
+            <p className="mt-2">
+              O usuário é responsável por manter suas credenciais em sigilo, usar
+              o sistema de forma adequada, registrar informações verdadeiras e
+              respeitar permissões de acesso definidas pela administração. É
+              proibido compartilhar senhas, tentar acessar áreas restritas,
+              alterar dados sem autorização ou usar o sistema para fins ilícitos.
+            </p>
+          </section>
+
+          <section className="mt-5">
+            <h3 className="text-base font-bold text-neutral-900">
+              4. Privacidade e dados pessoais
+            </h3>
+            <p className="mt-2">
+              Para operar corretamente, o sistema pode tratar dados pessoais como
+              nome, e-mail, CPF, CNPJ, telefone, endereço, dados financeiros,
+              dados de clientes, dados de fornecedores, orçamentos, ordens de
+              serviço e registros operacionais. O tratamento ocorre para gestão de
+              clientes, emissão de orçamentos, execução de serviços, controle
+              financeiro, administração de usuários, cumprimento de obrigações
+              legais e proteção dos interesses legítimos da empresa.
+            </p>
+            <p className="mt-2">
+              As bases legais utilizadas incluem execução de contrato, legítimo
+              interesse e cumprimento de obrigação legal ou regulatória, conforme
+              a Lei Geral de Proteção de Dados (Lei nº 13.709/2018). Os dados são
+              mantidos pelo período necessário à prestação dos serviços e ao
+              cumprimento de exigências legais, fiscais e contábeis.
+            </p>
+          </section>
+
+          <section className="mt-5">
+            <h3 className="text-base font-bold text-neutral-900">
+              5. Segurança da informação
+            </h3>
+            <p className="mt-2">
+              O sistema adota medidas técnicas e organizacionais para proteção dos
+              dados, incluindo autenticação de usuários, controle de permissões,
+              comunicação criptografada quando disponível, registros de acesso e
+              rotinas de backup. Ainda assim, nenhum ambiente digital é isento de
+              riscos, cabendo aos usuários colaborar com práticas seguras de uso.
+            </p>
+          </section>
+
+          <section className="mt-5">
+            <h3 className="text-base font-bold text-neutral-900">
+              6. Compartilhamento de dados
+            </h3>
+            <p className="mt-2">
+              Os dados não são vendidos ou compartilhados para marketing de
+              terceiros. O compartilhamento pode ocorrer quando necessário para
+              processamento de pagamentos, emissão de documentos, cumprimento de
+              obrigações legais, atendimento a ordens de autoridade competente ou
+              proteção de direitos da empresa.
+            </p>
+          </section>
+
+          <section className="mt-5">
+            <h3 className="text-base font-bold text-neutral-900">
+              7. Direitos do titular
+            </h3>
+            <p className="mt-2">
+              Nos termos da LGPD, o titular pode solicitar confirmação de
+              tratamento, acesso, correção, anonimização, bloqueio, eliminação,
+              portabilidade, informação sobre compartilhamento e revogação de
+              consentimento quando aplicável. As solicitações devem ser feitas ao
+              responsável administrativo da AMP Usinagem.
+            </p>
+          </section>
+
+          <section className="mt-5">
+            <h3 className="text-base font-bold text-neutral-900">
+              8. Limitações de garantia e responsabilidade
+            </h3>
+            <p className="mt-2">
+              O sistema é fornecido para apoio à gestão operacional. A empresa não
+              garante ausência absoluta de falhas, interrupções ou erros. A AMP
+              Usinagem não se responsabiliza por prejuízos decorrentes de uso
+              indevido, informações incorretas inseridas por usuários, falhas de
+              infraestrutura externa, indisponibilidade de internet ou violação de
+              credenciais por terceiros.
+            </p>
+          </section>
+
+          <section className="mt-5">
+            <h3 className="text-base font-bold text-neutral-900">
+              9. Alterações dos termos
+            </h3>
+            <p className="mt-2">
+              Estes termos podem ser atualizados para refletir mudanças legais,
+              técnicas ou operacionais. Quando houver alterações relevantes, os
+              usuários poderão ser novamente solicitados a manifestar aceite antes
+              de continuar utilizando o sistema.
+            </p>
+          </section>
+        </div>
+
+        <div className="border-t border-neutral-200 bg-neutral-50 px-6 py-5">
+          <label className="flex cursor-pointer items-start gap-3 text-sm text-neutral-700">
+            <input
+              type="checkbox"
+              checked={checked}
+              onChange={(event) => onCheckedChange(event.target.checked)}
+              className="mt-1 h-4 w-4 rounded border-neutral-300 text-orange-600 focus:ring-orange-500"
+            />
+            <span>
+              Li e concordo com os termos apresentados, incluindo as condições de
+              uso, o contrato de licença e a política de privacidade.
+            </span>
+          </label>
+
+          {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+
+          <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:justify-end">
+            <button
+              type="button"
+              onClick={onDecline}
+              className="rounded-xl border border-neutral-300 px-5 py-2.5 text-sm font-semibold text-neutral-700 transition hover:border-neutral-500 hover:bg-white"
+            >
+              Recusar
+            </button>
+            <button
+              type="button"
+              onClick={onAccept}
+              disabled={!checked}
+              className="rounded-xl bg-neutral-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:bg-neutral-300 disabled:text-neutral-500"
+            >
+              Aceitar e continuar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -25,6 +215,11 @@ export default function AuthPage() {
   const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [termsChecked, setTermsChecked] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(
+    () => localStorage.getItem(TERMS_ACCEPTED_KEY) === "true"
+  );
+  const [termsError, setTermsError] = useState("");
   const [bootstrapRequired, setBootstrapRequired] = useState(false);
   const navigate = useNavigate();
 
@@ -73,6 +268,12 @@ export default function AuthPage() {
     setError("");
     setLoading(true);
 
+    if (!termsAccepted) {
+      setError("Aceite os termos de uso para acessar o sistema.");
+      setLoading(false);
+      return;
+    }
+
     if (!email || !password) {
       setError("Informe seu e-mail e senha para continuar.");
       setLoading(false);
@@ -110,6 +311,17 @@ export default function AuthPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleAcceptTerms = () => {
+    if (!termsChecked) return;
+    localStorage.setItem(TERMS_ACCEPTED_KEY, "true");
+    setTermsAccepted(true);
+    setTermsError("");
+  };
+
+  const handleDeclineTerms = () => {
+    setTermsError("Para utilizar o sistema, é necessário aceitar os termos apresentados.");
   };
 
   return (
@@ -347,21 +559,25 @@ export default function AuthPage() {
             </strong>
           </p>
 
-          <p className="mt-6 text-center text-[10px] leading-relaxed text-neutral-500">
-            Ao continuar, você concorda com o tratamento dos seus dados pessoais
-            conforme nossa{" "}
-            <a
-              href="/privacidade"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline underline-offset-2 hover:text-neutral-800"
-            >
-              Política de Privacidade
-            </a>
-            .
-          </p>
+          <button
+            type="button"
+            onClick={() => setTermsAccepted(false)}
+            className="mt-6 w-full text-center text-[10px] leading-relaxed text-neutral-500 underline underline-offset-2 transition hover:text-neutral-800"
+          >
+            Ver Termos de Uso, EULA e Política de Privacidade
+          </button>
         </div>
       </div>
+
+      {!termsAccepted && (
+        <TermsModal
+          checked={termsChecked}
+          onCheckedChange={setTermsChecked}
+          onAccept={handleAcceptTerms}
+          onDecline={handleDeclineTerms}
+          error={termsError}
+        />
+      )}
     </div>
   );
 }
