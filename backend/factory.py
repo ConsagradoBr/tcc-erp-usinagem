@@ -8,6 +8,7 @@ from werkzeug.exceptions import HTTPException
 from backend.api_utils import http_error_response
 from backend.blueprints.auth import auth_bp
 from backend.blueprints.clientes import clientes_bp
+from backend.blueprints.dashboard import dashboard_bp
 from backend.blueprints.financeiro import financeiro_bp
 from backend.blueprints.orcamentos import orc_bp
 from backend.blueprints.ordens_servico import os_bp
@@ -87,6 +88,7 @@ def create_app():
     jwt.init_app(app)
     app.register_blueprint(auth_bp)
     app.register_blueprint(clientes_bp)
+    app.register_blueprint(dashboard_bp)
     app.register_blueprint(financeiro_bp)
     app.register_blueprint(os_bp)
     app.register_blueprint(orc_bp)

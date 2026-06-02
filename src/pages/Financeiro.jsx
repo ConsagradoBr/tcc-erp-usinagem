@@ -1033,33 +1033,49 @@ export default function Financeiro() {
   const [expandido, setExpandido] = useState(null);
   const [itemFocoId, setItemFocoId] = useState(null);
 
-  const carregar = useCallback(async () => {
+  const carregarLista = useCallback(async () => {
     setCarregando(true);
     try {
-      const params = {};
-      if (filtroTipo) params.tipo = filtroTipo;
-      if (filtroStatus) params.status = filtroStatus;
-      if (filtro) params.q = filtro;
-      const [res, resClientes, resResumo] = await Promise.all([
-        getFinanceiro({ filtro, tipo: filtroTipo, status: filtroStatus }),
-        getClientes(),
-        getResumo(),
-      ]);
-      updateOfflineInfo([res, resClientes, resResumo]);
+      const res = await getFinanceiro({ filtro, tipo: filtroTipo, status: filtroStatus });
+      updateOfflineInfo([res]);
       setDados(res.data);
-      setClientes(resClientes.data);
-      setResumo(resResumo.data);
     } catch {
       show("Erro ao carregar dados.", "erro");
     } finally {
       setCarregando(false);
     }
-  }, [filtro, filtroStatus, filtroTipo, getClientes, getFinanceiro, getResumo, show, updateOfflineInfo]);
+  }, [filtro, filtroStatus, filtroTipo, getFinanceiro, show, updateOfflineInfo]);
+
+  const carregarClientesResumo = useCallback(async () => {
+    try {
+      const [resClientes, resResumo] = await Promise.all([
+        getClientes(),
+        getResumo(),
+      ]);
+      updateOfflineInfo([resClientes, resResumo]);
+      setClientes(resClientes.data);
+      setResumo(resResumo.data);
+    } catch {
+      /* silencioso - clientes e resumo sao auxiliares */
+    }
+  }, [getClientes, getResumo, updateOfflineInfo]);
+
+  const carregar = useCallback(() => {
+    carregarLista();
+    carregarClientesResumo();
+  }, [carregarLista, carregarClientesResumo]);
+
+  const carregarClientesResumoRef = useRef(carregarClientesResumo);
+  carregarClientesResumoRef.current = carregarClientesResumo;
 
   useEffect(() => {
-    const timer = setTimeout(() => carregar(), 280);
+    carregarClientesResumoRef.current();
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => carregarLista(), 280);
     return () => clearTimeout(timer);
-  }, [carregar]);
+  }, [carregarLista]);
 
   const dadosEnriquecidos = useMemo(() => {
     const grupos = new Map();

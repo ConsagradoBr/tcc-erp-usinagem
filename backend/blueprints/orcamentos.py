@@ -103,39 +103,36 @@ def listar_orcamentos():
 @require_permissions("orcamentos")
 def resumo_orcamentos():
     try:
-        todos = Orcamento.query.all()
-        aprovados = [orcamento for orcamento in todos if orcamento.status == "aprovado"]
-        lancamentos_abertos = Lancamento.query.filter(
-            Lancamento.tipo == "receber", Lancamento.data_pagamento.is_(None)
-        ).all()
-        orcamentos_ativos = {
-            orcamento.numero
-            for orcamento in aprovados
-            if any(
-                marcador_orcamento(orcamento.numero) in (lancamento.descricao or "")
-                for lancamento in lancamentos_abertos
-            )
-        }
         resultado = {
             status: Orcamento.query.filter_by(status=status).count()
             for status in STATUS_ORCAMENTO_VALIDOS
         }
-        resultado["total"] = len(todos)
-        resultado["valor_total"] = round(
-            sum(float(orcamento.valor) for orcamento in todos), 2
+        resultado["total"] = Orcamento.query.count()
+        resultado["valor_total"] = round(float(
+            db.session.query(db.func.coalesce(db.func.sum(Orcamento.valor), 0))
+            .scalar() or 0
+        ), 2)
+        resultado["valor_aprovado"] = round(float(
+            db.session.query(db.func.coalesce(db.func.sum(Orcamento.valor), 0))
+            .filter(Orcamento.status == "aprovado")
+            .scalar() or 0
+        ), 2)
+        open_subq = (
+            db.session.query(Lancamento.id)
+            .filter(
+                Lancamento.tipo == "receber",
+                Lancamento.data_pagamento.is_(None),
+                Lancamento.descricao.like(
+                    db.func.concat("%[ORC:", Orcamento.numero, "]%")
+                ),
+            )
+            .exists()
         )
-        resultado["valor_aprovado"] = round(
-            sum(float(orcamento.valor) for orcamento in aprovados),
-            2,
-        )
-        resultado["valor_aprovado_ativo"] = round(
-            sum(
-                float(orcamento.valor)
-                for orcamento in aprovados
-                if orcamento.numero in orcamentos_ativos
-            ),
-            2,
-        )
+        resultado["valor_aprovado_ativo"] = round(float(
+            db.session.query(db.func.coalesce(db.func.sum(Orcamento.valor), 0))
+            .filter(Orcamento.status == "aprovado", open_subq)
+            .scalar() or 0
+        ), 2)
         return jsonify(resultado), 200
     except HTTPException as exc:
         return http_error_response(exc)

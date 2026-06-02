@@ -156,40 +156,46 @@ def listar_lancamentos():
 @require_permissions("financeiro")
 def resumo():
     try:
-        todos = [lancamento.to_dict() for lancamento in Lancamento.query.all()]
-        mes = date.today().isoformat()[:7]
+        hoje = date.today()
+        primeiro_dia = hoje.replace(day=1)
+        if hoje.month == 12:
+            ultimo_dia = date(hoje.year + 1, 1, 1) - timedelta(days=1)
+        else:
+            ultimo_dia = date(hoje.year, hoje.month + 1, 1) - timedelta(days=1)
+
+        a_receber = round(float(
+            db.session.query(db.func.coalesce(db.func.sum(Lancamento.valor), 0))
+            .filter(Lancamento.tipo == "receber", Lancamento.data_pagamento.is_(None))
+            .scalar() or 0
+        ), 2)
+
+        a_pagar = round(float(
+            db.session.query(db.func.coalesce(db.func.sum(Lancamento.valor), 0))
+            .filter(Lancamento.tipo == "pagar", Lancamento.data_pagamento.is_(None))
+            .scalar() or 0
+        ), 2)
+
+        atrasados = Lancamento.query.filter(
+            Lancamento.data_pagamento.is_(None), Lancamento.vencimento < hoje
+        ).count()
+
+        recebido_mes = round(float(
+            db.session.query(db.func.coalesce(db.func.sum(Lancamento.valor), 0))
+            .filter(
+                Lancamento.tipo == "receber",
+                Lancamento.data_pagamento >= primeiro_dia,
+                Lancamento.data_pagamento <= ultimo_dia,
+            )
+            .scalar() or 0
+        ), 2)
+
         return (
             jsonify(
                 {
-                    "a_receber": round(
-                        sum(
-                            item["valor_total"]
-                            for item in todos
-                            if item["tipo"] == "receber" and item["status"] != "pago"
-                        ),
-                        2,
-                    ),
-                    "a_pagar": round(
-                        sum(
-                            item["valor_total"]
-                            for item in todos
-                            if item["tipo"] == "pagar" and item["status"] != "pago"
-                        ),
-                        2,
-                    ),
-                    "atrasados": len(
-                        [item for item in todos if item["status"] == "atrasado"]
-                    ),
-                    "recebido_mes": round(
-                        sum(
-                            item["valor"]
-                            for item in todos
-                            if item["tipo"] == "receber"
-                            and item["data_pagamento"]
-                            and item["data_pagamento"][:7] == mes
-                        ),
-                        2,
-                    ),
+                    "a_receber": a_receber,
+                    "a_pagar": a_pagar,
+                    "atrasados": atrasados,
+                    "recebido_mes": recebido_mes,
                 }
             ),
             200,

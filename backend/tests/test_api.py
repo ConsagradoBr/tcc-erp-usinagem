@@ -750,6 +750,67 @@ def test_restore_rejeita_payload_acima_do_limite(client, monkeypatch):
     assert response.status_code == 413
 
 
+def test_dashboard_resumo_traz_metricas(client):
+    headers = auth_headers(client)
+
+    response = client.get("/dashboard/resumo", headers=headers)
+    assert response.status_code == 200
+    payload = response.get_json()
+
+    assert "clientes" in payload
+    assert "financeiro" in payload
+    assert "ordens_servico" in payload
+    assert "orcamentos" in payload
+    assert payload["clientes"]["total"] == 0
+    assert payload["financeiro"]["a_receber"] == 0
+    assert payload["financeiro"]["a_pagar"] == 0
+    assert payload["ordens_servico"]["total"] == 0
+    assert payload["orcamentos"]["total"] == 0
+
+    cliente_id = criar_cliente(client, headers)
+    criar_orcamento(client, headers, cliente_id, status="aprovado")
+
+    response = client.get("/dashboard/resumo", headers=headers)
+    payload = response.get_json()
+    assert payload["clientes"]["total"] == 1
+    assert payload["orcamentos"]["total"] >= 1
+    assert payload["orcamentos"]["valor_aprovado"] == 8500.0
+    assert payload["orcamentos"]["valor_aprovado_ativo"] == 8500.0
+
+
+def test_financeiro_resumo_sql_equivale_ao_anterior(client):
+    headers = auth_headers(client)
+
+    cliente_id = criar_cliente(client, headers)
+    client.post(
+        "/financeiro",
+        headers=headers,
+        json={
+            "tipo": "receber",
+            "descricao": "Teste SQL resumo",
+            "vencimento": "2026-03-25",
+            "valor": 2500.0,
+        },
+    )
+    client.post(
+        "/financeiro",
+        headers=headers,
+        json={
+            "tipo": "pagar",
+            "descricao": "Despesa teste",
+            "vencimento": "2026-04-10",
+            "valor": 800.0,
+        },
+    )
+
+    resumo = client.get("/financeiro/resumo", headers=headers)
+    data = resumo.get_json()
+    assert resumo.status_code == 200
+    assert data["a_receber"] >= 2500.0
+    assert data["a_pagar"] >= 800.0
+    assert data["recebido_mes"] == 0
+
+
 def test_scripts_legados_usam_factory_e_extensions(tmp_path):
     env = os.environ.copy()
     env["DATABASE_URL"] = f"sqlite:///{(tmp_path / 'scripts.sqlite3').as_posix()}"

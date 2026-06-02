@@ -29,6 +29,8 @@ class TermoAceite(db.Model):
     __tablename__ = "termo_aceite"
     __table_args__ = (
         db.UniqueConstraint("usuario_id", "versao_termo", name="uq_termo_usuario_versao"),
+        db.Index("ix_termo_aceite_usuario_id", "usuario_id"),
+        db.Index("ix_termo_aceite_versao", "versao_termo"),
     )
 
     id = db.Column(db.Integer, primary_key=True)
@@ -49,6 +51,11 @@ class TermoAceite(db.Model):
 
 class Cliente(db.Model):
     __tablename__ = "clientes"
+    __table_args__ = (
+        db.Index("ix_clientes_nome", "nome"),
+        db.Index("ix_clientes_documento", "documento"),
+        db.Index("ix_clientes_email", "email"),
+    )
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(150), nullable=False)
     documento = db.Column(db.String(20), nullable=True)
@@ -95,6 +102,14 @@ class Cliente(db.Model):
 
 class Lancamento(db.Model):
     __tablename__ = "lancamentos"
+    __table_args__ = (
+        db.Index("ix_lancamentos_tipo", "tipo"),
+        db.Index("ix_lancamentos_vencimento", "vencimento"),
+        db.Index("ix_lancamentos_data_pagamento", "data_pagamento"),
+        db.Index("ix_lancamentos_cliente_id", "cliente_id"),
+        db.Index("ix_lancamentos_tipo_vencimento", "tipo", "vencimento"),
+        db.Index("ix_lancamentos_tipo_pagamento", "tipo", "data_pagamento"),
+    )
     id = db.Column(db.Integer, primary_key=True)
     tipo = db.Column(db.String(10), nullable=False)
     cliente_id = db.Column(db.Integer, db.ForeignKey("clientes.id"), nullable=True)
@@ -154,6 +169,10 @@ class Lancamento(db.Model):
 
 class OrdemServico(db.Model):
     __tablename__ = "ordens_servico"
+    __table_args__ = (
+        db.Index("ix_ordens_servico_status", "status"),
+        db.Index("ix_ordens_servico_created_at", "created_at"),
+    )
     id = db.Column(db.Integer, primary_key=True)
     numero = db.Column(db.String(20), nullable=False, unique=True)
     cliente = db.Column(db.String(150), nullable=False)
@@ -183,6 +202,11 @@ class OrdemServico(db.Model):
 
 class Orcamento(db.Model):
     __tablename__ = "orcamentos"
+    __table_args__ = (
+        db.Index("ix_orcamentos_status", "status"),
+        db.Index("ix_orcamentos_cliente_id", "cliente_id"),
+        db.Index("ix_orcamentos_created_at", "created_at"),
+    )
     id = db.Column(db.Integer, primary_key=True)
     numero = db.Column(db.String(20), nullable=False, unique=True)
     cliente_id = db.Column(db.Integer, db.ForeignKey("clientes.id"), nullable=False)
