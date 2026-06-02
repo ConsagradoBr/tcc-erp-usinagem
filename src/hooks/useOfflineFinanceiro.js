@@ -22,10 +22,13 @@ export function useOfflineFinanceiro(user) {
   const { offlineInfo, updateOfflineInfo, resetOfflineInfo } = useOfflineModuleState();
 
   const getFinanceiro = useCallback(
-    ({ filtro = "", tipo = "", status = "" } = {}) => {
-      const params = {};
-      if (tipo) params.tipo = tipo;
-      if (status) params.status = status;
+    ({ filtro = "", tipo = "", status = "", filtroRapido = "", page = 1, perPage = 50 } = {}) => {
+      const params = { page, per_page: perPage };
+      if (filtroRapido) params.filtro_rapido = filtroRapido;
+      if (!filtroRapido) {
+        if (tipo) params.tipo = tipo;
+        if (status) params.status = status;
+      }
       if (filtro) params.q = filtro;
 
       return loadListResource({

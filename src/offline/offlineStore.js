@@ -192,8 +192,12 @@ export async function loadListResource({
 }) {
   try {
     const response = await request();
-    const syncedAt = await saveEntityList(tableName, response.data, { user, endpoint, params });
-    return { data: response.data, fromCache: false, offline: false, cacheMiss: false, syncedAt };
+    const raw = response.data;
+    // suporte a resposta paginada { items, total, page, per_page, pages }
+    const items = Array.isArray(raw) ? raw : (raw?.items ?? []);
+    const pagination = Array.isArray(raw) ? null : { total: raw.total, page: raw.page, perPage: raw.per_page, pages: raw.pages };
+    const syncedAt = await saveEntityList(tableName, items, { user, endpoint, params });
+    return { data: items, pagination, fromCache: false, offline: false, cacheMiss: false, syncedAt };
   } catch (error) {
     if (!isNetworkError(error)) throw error;
 
@@ -201,6 +205,7 @@ export async function loadListResource({
     const rows = await readEntityList(tableName, { user, filter: localFilter });
     return {
       data: rows,
+      pagination: null,
       fromCache: true,
       offline: true,
       cacheMiss: rows.length === 0,

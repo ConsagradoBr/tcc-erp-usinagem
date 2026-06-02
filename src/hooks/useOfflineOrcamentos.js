@@ -22,15 +22,20 @@ export function useOfflineOrcamentos(user) {
   const { offlineInfo, updateOfflineInfo, resetOfflineInfo } = useOfflineModuleState();
 
   const getOrcamentos = useCallback(
-    ({ filtro = "", status = "" } = {}) =>
-      loadListResource({
+    ({ filtro = "", status = "", filtroRapido = "", page = 1, perPage = 50 } = {}) => {
+      const params = { page, per_page: perPage };
+      if (filtroRapido) params.filtro_rapido = filtroRapido;
+      if (!filtroRapido && status) params.status = status;
+      if (filtro) params.q = filtro;
+      return loadListResource({
         tableName: "orcamentos",
         endpoint: "/orcamentos",
-        params: { q: filtro || undefined, status: status || undefined },
-        request: () => api.get("/orcamentos", { params: { q: filtro || undefined, status: status || undefined } }),
+        params,
+        request: () => api.get("/orcamentos", { params }),
         user,
         localFilter: (item) => orcamentoMatches(item, filtro, status),
-      }),
+      });
+    },
     [user]
   );
 

@@ -557,6 +557,9 @@ export default function Orcamentos() {
   const [filtro, setFiltro] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("");
   const [filtroRapido, setFiltroRapido] = useState("todos");
+  const [pagina, setPagina] = useState(1);
+  const [totalPaginas, setTotalPaginas] = useState(1);
+  const [totalRegistros, setTotalRegistros] = useState(0);
   const [itemFocoId, setItemFocoId] = useState(null);
   const [modalForm, setModalForm] = useState(false);
   const [itemEdit, setItemEdit] = useState(null);
@@ -573,14 +576,15 @@ export default function Orcamentos() {
     toastTimerRef.current = window.setTimeout(() => setToast(null), 3200);
   };
 
-  const carregar = useCallback(async () => {
+  const carregar = useCallback(async (paginaAlvo) => {
     setCarregando(true);
     setCarregandoContexto(true);
     setErro("");
     setContextoErro(false);
     try {
+      const p = paginaAlvo ?? pagina;
       const requests = [
-        getOrcamentos({ filtro, status: filtroStatus }),
+        getOrcamentos({ filtro, status: filtroStatus, filtroRapido: filtroRapido !== "todos" ? filtroRapido : "", page: p }),
         getClientes(),
         getResumo(),
       ];
@@ -596,6 +600,9 @@ export default function Orcamentos() {
       }
 
       setDados(orcamentosRes.value.data);
+      setPagina(p);
+      setTotalPaginas(orcamentosRes.value.pagination?.pages ?? 1);
+      setTotalRegistros(orcamentosRes.value.pagination?.total ?? 0);
       setClientes(clientesRes.value.data);
       setResumo(resumoRes.value.data);
 
@@ -630,11 +637,13 @@ export default function Orcamentos() {
     canOS,
     filtro,
     filtroStatus,
+    filtroRapido,
     getClientes,
     getFinanceiro,
     getOrcamentos,
     getOrdensServico,
     getResumo,
+    pagina,
     updateOfflineInfo,
   ]);
 
@@ -642,6 +651,12 @@ export default function Orcamentos() {
     const timer = window.setTimeout(() => carregar(), 240);
     return () => window.clearTimeout(timer);
   }, [carregar]);
+
+  const irPagina = useCallback((p) => {
+    if (p >= 1 && p <= totalPaginas) {
+      setPagina(p);
+    }
+  }, [totalPaginas]);
 
   const osPorOrcamento = useMemo(() => {
     const mapa = new Map();
@@ -896,7 +911,7 @@ export default function Orcamentos() {
                   <button
                     key={item.id}
                     type="button"
-                    onClick={() => setFiltroRapido(item.id)}
+                    onClick={() => { setFiltroRapido(item.id); setPagina(1); }}
                     className={`pill ${ativo ? "is-solid" : ""}`}
                   >
                     {item.label}
@@ -922,7 +937,7 @@ export default function Orcamentos() {
                   </option>
                 ))}
               </select>
-              <button type="button" onClick={carregar} className="pill">
+              <button type="button" onClick={() => carregar(pagina)} className="pill">
                 Atualizar
               </button>
               <button
@@ -1043,6 +1058,30 @@ export default function Orcamentos() {
               </div>
             )}
           </div>
+
+          {totalPaginas > 1 && (
+            <div className="flex items-center justify-between border-t border-[color:var(--cm-line)] px-2 py-3 text-sm">
+              <span className="text-[var(--cm-muted)]">{totalRegistros} registro(s) — Página {pagina} de {totalPaginas}</span>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => irPagina(pagina - 1)}
+                  disabled={pagina <= 1}
+                  className="pill disabled:opacity-30"
+                >
+                  &larr; Anterior
+                </button>
+                <button
+                  type="button"
+                  onClick={() => irPagina(pagina + 1)}
+                  disabled={pagina >= totalPaginas}
+                  className="pill disabled:opacity-30"
+                >
+                  Próximo &rarr;
+                </button>
+              </div>
+            </div>
+          )}
         </section>
 
       </div>

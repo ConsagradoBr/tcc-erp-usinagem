@@ -128,7 +128,16 @@ def listar_lancamentos():
         tipo = request.args.get("tipo", "").strip()
         status = request.args.get("status", "").strip()
         q = request.args.get("q", "").strip()
+        filtro_rapido = request.args.get("filtro_rapido", "").strip()
+        try:
+            page = max(int(request.args.get("page", 1)), 1)
+            per_page = max(min(int(request.args.get("per_page", 50)), 200), 1)
+        except (TypeError, ValueError):
+            page, per_page = 1, 50
+
+        hoje = date.today()
         query = Lancamento.query
+
         if tipo:
             query = query.filter(Lancamento.tipo == tipo)
         if q:
@@ -139,13 +148,47 @@ def listar_lancamentos():
                     Cliente.nome.ilike(f"%{q}%"),
                 )
             )
-        resultado = [
-            lancamento.to_dict()
-            for lancamento in query.order_by(Lancamento.vencimento.asc()).all()
-        ]
+
+        # quick filters — aplicados no SQL
+        if filtro_rapido == "receber":
+            query = query.filter(Lancamento.tipo == "receber")
+        elif filtro_rapido == "pagar":
+            query = query.filter(Lancamento.tipo == "pagar")
+        elif filtro_rapido == "atrasado":
+            query = query.filter(
+                Lancamento.data_pagamento.is_(None),
+                Lancamento.vencimento < hoje,
+            )
+        elif filtro_rapido == "parcelado":
+            query = query.filter(Lancamento.parcelas > 1)
+        elif filtro_rapido == "sem_vinculo":
+            query = query.filter(Lancamento.cliente_id.is_(None))
+
+        # status filter (pago/pendente/atrasado) — aplicado no SQL
         if status:
-            resultado = [item for item in resultado if item["status"] == status]
-        return jsonify(resultado), 200
+            if status == "pago":
+                query = query.filter(Lancamento.data_pagamento.isnot(None))
+            elif status == "pendente":
+                query = query.filter(
+                    Lancamento.data_pagamento.is_(None),
+                    Lancamento.vencimento >= hoje,
+                )
+            elif status == "atrasado":
+                query = query.filter(
+                    Lancamento.data_pagamento.is_(None),
+                    Lancamento.vencimento < hoje,
+                )
+
+        total = query.count()
+        items = [
+            lancamento.to_dict()
+            for lancamento in query.order_by(Lancamento.vencimento.asc())
+            .offset((page - 1) * per_page)
+            .limit(per_page)
+            .all()
+        ]
+        pages = (total + per_page - 1) // per_page
+        return jsonify({"items": items, "total": total, "page": page, "per_page": per_page, "pages": pages}), 200
     except HTTPException as exc:
         return http_error_response(exc)
     except Exception as exc:

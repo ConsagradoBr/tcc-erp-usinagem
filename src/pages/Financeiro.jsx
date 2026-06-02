@@ -1023,6 +1023,9 @@ export default function Financeiro() {
   const [filtroStatus, setFiltroStatus] = useState("");
   const [filtroRapido, setFiltroRapido] = useState("todos");
   const [selecionados, setSelecionados] = useState([]);
+  const [pagina, setPagina] = useState(1);
+  const [totalPaginas, setTotalPaginas] = useState(1);
+  const [totalRegistros, setTotalRegistros] = useState(0);
   const [notif, show] = useNotif();
 
   const [modalForm, setModalForm] = useState(false);
@@ -1033,18 +1036,28 @@ export default function Financeiro() {
   const [expandido, setExpandido] = useState(null);
   const [itemFocoId, setItemFocoId] = useState(null);
 
-  const carregarLista = useCallback(async () => {
+  const carregarLista = useCallback(async (paginaAlvo) => {
     setCarregando(true);
     try {
-      const res = await getFinanceiro({ filtro, tipo: filtroTipo, status: filtroStatus });
+      const p = paginaAlvo ?? 1;
+      const res = await getFinanceiro({
+        filtro,
+        tipo: filtroTipo,
+        status: filtroStatus,
+        filtroRapido: filtroRapido !== "todos" ? filtroRapido : "",
+        page: p,
+      });
       updateOfflineInfo([res]);
       setDados(res.data);
+      setTotalPaginas(res.pagination?.pages ?? 1);
+      setTotalRegistros(res.pagination?.total ?? 0);
+      setPagina(p);
     } catch {
       show("Erro ao carregar dados.", "erro");
     } finally {
       setCarregando(false);
     }
-  }, [filtro, filtroStatus, filtroTipo, getFinanceiro, show, updateOfflineInfo]);
+  }, [filtro, filtroStatus, filtroTipo, filtroRapido, getFinanceiro, show, updateOfflineInfo]);
 
   const carregarClientesResumo = useCallback(async () => {
     try {
@@ -1076,6 +1089,12 @@ export default function Financeiro() {
     const timer = setTimeout(() => carregarLista(), 280);
     return () => clearTimeout(timer);
   }, [carregarLista]);
+
+  const irPagina = useCallback((p) => {
+    if (p >= 1 && p <= totalPaginas) {
+      setPagina(p);
+    }
+  }, [totalPaginas]);
 
   const dadosEnriquecidos = useMemo(() => {
     const grupos = new Map();
@@ -1339,13 +1358,13 @@ export default function Financeiro() {
               <h3>Títulos e parcelas em tabela operacional</h3>
             </div>
             <div className="pill-row">
-              <button type="button" onClick={() => setFiltroRapido("receber")} className={`pill ${filtroRapido === "receber" ? "is-solid" : ""}`}>
+              <button type="button" onClick={() => { setFiltroRapido("receber"); setPagina(1); }} className={`pill ${filtroRapido === "receber" ? "is-solid" : ""}`}>
                 A receber
               </button>
-              <button type="button" onClick={() => setFiltroRapido("pagar")} className={`pill ${filtroRapido === "pagar" ? "is-solid" : ""}`}>
+              <button type="button" onClick={() => { setFiltroRapido("pagar"); setPagina(1); }} className={`pill ${filtroRapido === "pagar" ? "is-solid" : ""}`}>
                 A pagar
               </button>
-              <button type="button" onClick={() => setFiltroRapido("parcelado")} className={`pill ${filtroRapido === "parcelado" ? "is-solid" : ""}`}>
+              <button type="button" onClick={() => { setFiltroRapido("parcelado"); setPagina(1); }} className={`pill ${filtroRapido === "parcelado" ? "is-solid" : ""}`}>
                 Parcelados
               </button>
             </div>
@@ -1399,7 +1418,7 @@ export default function Financeiro() {
                 <button
                   key={item.id}
                   type="button"
-                  onClick={() => setFiltroRapido(item.id)}
+                  onClick={() => { setFiltroRapido(item.id); setPagina(1); }}
                   className={`pill ${filtroRapido === item.id ? "is-solid" : ""}`}
                 >
                   {item.label}
@@ -1560,6 +1579,30 @@ export default function Financeiro() {
               </div>
             )}
           </div>
+
+          {totalPaginas > 1 && (
+            <div className="flex items-center justify-between border-t border-[color:var(--cm-line)] px-2 py-3 text-sm">
+              <span className="text-[var(--cm-muted)]">{totalRegistros} registro(s) — Página {pagina} de {totalPaginas}</span>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => irPagina(pagina - 1)}
+                  disabled={pagina <= 1}
+                  className="pill disabled:opacity-30"
+                >
+                  &larr; Anterior
+                </button>
+                <button
+                  type="button"
+                  onClick={() => irPagina(pagina + 1)}
+                  disabled={pagina >= totalPaginas}
+                  className="pill disabled:opacity-30"
+                >
+                  Próximo &rarr;
+                </button>
+              </div>
+            </div>
+          )}
         </section>
 
       </div>

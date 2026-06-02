@@ -11,7 +11,13 @@ from backend.api_utils import (
     json_body,
 )
 from backend.extensions import db
-from backend.models import STATUS_ORCAMENTO_VALIDOS, Cliente, Lancamento, Orcamento
+from backend.models import (
+    STATUS_ORCAMENTO_VALIDOS,
+    Cliente,
+    Lancamento,
+    Orcamento,
+    OrdemServico,
+)
 from backend.security import require_permissions
 from backend.services import (
     garantir_lancamento_para_orcamento,
@@ -73,6 +79,14 @@ def listar_orcamentos():
     try:
         status = request.args.get("status", "").strip()
         q = request.args.get("q", "").strip()
+        filtro_rapido = request.args.get("filtro_rapido", "").strip()
+        try:
+            page = max(int(request.args.get("page", 1)), 1)
+            per_page = max(min(int(request.args.get("per_page", 50)), 200), 1)
+        except (TypeError, ValueError):
+            page, per_page = 1, 50
+
+        hoje = date.today()
         query = Orcamento.query.join(Cliente)
         if status and status in STATUS_ORCAMENTO_VALIDOS:
             query = query.filter(Orcamento.status == status)
@@ -84,15 +98,54 @@ def listar_orcamentos():
                     Cliente.nome.ilike(f"%{q}%"),
                 )
             )
-        return (
-            jsonify(
-                [
-                    orcamento.to_dict()
-                    for orcamento in query.order_by(Orcamento.created_at.desc()).all()
-                ]
-            ),
-            200,
-        )
+
+        if filtro_rapido == "decisao":
+            query = query.filter(Orcamento.status.in_(["rascunho", "enviado"]))
+        elif filtro_rapido == "aprovado":
+            query = query.filter(Orcamento.status == "aprovado")
+        elif filtro_rapido == "vencendo":
+            from datetime import timedelta
+            query = query.filter(
+                Orcamento.status.in_(["rascunho", "enviado"]),
+                Orcamento.validade.isnot(None),
+                Orcamento.validade >= hoje,
+                Orcamento.validade <= hoje + timedelta(days=7),
+            )
+        elif filtro_rapido == "integracao":
+            # orcamentos aprovados sem lancamento ou OS vinculados
+            subq_lanc = (
+                db.session.query(Lancamento.id)
+                .filter(
+                    Lancamento.descricao.like(
+                        db.func.concat("%[ORC:", Orcamento.numero, "]%")
+                    )
+                )
+                .exists()
+            )
+            subq_os = (
+                db.session.query(OrdemServico.id)
+                .filter(
+                    OrdemServico.descricao.like(
+                        db.func.concat("%[ORC:", Orcamento.numero, "]%")
+                    )
+                )
+                .exists()
+            )
+            query = query.filter(
+                Orcamento.status == "aprovado",
+                db.or_(~subq_lanc, ~subq_os),
+            )
+
+        total = query.count()
+        items = [
+            orcamento.to_dict()
+            for orcamento in query.order_by(Orcamento.created_at.desc())
+            .offset((page - 1) * per_page)
+            .limit(per_page)
+            .all()
+        ]
+        pages = (total + per_page - 1) // per_page
+        return jsonify({"items": items, "total": total, "page": page, "per_page": per_page, "pages": pages}), 200
     except HTTPException as exc:
         return http_error_response(exc)
     except Exception as exc:

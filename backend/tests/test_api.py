@@ -386,13 +386,13 @@ def test_clientes_e_orcamentos_flow(client):
 
     listar = client.get("/orcamentos", headers=headers)
     assert listar.status_code == 200
-    assert len(listar.get_json()) == 1
+    assert len(listar.get_json()["items"]) == 1
 
     resumo = client.get("/orcamentos/resumo", headers=headers)
     assert resumo.status_code == 200
     assert resumo.get_json()["enviado"] == 1
 
-    item_id = listar.get_json()[0]["id"]
+    item_id = listar.get_json()["items"][0]["id"]
     patch = client.patch(
         f"/orcamentos/{item_id}/status", headers=headers, json={"status": "aprovado"}
     )
@@ -412,9 +412,9 @@ def test_clientes_e_orcamentos_flow(client):
 
     financeiro = client.get("/financeiro", headers=headers)
     assert financeiro.status_code == 200
-    assert len(financeiro.get_json()) == 1
-    assert financeiro.get_json()[0]["tipo"] == "receber"
-    assert "[ORC:" in financeiro.get_json()[0]["descricao"]
+    assert len(financeiro.get_json()["items"]) == 1
+    assert financeiro.get_json()["items"][0]["tipo"] == "receber"
+    assert "[ORC:" in financeiro.get_json()["items"][0]["descricao"]
 
     resumo_atualizado = client.get("/orcamentos/resumo", headers=headers)
     assert resumo_atualizado.status_code == 200
@@ -452,7 +452,7 @@ def test_reaprovar_orcamento_nao_duplica_os_ou_financeiro(client):
     os_list = client.get("/ordens-servico", headers=headers)
     financeiro = client.get("/financeiro", headers=headers)
     assert len(os_list.get_json()) == 1
-    assert len(financeiro.get_json()) == 1
+    assert len(financeiro.get_json()["items"]) == 1
 
 
 def test_edicao_de_orcamento_aprovado_sincroniza_os_e_financeiro(client):
@@ -651,7 +651,7 @@ def test_edicao_de_lancamento_permite_reparcelar_recebimento(client):
     assert financeiro.status_code == 200
     grupo = [
         item
-        for item in financeiro.get_json()
+        for item in financeiro.get_json()["items"]
         if item["descricao"].startswith("Receita da OS-15")
     ]
     assert len(grupo) == 4
