@@ -9,6 +9,7 @@ const Orcamentos = lazy(() => import("./pages/Orcamentos"));
 const OrdemServico = lazy(() => import("./pages/OrdemServico"));
 const Financeiro = lazy(() => import("./pages/Financeiro"));
 const AuthPage = lazy(() => import("./pages/AuthPage"));
+const PrivacyPage = lazy(() => import("./pages/PrivacyPage"));
 const Usuarios = lazy(() => import("./pages/Usuarios"));
 const BackupDesktop = lazy(() => import("./pages/BackupDesktop"));
 
@@ -36,6 +37,7 @@ const routes = createBrowserRouter(
       children: [
         { index: true, element: <Navigate to="/login" replace /> },
         { path: "login", element: screen(AuthPage) },
+        { path: "privacidade", element: screen(PrivacyPage) },
       ],
     },
     {

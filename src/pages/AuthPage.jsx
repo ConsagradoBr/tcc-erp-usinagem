@@ -346,6 +346,20 @@ export default function AuthPage() {
               Fale com o administrador
             </strong>
           </p>
+
+          <p className="mt-6 text-center text-[10px] leading-relaxed text-neutral-500">
+            Ao continuar, você concorda com o tratamento dos seus dados pessoais
+            conforme nossa{" "}
+            <a
+              href="/privacidade"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline underline-offset-2 hover:text-neutral-800"
+            >
+              Política de Privacidade
+            </a>
+            .
+          </p>
         </div>
       </div>
     </div>
