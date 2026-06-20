@@ -217,9 +217,7 @@ def test_cruds_retornam_404_sem_virar_500(client):
     cliente_delete = client.delete("/clientes/9999", headers=headers)
     assert cliente_delete.status_code == 404
 
-    os_put = client.put(
-        "/ordens-servico/9999", headers=headers, json={"cliente": "X"}
-    )
+    os_put = client.put("/ordens-servico/9999", headers=headers, json={"cliente": "X"})
     assert os_put.status_code == 404
 
     os_patch = client.patch(
@@ -781,7 +779,7 @@ def test_dashboard_resumo_traz_metricas(client):
 def test_financeiro_resumo_sql_equivale_ao_anterior(client):
     headers = auth_headers(client)
 
-    cliente_id = criar_cliente(client, headers)
+    criar_cliente(client, headers)
     client.post(
         "/financeiro",
         headers=headers,

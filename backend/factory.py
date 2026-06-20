@@ -118,6 +118,8 @@ def run_dev_server(app):
     port = int(os.getenv("PORT", os.getenv("FLASK_PORT", "5000")))
     debug_requested = os.getenv("FLASK_DEBUG", "false").lower() == "true"
     if debug_requested and not is_development_env():
-        raise RuntimeError("FLASK_DEBUG=true bloqueado fora de ambiente de desenvolvimento.")
+        raise RuntimeError(
+            "FLASK_DEBUG=true bloqueado fora de ambiente de desenvolvimento."
+        )
     debug = debug_requested and is_development_env()
     app.run(debug=debug, host=host, port=port)

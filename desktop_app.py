@@ -148,8 +148,11 @@ def open_native_window():
     try:
         from PySide6.QtCore import QStandardPaths, Qt, QUrl
         from PySide6.QtGui import QGuiApplication, QIcon
-        from PySide6.QtWebEngineCore import (QWebEnginePage, QWebEngineProfile,
-                                             QWebEngineSettings)
+        from PySide6.QtWebEngineCore import (
+            QWebEnginePage,
+            QWebEngineProfile,
+            QWebEngineSettings,
+        )
         from PySide6.QtWebEngineWidgets import QWebEngineView
         from PySide6.QtWidgets import QApplication, QMainWindow
     except Exception as exc:
@@ -167,7 +170,7 @@ def open_native_window():
             super().__init__(profile, parent)
             self.new_page = None
 
-        def createWindow(self, _window_type):
+        def createWindow(self, _window_type):  # noqa: N802 - Qt override name
             self.new_page = QWebEnginePage(self.profile(), self)
             self.new_page.urlChanged.connect(self._handle_new_window_url)
             return self.new_page
@@ -218,7 +221,7 @@ def open_native_window():
             frame.moveCenter(available.center())
             self.move(frame.topLeft())
 
-        def closeEvent(self, event):
+        def closeEvent(self, event):  # noqa: N802 - Qt override name
             self.profile.deleteLater()
             super().closeEvent(event)
 

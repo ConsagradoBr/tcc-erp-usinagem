@@ -28,7 +28,9 @@ class Usuario(db.Model):
 class TermoAceite(db.Model):
     __tablename__ = "termo_aceite"
     __table_args__ = (
-        db.UniqueConstraint("usuario_id", "versao_termo", name="uq_termo_usuario_versao"),
+        db.UniqueConstraint(
+            "usuario_id", "versao_termo", name="uq_termo_usuario_versao"
+        ),
         db.Index("ix_termo_aceite_usuario_id", "usuario_id"),
         db.Index("ix_termo_aceite_versao", "versao_termo"),
     )

@@ -47,3 +47,5 @@ Thumbs.db
 htmlcov/
 backend/.env
 .vercel
+.runtime/
+.runtime-desktop/

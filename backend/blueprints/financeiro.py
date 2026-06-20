@@ -188,7 +188,18 @@ def listar_lancamentos():
             .all()
         ]
         pages = (total + per_page - 1) // per_page
-        return jsonify({"items": items, "total": total, "page": page, "per_page": per_page, "pages": pages}), 200
+        return (
+            jsonify(
+                {
+                    "items": items,
+                    "total": total,
+                    "page": page,
+                    "per_page": per_page,
+                    "pages": pages,
+                }
+            ),
+            200,
+        )
     except HTTPException as exc:
         return http_error_response(exc)
     except Exception as exc:
@@ -206,31 +217,45 @@ def resumo():
         else:
             ultimo_dia = date(hoje.year, hoje.month + 1, 1) - timedelta(days=1)
 
-        a_receber = round(float(
-            db.session.query(db.func.coalesce(db.func.sum(Lancamento.valor), 0))
-            .filter(Lancamento.tipo == "receber", Lancamento.data_pagamento.is_(None))
-            .scalar() or 0
-        ), 2)
+        a_receber = round(
+            float(
+                db.session.query(db.func.coalesce(db.func.sum(Lancamento.valor), 0))
+                .filter(
+                    Lancamento.tipo == "receber", Lancamento.data_pagamento.is_(None)
+                )
+                .scalar()
+                or 0
+            ),
+            2,
+        )
 
-        a_pagar = round(float(
-            db.session.query(db.func.coalesce(db.func.sum(Lancamento.valor), 0))
-            .filter(Lancamento.tipo == "pagar", Lancamento.data_pagamento.is_(None))
-            .scalar() or 0
-        ), 2)
+        a_pagar = round(
+            float(
+                db.session.query(db.func.coalesce(db.func.sum(Lancamento.valor), 0))
+                .filter(Lancamento.tipo == "pagar", Lancamento.data_pagamento.is_(None))
+                .scalar()
+                or 0
+            ),
+            2,
+        )
 
         atrasados = Lancamento.query.filter(
             Lancamento.data_pagamento.is_(None), Lancamento.vencimento < hoje
         ).count()
 
-        recebido_mes = round(float(
-            db.session.query(db.func.coalesce(db.func.sum(Lancamento.valor), 0))
-            .filter(
-                Lancamento.tipo == "receber",
-                Lancamento.data_pagamento >= primeiro_dia,
-                Lancamento.data_pagamento <= ultimo_dia,
-            )
-            .scalar() or 0
-        ), 2)
+        recebido_mes = round(
+            float(
+                db.session.query(db.func.coalesce(db.func.sum(Lancamento.valor), 0))
+                .filter(
+                    Lancamento.tipo == "receber",
+                    Lancamento.data_pagamento >= primeiro_dia,
+                    Lancamento.data_pagamento <= ultimo_dia,
+                )
+                .scalar()
+                or 0
+            ),
+            2,
+        )
 
         return (
             jsonify(
@@ -362,9 +387,7 @@ def editar_lancamento(id):
         if error:
             return error
         prazo_dias = data.get("prazo_dias", lancamento.prazo_dias)
-        prazo_dias, error = _parse_int(
-            prazo_dias, "Prazo em dias", minimo=0, padrao=30
-        )
+        prazo_dias, error = _parse_int(prazo_dias, "Prazo em dias", minimo=0, padrao=30)
         if error:
             return error
         vencimento, error = _parse_data(data.get("vencimento"), "Vencimento")
@@ -372,9 +395,7 @@ def editar_lancamento(id):
             return error
         vencimento = vencimento or lancamento.vencimento
         forma_pagamento = data.get("forma_pagamento", lancamento.forma_pagamento)
-        forma_pagamento, error = _texto_opcional(
-            forma_pagamento, "Forma de pagamento"
-        )
+        forma_pagamento, error = _texto_opcional(forma_pagamento, "Forma de pagamento")
         if error:
             return error
         observacao = data.get("observacao", lancamento.observacao)
@@ -488,9 +509,7 @@ def marcar_pago(id):
         if error:
             return error
         forma_pagamento = data.get("forma_pagamento", lancamento.forma_pagamento)
-        forma_pagamento, error = _texto_opcional(
-            forma_pagamento, "Forma de pagamento"
-        )
+        forma_pagamento, error = _texto_opcional(forma_pagamento, "Forma de pagamento")
         if error:
             return error
         lancamento.data_pagamento = data_pagamento
@@ -551,7 +570,10 @@ def parsear_boleto():
         if len(pdf_bytes) > MAX_BOLETO_PDF_BYTES:
             return jsonify({"erro": "PDF excede o tamanho maximo permitido."}), 413
         if not pdf_bytes.startswith(b"%PDF"):
-            return jsonify({"erro": "Arquivo enviado nao parece ser um PDF valido."}), 400
+            return (
+                jsonify({"erro": "Arquivo enviado nao parece ser um PDF valido."}),
+                400,
+            )
         texto_total = ""
         try:
             import pdfplumber

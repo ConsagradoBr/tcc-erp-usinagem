@@ -16,7 +16,6 @@ if str(ROOT) not in sys.path:
 from backend.extensions import db
 from backend.factory import create_app
 
-
 COLUNAS_LANCAMENTOS = {
     "parcelas": "INTEGER DEFAULT 1",
     "parcela_num": "INTEGER DEFAULT 1",

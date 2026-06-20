@@ -8,7 +8,6 @@ from urllib.parse import quote_plus
 from dotenv import load_dotenv
 from flask_cors import CORS
 
-
 DEV_ENV_NAMES = {"dev", "development", "local", "test", "testing"}
 MIN_SECRET_LENGTH = 32
 LOCAL_FRONTEND_ORIGINS = [
@@ -121,7 +120,9 @@ def configure_app(app):
         supports_credentials=False,
     )
 
-    app.config["MAX_CONTENT_LENGTH"] = int(os.getenv("MAX_CONTENT_LENGTH", str(16 * 1024 * 1024)))
+    app.config["MAX_CONTENT_LENGTH"] = int(
+        os.getenv("MAX_CONTENT_LENGTH", str(16 * 1024 * 1024))
+    )
     database_uri = build_database_uri()
     app.config["SQLALCHEMY_DATABASE_URI"] = database_uri
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False

@@ -22,7 +22,6 @@ from backend.security import require_permissions
 from backend.services import (
     garantir_lancamento_para_orcamento,
     garantir_os_para_orcamento,
-    marcador_orcamento,
     proximo_numero_orcamento,
     serializar_orcamento_integrado,
 )
@@ -105,6 +104,7 @@ def listar_orcamentos():
             query = query.filter(Orcamento.status == "aprovado")
         elif filtro_rapido == "vencendo":
             from datetime import timedelta
+
             query = query.filter(
                 Orcamento.status.in_(["rascunho", "enviado"]),
                 Orcamento.validade.isnot(None),
@@ -145,7 +145,18 @@ def listar_orcamentos():
             .all()
         ]
         pages = (total + per_page - 1) // per_page
-        return jsonify({"items": items, "total": total, "page": page, "per_page": per_page, "pages": pages}), 200
+        return (
+            jsonify(
+                {
+                    "items": items,
+                    "total": total,
+                    "page": page,
+                    "per_page": per_page,
+                    "pages": pages,
+                }
+            ),
+            200,
+        )
     except HTTPException as exc:
         return http_error_response(exc)
     except Exception as exc:
@@ -161,15 +172,24 @@ def resumo_orcamentos():
             for status in STATUS_ORCAMENTO_VALIDOS
         }
         resultado["total"] = Orcamento.query.count()
-        resultado["valor_total"] = round(float(
-            db.session.query(db.func.coalesce(db.func.sum(Orcamento.valor), 0))
-            .scalar() or 0
-        ), 2)
-        resultado["valor_aprovado"] = round(float(
-            db.session.query(db.func.coalesce(db.func.sum(Orcamento.valor), 0))
-            .filter(Orcamento.status == "aprovado")
-            .scalar() or 0
-        ), 2)
+        resultado["valor_total"] = round(
+            float(
+                db.session.query(
+                    db.func.coalesce(db.func.sum(Orcamento.valor), 0)
+                ).scalar()
+                or 0
+            ),
+            2,
+        )
+        resultado["valor_aprovado"] = round(
+            float(
+                db.session.query(db.func.coalesce(db.func.sum(Orcamento.valor), 0))
+                .filter(Orcamento.status == "aprovado")
+                .scalar()
+                or 0
+            ),
+            2,
+        )
         open_subq = (
             db.session.query(Lancamento.id)
             .filter(
@@ -181,11 +201,15 @@ def resumo_orcamentos():
             )
             .exists()
         )
-        resultado["valor_aprovado_ativo"] = round(float(
-            db.session.query(db.func.coalesce(db.func.sum(Orcamento.valor), 0))
-            .filter(Orcamento.status == "aprovado", open_subq)
-            .scalar() or 0
-        ), 2)
+        resultado["valor_aprovado_ativo"] = round(
+            float(
+                db.session.query(db.func.coalesce(db.func.sum(Orcamento.valor), 0))
+                .filter(Orcamento.status == "aprovado", open_subq)
+                .scalar()
+                or 0
+            ),
+            2,
+        )
         return jsonify(resultado), 200
     except HTTPException as exc:
         return http_error_response(exc)

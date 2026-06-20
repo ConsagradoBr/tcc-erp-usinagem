@@ -384,14 +384,24 @@ def excluir_usuario(usuario_id):
 
         usuario_atual = get_current_usuario()
         if usuario_atual and usuario.id == usuario_atual.id:
-            return jsonify({"erro": "Nao e possivel excluir o proprio usuario logado."}), 400
+            return (
+                jsonify({"erro": "Nao e possivel excluir o proprio usuario logado."}),
+                400,
+            )
 
         if (
             usuario.perfil == "administrador"
             and usuario.ativo
             and _contar_administradores_ativos(excluir_id=usuario.id) == 0
         ):
-            return jsonify({"erro": "O sistema precisa manter pelo menos um administrador ativo."}), 400
+            return (
+                jsonify(
+                    {
+                        "erro": "O sistema precisa manter pelo menos um administrador ativo."
+                    }
+                ),
+                400,
+            )
 
         db.session.delete(usuario)
         db.session.commit()
@@ -428,7 +438,14 @@ def login():
         if erro:
             return erro
         if _login_bloqueado(email):
-            return jsonify({"erro": "Muitas tentativas. Aguarde alguns minutos e tente novamente."}), 429
+            return (
+                jsonify(
+                    {
+                        "erro": "Muitas tentativas. Aguarde alguns minutos e tente novamente."
+                    }
+                ),
+                429,
+            )
         usuario = Usuario.query.filter_by(email=email).first()
         if not usuario or not usuario.check_password(senha):
             _registrar_falha_login(email)

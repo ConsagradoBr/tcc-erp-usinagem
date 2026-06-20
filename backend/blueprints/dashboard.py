@@ -61,13 +61,8 @@ def resumo_dashboard():
         for status in STATUS_OS_VALIDOS:
             os_por_status[status] = OrdemServico.query.filter_by(status=status).count()
         total_os = sum(os_por_status.values())
-        os_atrasadas = OrdemServico.query.filter(
-            OrdemServico.status != "concluido",
-        ).count()
         atraso_real = 0
-        ordens = OrdemServico.query.filter(
-            OrdemServico.status != "concluido"
-        ).all()
+        ordens = OrdemServico.query.filter(OrdemServico.status != "concluido").all()
         for ordem in ordens:
             if ordem.prazo:
                 try:
@@ -82,16 +77,25 @@ def resumo_dashboard():
             orc_por_status[status] = Orcamento.query.filter_by(status=status).count()
         total_orc = sum(orc_por_status.values())
 
-        valor_total_orc = round(float(
-            db.session.query(db.func.coalesce(db.func.sum(Orcamento.valor), 0))
-            .scalar() or 0
-        ), 2)
+        valor_total_orc = round(
+            float(
+                db.session.query(
+                    db.func.coalesce(db.func.sum(Orcamento.valor), 0)
+                ).scalar()
+                or 0
+            ),
+            2,
+        )
 
-        valor_aprovado = round(float(
-            db.session.query(db.func.coalesce(db.func.sum(Orcamento.valor), 0))
-            .filter(Orcamento.status == "aprovado")
-            .scalar() or 0
-        ), 2)
+        valor_aprovado = round(
+            float(
+                db.session.query(db.func.coalesce(db.func.sum(Orcamento.valor), 0))
+                .filter(Orcamento.status == "aprovado")
+                .scalar()
+                or 0
+            ),
+            2,
+        )
 
         open_subq = (
             db.session.query(Lancamento.id)
@@ -104,11 +108,15 @@ def resumo_dashboard():
             )
             .exists()
         )
-        valor_aprovado_ativo = round(float(
-            db.session.query(db.func.coalesce(db.func.sum(Orcamento.valor), 0))
-            .filter(Orcamento.status == "aprovado", open_subq)
-            .scalar() or 0
-        ), 2)
+        valor_aprovado_ativo = round(
+            float(
+                db.session.query(db.func.coalesce(db.func.sum(Orcamento.valor), 0))
+                .filter(Orcamento.status == "aprovado", open_subq)
+                .scalar()
+                or 0
+            ),
+            2,
+        )
 
         return (
             jsonify(
@@ -130,9 +138,7 @@ def resumo_dashboard():
                         "total": total_orc,
                         "valor_total": round(float(valor_total_orc), 2),
                         "valor_aprovado": round(float(valor_aprovado), 2),
-                        "valor_aprovado_ativo": round(
-                            float(valor_aprovado_ativo), 2
-                        ),
+                        "valor_aprovado_ativo": round(float(valor_aprovado_ativo), 2),
                     },
                 }
             ),

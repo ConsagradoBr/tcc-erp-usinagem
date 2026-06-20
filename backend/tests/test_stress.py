@@ -2,10 +2,10 @@
 Teste de estresse progressivo — mede o ponto de ruptura do sistema.
 A cada iteração dobra a base de dados e mede todas as rotas.
 """
+
 import os
 import sys
 import time
-import tracemalloc
 from datetime import date, timedelta
 from decimal import Decimal
 from pathlib import Path
@@ -28,17 +28,37 @@ STRESS_DB.unlink(missing_ok=True)
 
 from backend.app import app
 from backend.extensions import db
-from backend.models import Cliente, Lancamento, Orcamento, OrdemServico, TermoAceite, Usuario
+from backend.models import (
+    Cliente,
+    Lancamento,
+    Orcamento,
+    OrdemServico,
+    TermoAceite,
+    Usuario,
+)
 from werkzeug.security import generate_password_hash
 
 NOMES = [
-    "Metal Forte Indústria Ltda", "Aço Brasil S.A.", "Usinagem Premium Ltda",
-    "Torneados Precisos Eireli", "Fundição Nacional", "InoxTech Soluções",
-    "FerroVelho Comércio", "Mecânica Pesada S.A.", "Corte a Laser Express",
-    "Solda Fina Indústria", "Retífica ABC", "Fresagem Controle Ltda",
-    "Mandrilagem Total", "Cilindros RG", "Engrenagens Brasil",
-    "Polimento Arte Final", "Tratamento Térmico Plus", "Caldeiraria Sul",
-    "Tornos Automáticos SP", "Usinagem 5 Eixos",
+    "Metal Forte Indústria Ltda",
+    "Aço Brasil S.A.",
+    "Usinagem Premium Ltda",
+    "Torneados Precisos Eireli",
+    "Fundição Nacional",
+    "InoxTech Soluções",
+    "FerroVelho Comércio",
+    "Mecânica Pesada S.A.",
+    "Corte a Laser Express",
+    "Solda Fina Indústria",
+    "Retífica ABC",
+    "Fresagem Controle Ltda",
+    "Mandrilagem Total",
+    "Cilindros RG",
+    "Engrenagens Brasil",
+    "Polimento Arte Final",
+    "Tratamento Térmico Plus",
+    "Caldeiraria Sul",
+    "Tornos Automáticos SP",
+    "Usinagem 5 Eixos",
 ]
 
 STATUS_OS = ["solicitado", "em_andamento", "revisao", "concluido"]
@@ -86,7 +106,7 @@ def seed_batch(clientes_iniciais, por_lote):
         dias_atraso = -randint(1, 60) if random() > 0.6 else randint(0, 90)
         venc = TODAY + timedelta(days=dias_atraso)
         pago = dias_atraso < -30 or random() > 0.7
-        l = Lancamento(
+        lancamento = Lancamento(
             tipo=tipo,
             cliente_id=choice(todos_clientes).id if random() > 0.15 else None,
             descricao=f"Lançamento STRESS #{clientes_iniciais + i}",
@@ -98,7 +118,7 @@ def seed_batch(clientes_iniciais, por_lote):
             parcelas=1,
             parcela_num=1,
         )
-        db.session.add(l)
+        db.session.add(lancamento)
     db.session.flush()
 
     for i in range(por_lote):
@@ -121,7 +141,10 @@ def seed_batch(clientes_iniciais, por_lote):
 ENDPOINTS = [
     ("GET /financeiro/resumo", lambda c, h: c.get("/financeiro/resumo", headers=h)),
     ("GET /orcamentos/resumo", lambda c, h: c.get("/orcamentos/resumo", headers=h)),
-    ("GET /ordens-servico/resumo", lambda c, h: c.get("/ordens-servico/resumo", headers=h)),
+    (
+        "GET /ordens-servico/resumo",
+        lambda c, h: c.get("/ordens-servico/resumo", headers=h),
+    ),
     ("GET /dashboard/resumo", lambda c, h: c.get("/dashboard/resumo", headers=h)),
     ("GET /clientes", lambda c, h: c.get("/clientes", headers=h)),
     ("GET /financeiro", lambda c, h: c.get("/financeiro", headers=h)),
@@ -197,6 +220,7 @@ def main():
         db.session.commit()
 
     from flask_jwt_extended import create_access_token
+
     with app.app_context():
         token = create_access_token(identity="1")
     auth_headers = {"Authorization": f"Bearer {token}"}
@@ -206,7 +230,17 @@ def main():
     for c in cols:
         header += f" {c:>10s}"
     print(header)
-    print("  |" + "-" * 5 + "|" + "-" * 9 + "|" + "-" * 8 + "|" + "-" * (len(cols) * 11) + "|")
+    print(
+        "  |"
+        + "-" * 5
+        + "|"
+        + "-" * 9
+        + "|"
+        + "-" * 8
+        + "|"
+        + "-" * (len(cols) * 11)
+        + "|"
+    )
 
     total_acumulado = 0
     with app.app_context():
@@ -237,7 +271,9 @@ def main():
 
                 # Para se algum endpoint estourar 5s
                 if any(r["avg_ms"] > 5000 for r in resultados.values()):
-                    print(f"\n  ⛔ PONTO DE RUPTURA: médias acima de 5s no nível {nivel}")
+                    print(
+                        f"\n  ⛔ PONTO DE RUPTURA: médias acima de 5s no nível {nivel}"
+                    )
                     break
 
                 # Para se houver erros 500
@@ -248,7 +284,9 @@ def main():
     db_path = STRESS_DB
     tamanho_mb = db_path.stat().st_size / (1024 * 1024) if db_path.exists() else 0
     print(f"\n  Tamanho final do banco: {tamanho_mb:.1f} MB")
-    print(f"  Total de registros: {total_acumulado * 4} (clientes+orcamentos+lancamentos+OS)")
+    print(
+        f"  Total de registros: {total_acumulado * 4} (clientes+orcamentos+lancamentos+OS)"
+    )
     try:
         STRESS_DB.unlink()
     except Exception:
