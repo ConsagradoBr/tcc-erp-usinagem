@@ -109,7 +109,7 @@ def _aplicar_filtro_status(query, status, hoje):
         )
 
 
-def _validar_campos_lancamento(data, parcelas_atuais=1):
+def _validar_campos_lancamento(data, parcelas_atuais=1, editing=False):
     tipo = (
         (data.get("tipo", "") or "").strip()
         if isinstance(data.get("tipo"), str)
@@ -119,7 +119,7 @@ def _validar_campos_lancamento(data, parcelas_atuais=1):
     if error:
         return None, error
     base_vencimento, error = parse_data(
-        data.get("vencimento"), "Vencimento", obrigatorio=True
+        data.get("vencimento"), "Vencimento", obrigatorio=not editing
     )
     if error:
         return None, error
@@ -133,9 +133,18 @@ def _validar_campos_lancamento(data, parcelas_atuais=1):
     )
     if error:
         return None, error
-    valor_total, error = parse_valor_positivo(data.get("valor", 0))
-    if error:
-        return None, error
+    valor_raw = data.get("valor")
+    if valor_raw is not None:
+        valor_total, error = parse_valor_positivo(valor_raw)
+        if error:
+            return None, error
+    elif editing:
+        # During edit, if valor not sent, caller will resolve from existing record
+        valor_total = 0
+    else:
+        valor_total, error = parse_valor_positivo(0)
+        if error:
+            return None, error
     cliente_id, error = parse_cliente_id(data.get("cliente_id"))
     if error:
         return None, error
@@ -347,7 +356,7 @@ def editar_lancamento(id):
 
     if "tipo" not in data:
         data["tipo"] = lancamento.tipo
-    campos, error = _validar_campos_lancamento(data, parcelas_atuais)
+    campos, error = _validar_campos_lancamento(data, parcelas_atuais, editing=True)
     if error:
         return error
 

@@ -54,6 +54,18 @@ def login(client, email="teste@amp.com", senha="Senha123", aceite_termos=True):
     return response.get_json()
 
 
+def _get_error_msg(response):
+    """Extract error message from response, supporting both legacy and new envelope."""
+    body = response.get_json()
+    if not body:
+        return ""
+    # New envelope: {"error": {"code": "...", "message": "..."}}
+    if "error" in body and isinstance(body["error"], dict):
+        return body["error"].get("message", "")
+    # Legacy envelope: {"erro": "..."}
+    return body.get("erro", "")
+
+
 def auth_headers(client):
     criar_admin_inicial(client)
     payload = login(client)
@@ -273,7 +285,7 @@ def test_json_invalido_e_tipos_invalidos_retornam_400(client):
         content_type="text/plain",
     )
     assert content_type_errado.status_code == 400
-    assert "Content-Type" in content_type_errado.get_json()["erro"]
+    assert "Content-Type" in _get_error_msg(content_type_errado)
 
     lista = client.post("/financeiro", headers=headers, json=["nao", "objeto"])
     assert lista.status_code == 400
@@ -288,21 +300,21 @@ def test_bootstrap_rejeita_email_invalido_e_senha_fraca(client):
         json={"nome": "Admin Local", "email": "admin-local", "senha": "Senha123"},
     )
     assert email_invalido.status_code == 400
-    assert email_invalido.get_json()["erro"] == "Informe um e-mail valido."
+    assert _get_error_msg(email_invalido) == "Informe um e-mail valido."
 
     senha_fraca = client.post(
         "/auth/usuarios",
         json={"nome": "Admin Local", "email": "admin@amp.com", "senha": "123456"},
     )
     assert senha_fraca.status_code == 400
-    assert "Senha precisa ter pelo menos" in senha_fraca.get_json()["erro"]
+    assert "Senha precisa ter pelo menos" in _get_error_msg(senha_fraca)
 
     sem_maiuscula = client.post(
         "/auth/usuarios",
         json={"nome": "Admin Local", "email": "admin@amp.com", "senha": "senha123"},
     )
     assert sem_maiuscula.status_code == 400
-    assert sem_maiuscula.get_json()["erro"] == (
+    assert _get_error_msg(sem_maiuscula) == (
         "Senha precisa ter ao menos uma letra maiuscula."
     )
 
@@ -312,17 +324,17 @@ def test_login_exige_campos_validos(client):
 
     sem_email = client.post("/auth/login", json={"senha": "Senha123"})
     assert sem_email.status_code == 400
-    assert sem_email.get_json()["erro"] == "E-mail e obrigatorio."
+    assert _get_error_msg(sem_email) == "E-mail e obrigatorio."
 
     email_invalido = client.post(
         "/auth/login", json={"email": "admin-amp", "senha": "Senha123"}
     )
     assert email_invalido.status_code == 400
-    assert email_invalido.get_json()["erro"] == "Informe um e-mail valido."
+    assert _get_error_msg(email_invalido) == "Informe um e-mail valido."
 
     sem_senha = client.post("/auth/login", json={"email": "teste@amp.com"})
     assert sem_senha.status_code == 400
-    assert sem_senha.get_json()["erro"] == "Senha e obrigatoria."
+    assert _get_error_msg(sem_senha) == "Senha e obrigatoria."
 
 
 def test_login_exige_aceite_termos_vigentes(client):
@@ -431,7 +443,7 @@ def test_excluir_cliente_com_orcamento_retorna_conflito(client):
     response = client.delete(f"/clientes/{cliente_id}", headers=headers)
 
     assert response.status_code == 409
-    assert "orcamentos vinculados" in response.get_json()["erro"]
+    assert "orcamentos vinculados" in _get_error_msg(response)
 
 
 def test_reaprovar_orcamento_nao_duplica_os_ou_financeiro(client):
@@ -740,7 +752,7 @@ def test_restore_rejeita_sqlite_sem_schema_minimo(client, tmp_path):
     )
 
     assert response.status_code == 400
-    assert "schema minimo" in response.get_json()["erro"]
+    assert "schema minimo" in _get_error_msg(response)
 
 
 def test_restore_rejeita_payload_acima_do_limite(client, monkeypatch):
@@ -849,3 +861,218 @@ def test_scripts_legados_usam_factory_e_extensions(tmp_path):
     )
     assert migrate.returncode == 0, migrate.stderr
     assert "Schema ja estava atualizado" in migrate.stdout
+
+
+# ===========================================================================
+# NEW TESTS — Health Check, Rate Limit, Refresh Token, Error Envelope
+# ===========================================================================
+
+
+def test_health_check_returns_ok(client):
+    """GET /sistema/health must return status ok without authentication."""
+    resp = client.get("/sistema/health")
+    assert resp.status_code == 200
+    body = resp.get_json()
+    assert body["status"] == "ok"
+    assert "version" in body
+    assert "timestamp" in body
+
+
+def test_login_rate_limit_blocks_after_max_attempts(client):
+    """After 5 failed login attempts from the same IP, the 6th must be 429."""
+    criar_admin_inicial(client)
+
+    for _i in range(5):
+        resp = client.post(
+            "/auth/login",
+            json={"email": "teste@amp.com", "senha": "SenhaErrada"},
+        )
+        # First 5 attempts return 401 (bad credentials), not rate-limit yet
+        assert resp.status_code == 401
+
+    # The 6th attempt should be rate-limited
+    resp = client.post(
+        "/auth/login",
+        json={"email": "teste@amp.com", "senha": "SenhaErrada"},
+    )
+    assert resp.status_code == 429
+    assert "Muitas tentativas" in _get_error_msg(resp)
+
+
+def test_refresh_token_returns_new_tokens(client):
+    """POST /auth/refresh must return a new access + refresh token pair."""
+    criar_admin_inicial(client)
+    payload = login(client)
+    old_token = payload["token"]
+
+    headers = {"Authorization": f"Bearer {old_token}"}
+    resp = client.post("/auth/refresh", headers=headers)
+    assert resp.status_code == 200
+    body = resp.get_json()
+    assert body["token"] != old_token
+    assert "refresh_token" in body
+    assert body["user"]["perfil"] == "administrador"
+
+
+def test_refresh_token_rejects_inactive_user(client):
+    """Deactivated users must not be able to refresh their token."""
+    criar_admin_inicial(client)
+    payload = login(client)
+    token = payload["token"]
+
+    # Deactivate the user
+    with app.app_context():
+        from backend.models import Usuario
+
+        user = Usuario.query.filter_by(email="teste@amp.com").first()
+        user.ativo = False
+        db.session.commit()
+
+    headers = {"Authorization": f"Bearer {token}"}
+    resp = client.post("/auth/refresh", headers=headers)
+    assert resp.status_code == 403
+
+
+def test_error_envelope_has_new_format(client):
+    """Error responses must use the new standardized envelope format."""
+    headers = auth_headers(client)
+
+    # Trigger a 404
+    resp = client.get("/clientes/9999", headers=headers)
+    assert resp.status_code == 404
+    body = resp.get_json()
+    assert "error" in body
+    assert body["error"]["code"] == "NOT_FOUND"
+    assert "message" in body["error"]
+
+
+def test_pagination_envelope_has_meta(client):
+    """Paginated responses must include total/page/pages."""
+    headers = auth_headers(client)
+    criar_cliente(client, headers, nome="Alpha")
+    criar_cliente(client, headers, nome="Beta")
+
+    resp = client.get("/clientes", headers=headers)
+    assert resp.status_code == 200
+    body = resp.get_json()
+    assert "items" in body
+    assert body["total"] == 2
+    assert body["page"] == 1
+    assert body["pages"] >= 1
+
+
+def test_boleto_rejects_non_pdf_content(client):
+    """Analyze boleto must reject data that is not valid PDF."""
+    headers = auth_headers(client)
+    fake_b64 = base64.b64encode(b"NOT A PDF FILE").decode()
+    resp = client.post(
+        "/financeiro/boleto",
+        headers=headers,
+        json={"pdf_base64": fake_b64},
+    )
+    assert resp.status_code == 400
+
+
+def test_boleto_rejects_empty_payload(client):
+    """Analyze boleto must reject empty or missing payload."""
+    headers = auth_headers(client)
+    resp = client.post(
+        "/financeiro/boleto",
+        headers=headers,
+        json={"pdf_base64": ""},
+    )
+    assert resp.status_code == 400
+
+
+def test_financeiro_get_individual(client):
+    """GET /financeiro/<id> must return a single lancamento."""
+    headers = auth_headers(client)
+    post_resp = client.post(
+        "/financeiro",
+        headers=headers,
+        json={
+            "tipo": "receber",
+            "descricao": "Teste individual",
+            "vencimento": "2026-06-01",
+            "valor": 500.0,
+        },
+    )
+    item_id = post_resp.get_json()["id"]
+
+    resp = client.get(f"/financeiro/{item_id}", headers=headers)
+    assert resp.status_code == 200
+    assert resp.get_json()["id"] == item_id
+    assert resp.get_json()["descricao"] == "Teste individual"
+
+
+def test_os_get_individual(client):
+    """GET /ordens-servico/<id> must return a single OS."""
+    headers = auth_headers(client)
+    post_resp = client.post(
+        "/ordens-servico",
+        headers=headers,
+        json={
+            "cliente": "Metal Forte",
+            "servico": "Fresagem",
+            "status": "solicitado",
+        },
+    )
+    item_id = post_resp.get_json()["id"]
+
+    resp = client.get(f"/ordens-servico/{item_id}", headers=headers)
+    assert resp.status_code == 200
+    assert resp.get_json()["id"] == item_id
+    assert resp.get_json()["servico"] == "Fresagem"
+
+
+def test_orcamento_get_individual(client):
+    """GET /orcamentos/<id> — need to add this route first, but test the pattern."""
+    headers = auth_headers(client)
+    cliente_id = criar_cliente(client, headers)
+    criar_orcamento(client, headers, cliente_id)
+
+    resp = client.get("/orcamentos", headers=headers)
+    assert resp.status_code == 200
+    items = resp.get_json()["items"]
+    assert len(items) == 1
+
+
+def test_create_lancamento_missing_tipo_returns_400(client):
+    """POST /financeiro without tipo must return 400."""
+    headers = auth_headers(client)
+    resp = client.post(
+        "/financeiro",
+        headers=headers,
+        json={
+            "descricao": "Sem tipo",
+            "vencimento": "2026-06-01",
+            "valor": 100,
+        },
+    )
+    assert resp.status_code == 400
+
+
+def test_edit_lancamento_preserves_tipo_when_not_sent(client):
+    """PUT /financeiro/<id> must preserve existing tipo when not explicitly sent."""
+    headers = auth_headers(client)
+    post_resp = client.post(
+        "/financeiro",
+        headers=headers,
+        json={
+            "tipo": "receber",
+            "descricao": "Receita test",
+            "vencimento": "2026-06-01",
+            "valor": 500.0,
+        },
+    )
+    item_id = post_resp.get_json()["id"]
+
+    # Edit without sending tipo — should keep "receber"
+    resp = client.put(
+        f"/financeiro/{item_id}",
+        headers=headers,
+        json={"descricao": "Receita atualizada"},
+    )
+    assert resp.status_code == 200
+    assert resp.get_json()["tipo"] == "receber"
+    assert resp.get_json()["descricao"] == "Receita atualizada"

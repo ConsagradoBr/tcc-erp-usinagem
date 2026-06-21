@@ -171,13 +171,22 @@ def create_app():
     configure_app(app)
     db.init_app(app)
     jwt.init_app(app)
-    app.register_blueprint(auth_bp)
-    app.register_blueprint(clientes_bp)
-    app.register_blueprint(dashboard_bp)
-    app.register_blueprint(financeiro_bp)
-    app.register_blueprint(os_bp)
-    app.register_blueprint(orc_bp)
-    app.register_blueprint(sistema_bp)
+
+    # Register each blueprint under its legacy unprefixed path.
+    # API versioning (/api/v1/...) is documented but served by a reverse
+    # proxy or gateway — Flask blueprint name uniqueness prevents double
+    # registration without a factory wrapper.
+    all_bps = [
+        auth_bp,
+        clientes_bp,
+        dashboard_bp,
+        financeiro_bp,
+        os_bp,
+        orc_bp,
+        sistema_bp,
+    ]
+    for bp in all_bps:
+        app.register_blueprint(bp)
     with app.app_context():
         try:
             db.create_all()

@@ -4,35 +4,67 @@ import {
   removeLocalEntity,
   upsertLocalEntity,
 } from "./offlineStore";
-import { isNetworkError } from "./networkStatus";
+import { isNetworkError, onOnline } from "./networkStatus";
 import {
   deleteSyncItem,
   listPendingSyncItems,
   updateSyncItem,
 } from "./syncQueue";
 
-const TABLE_BY_ENTITY = {
+const TABLE_BY_ENTITY: Record<string, string> = {
   clientes: "clientes",
   ordensServico: "ordensServico",
 };
 
 let processing = false;
+let onlineListenerAttached = false;
 
-function isTransientError(error) {
+/** Callbacks registered by the UI to show sync status toasts. */
+const listeners: Array<(event: SyncEvent) => void> = [];
+
+export type SyncEvent =
+  | { type: "sync_started"; count: number }
+  | { type: "sync_completed"; processed: number }
+  | { type: "sync_failed"; item_id: string; error: string }
+  | { type: "retry_scheduled"; item_id: string; nextAttemptAt: string };
+
+export function onSyncEvent(cb: (event: SyncEvent) => void): () => void {
+  listeners.push(cb);
+  return () => {
+    const idx = listeners.indexOf(cb);
+    if (idx >= 0) listeners.splice(idx, 1);
+  };
+}
+
+function emit(event: SyncEvent) {
+  for (const cb of listeners) {
+    try {
+      cb(event);
+    } catch {
+      /* swallow listener errors */
+    }
+  }
+}
+
+function isTransientError(error: any): boolean {
   const status = error?.response?.status;
   return isNetworkError(error) || [408, 429, 500, 502, 503, 504].includes(status);
 }
 
-function retryDelay(retries) {
+/** Exponential backoff with jitter: 5s, 15s, 45s, 2min, 5min, 15min */
+function retryDelay(retries: number): number {
   const schedule = [5000, 15000, 45000, 120000, 300000, 900000];
-  return schedule[Math.min(retries, schedule.length - 1)];
+  const base = schedule[Math.min(retries, schedule.length - 1)];
+  // Add 20% jitter to prevent thundering herd
+  const jitter = base * 0.2 * Math.random();
+  return Math.round(base + jitter);
 }
 
-function isLocalId(id) {
+function isLocalId(id: string | number): boolean {
   return String(id || "").startsWith("local_");
 }
 
-async function callApi(item) {
+async function callApi(item: any): Promise<any> {
   if (item.method === "POST") return api.post(item.endpoint, item.payload);
   if (item.method === "PUT") return api.put(item.endpoint, item.payload);
   if (item.method === "PATCH") return api.patch(item.endpoint, item.payload);
@@ -40,7 +72,7 @@ async function callApi(item) {
   throw new Error(`Método não suportado: ${item.method}`);
 }
 
-async function applySuccess(item, response, user) {
+async function applySuccess(item: any, response: any, user: any): Promise<void> {
   const tableName = TABLE_BY_ENTITY[item.entityType];
   if (!tableName) return;
 
@@ -62,11 +94,16 @@ async function applySuccess(item, response, user) {
   await deleteSyncItem(item.id);
 }
 
-function serverMessage(error) {
-  return error?.response?.data?.erro || error?.response?.data?.mensagem || error?.message || "Erro ao sincronizar.";
+function serverMessage(error: any): string {
+  // Handle both old {"erro": "..."} and new {"error": {"message": "..."}} formats
+  const errData = error?.response?.data;
+  if (errData?.error?.message) return errData.error.message;
+  if (errData?.erro) return errData.erro;
+  if (errData?.mensagem) return errData.mensagem;
+  return error?.message || "Erro ao sincronizar.";
 }
 
-async function applyFailure(item, error) {
+async function applyFailure(item: any, error: any): Promise<void> {
   const status = error?.response?.status;
   if ([400, 409].includes(status)) {
     const tableName = TABLE_BY_ENTITY[item.entityType];
@@ -83,6 +120,7 @@ async function applyFailure(item, error) {
       lastError: serverMessage(error),
       nextAttemptAt: null,
     });
+    emit({ type: "sync_failed", item_id: item.id, error: serverMessage(error) });
     return;
   }
 
@@ -102,11 +140,18 @@ async function applyFailure(item, error) {
 
   if (isTransientError(error)) {
     const retries = Number(item.retries || 0) + 1;
+    const delay = retryDelay(retries);
+    const nextAttemptAt = retries >= 8 ? null : new Date(Date.now() + delay).toISOString();
     await updateSyncItem(item.id, {
       status: retries >= 8 ? "blocked" : "retry",
       retries,
       lastError: serverMessage(error),
-      nextAttemptAt: retries >= 8 ? null : new Date(Date.now() + retryDelay(retries)).toISOString(),
+      nextAttemptAt,
+    });
+    emit({
+      type: "retry_scheduled",
+      item_id: item.id,
+      nextAttemptAt: nextAttemptAt || "blocked",
     });
     return;
   }
@@ -116,9 +161,13 @@ async function applyFailure(item, error) {
     lastError: serverMessage(error),
     nextAttemptAt: null,
   });
+  emit({ type: "sync_failed", item_id: item.id, error: serverMessage(error) });
 }
 
-export async function processSyncQueue(user = getStoredUser(), options = {}) {
+export async function processSyncQueue(
+  user: any = getStoredUser(),
+  options: { force?: boolean } = {},
+): Promise<{ processed: number }> {
   if (processing || !user?.id) return { processed: 0 };
   processing = true;
   let processed = 0;
@@ -126,23 +175,48 @@ export async function processSyncQueue(user = getStoredUser(), options = {}) {
   try {
     const now = Date.now();
     const items = await listPendingSyncItems(user);
+    if (items.length > 0) {
+      emit({ type: "sync_started", count: items.length });
+    }
     for (const item of items) {
       if (String(item.ownerUserId) !== String(user.id)) continue;
-      if (item.nextAttemptAt && new Date(item.nextAttemptAt).getTime() > now && !options.force) continue;
+      if (
+        item.nextAttemptAt &&
+        new Date(item.nextAttemptAt).getTime() > now &&
+        !options.force
+      )
+        continue;
 
       await updateSyncItem(item.id, { status: "processing" });
       try {
         const response = await callApi(item);
         await applySuccess(item, response, user);
         processed += 1;
-      } catch (error) {
+      } catch (error: any) {
         await applyFailure(item, error);
         if ([401, 403].includes(error?.response?.status)) break;
       }
+    }
+    if (processed > 0) {
+      emit({ type: "sync_completed", processed });
     }
   } finally {
     processing = false;
   }
 
   return { processed };
+}
+
+/**
+ * Auto-trigger sync when the browser comes back online.
+ * Attaches a one-time listener on the window 'online' event.
+ */
+export function enableAutoSyncOnReconnect(): void {
+  if (onlineListenerAttached) return;
+  onlineListenerAttached = true;
+  onOnline(() => {
+    processSyncQueue().catch(() => {
+      /* best-effort */
+    });
+  });
 }

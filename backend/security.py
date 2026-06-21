@@ -1,4 +1,7 @@
+"""Authentication, authorization, and user serialization helpers."""
+
 from functools import wraps
+from typing import Any, Optional
 
 from flask import jsonify
 from flask_jwt_extended import get_jwt_identity, jwt_required
@@ -6,7 +9,7 @@ from flask_jwt_extended import get_jwt_identity, jwt_required
 from backend.extensions import db
 from backend.models import Usuario
 
-PERFIS_SISTEMA = {
+PERFIS_SISTEMA: dict[str, dict[str, Any]] = {
     "administrador": {
         "label": "Administrador",
         "permissoes": [
@@ -34,17 +37,20 @@ PERFIS_SISTEMA = {
 }
 
 
-def normalizar_perfil(perfil):
+def normalizar_perfil(perfil: Optional[str]) -> Optional[str]:
+    """Normalize and validate a profile name against the system catalog."""
     perfil_normalizado = (perfil or "").strip().lower()
     return perfil_normalizado if perfil_normalizado in PERFIS_SISTEMA else None
 
 
-def permissoes_do_perfil(perfil):
+def permissoes_do_perfil(perfil: Optional[str]) -> list[str]:
+    """Return the permission list for a given profile."""
     perfil_normalizado = normalizar_perfil(perfil) or "comercial"
     return list(PERFIS_SISTEMA[perfil_normalizado]["permissoes"])
 
 
-def serializar_usuario(usuario):
+def serializar_usuario(usuario: Usuario) -> dict[str, Any]:
+    """Serialize a ``Usuario`` model to a JSON-safe dict."""
     return {
         "id": usuario.id,
         "nome": usuario.nome,
@@ -58,14 +64,16 @@ def serializar_usuario(usuario):
     }
 
 
-def usuario_tem_permissoes(usuario, *permissoes):
+def usuario_tem_permissoes(usuario: Optional[Usuario], *permissoes: str) -> bool:
+    """Check if *usuario* holds all the required *permissoes*."""
     if not usuario or not usuario.ativo:
         return False
     permissoes_usuario = set(permissoes_do_perfil(usuario.perfil))
     return all(permissao in permissoes_usuario for permissao in permissoes)
 
 
-def get_current_usuario():
+def get_current_usuario() -> Optional[Usuario]:
+    """Resolve the JWT identity to a ``Usuario`` instance."""
     identidade = get_jwt_identity()
     if not identidade:
         return None
@@ -75,11 +83,13 @@ def get_current_usuario():
         return None
 
 
-def require_permissions(*permissoes):
-    def decorator(fn):
+def require_permissions(*permissoes: str) -> Any:
+    """Decorator that enforces JWT auth and optional permission checks."""
+
+    def decorator(fn: Any) -> Any:
         @wraps(fn)
         @jwt_required()
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
             usuario = get_current_usuario()
             if not usuario:
                 return jsonify({"erro": "Usuário não encontrado."}), 401

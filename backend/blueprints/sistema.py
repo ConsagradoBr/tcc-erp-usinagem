@@ -1,24 +1,27 @@
+"""System management routes: backup, restore, health check."""
+
 import base64
 import binascii
 import contextlib
 import os
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any, Optional
 
-from flask import Blueprint, current_app, jsonify, send_file
+from flask import Blueprint, Response, current_app, jsonify, send_file
 from sqlalchemy.engine.url import make_url
 
-from backend.api_utils import handle_errors, json_body
+from backend.api_utils import APP_VERSION, handle_errors, json_body
 from backend.config import get_runtime_data_dir
 from backend.extensions import db
 from backend.security import require_permissions
 
 sistema_bp = Blueprint("sistema", __name__, url_prefix="/sistema")
 
-ALLOWED_RESTORE_SUFFIXES = {".sqlite3", ".db", ".bak"}
-DEFAULT_MAX_BACKUP_BYTES = 50 * 1024 * 1024
-REQUIRED_BACKUP_TABLES = {
+ALLOWED_RESTORE_SUFFIXES: set[str] = {".sqlite3", ".db", ".bak"}
+DEFAULT_MAX_BACKUP_BYTES: int = 50 * 1024 * 1024
+REQUIRED_BACKUP_TABLES: set[str] = {
     "usuarios",
     "clientes",
     "lancamentos",
@@ -27,15 +30,15 @@ REQUIRED_BACKUP_TABLES = {
 }
 
 
-def _max_backup_bytes():
+def _max_backup_bytes() -> int:
     try:
         return int(os.getenv("BACKUP_MAX_BYTES", DEFAULT_MAX_BACKUP_BYTES))
     except ValueError:
         return DEFAULT_MAX_BACKUP_BYTES
 
 
-def _sqlite_db_path():
-    database_uri = current_app.config.get("SQLALCHEMY_DATABASE_URI", "")
+def _sqlite_db_path() -> Optional[Path]:
+    database_uri: str = current_app.config.get("SQLALCHEMY_DATABASE_URI", "")
     if not database_uri.startswith("sqlite"):
         return None
     database = make_url(database_uri).database
@@ -44,21 +47,21 @@ def _sqlite_db_path():
     return Path(database).resolve()
 
 
-def _backup_dir():
+def _backup_dir() -> Path:
     backup_dir = get_runtime_data_dir() / "backups"
     backup_dir.mkdir(parents=True, exist_ok=True)
     return backup_dir
 
 
-def _copy_sqlite_database(source_path, target_path):
+def _copy_sqlite_database(source_path: Path, target_path: Path) -> None:
     target_path.parent.mkdir(parents=True, exist_ok=True)
     with sqlite3.connect(source_path) as source_conn:
         with sqlite3.connect(target_path) as target_conn:
             source_conn.backup(target_conn)
 
 
-def _validate_backup_schema(conn):
-    tabelas = {
+def _validate_backup_schema(conn: sqlite3.Connection) -> Optional[str]:
+    tabelas: set[str] = {
         row[0]
         for row in conn.execute(
             "SELECT name FROM sqlite_master WHERE type = 'table'"
@@ -70,7 +73,7 @@ def _validate_backup_schema(conn):
     return None
 
 
-def _ensure_local_sqlite():
+def _ensure_local_sqlite() -> tuple[Optional[Path], Optional[tuple[Response, int]]]:
     db_path = _sqlite_db_path()
     if not db_path or not db_path.exists():
         msg = "Backup local disponivel apenas para o banco SQLite do app desktop."
@@ -78,10 +81,35 @@ def _ensure_local_sqlite():
     return db_path, None
 
 
+# ---------------------------------------------------------------------------
+# Health check (no auth required)
+# ---------------------------------------------------------------------------
+
+
+@sistema_bp.route("/health", methods=["GET"])
+def health_check() -> tuple[Response, int]:
+    """Lightweight health-check for load balancers and monitoring."""
+    return (
+        jsonify(
+            {
+                "status": "ok",
+                "version": APP_VERSION,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+        ),
+        200,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Backup info
+# ---------------------------------------------------------------------------
+
+
 @sistema_bp.route("/backup-info", methods=["GET"])
 @require_permissions("backup")
 @handle_errors
-def backup_info():
+def backup_info() -> tuple[Response, int]:
     db_path = _sqlite_db_path()
     if not db_path or not db_path.exists():
         msg = (
@@ -113,10 +141,15 @@ def backup_info():
     )
 
 
+# ---------------------------------------------------------------------------
+# Create backup
+# ---------------------------------------------------------------------------
+
+
 @sistema_bp.route("/backup", methods=["POST"])
 @require_permissions("backup")
 @handle_errors
-def criar_backup():
+def criar_backup() -> Any:
     db_path, error = _ensure_local_sqlite()
     if error:
         return error
@@ -142,17 +175,22 @@ def criar_backup():
     )
 
 
+# ---------------------------------------------------------------------------
+# Restore backup
+# ---------------------------------------------------------------------------
+
+
 @sistema_bp.route("/restaurar", methods=["POST"])
 @require_permissions("backup")
 @handle_errors
-def restaurar_backup():
+def restaurar_backup() -> tuple[Response, int]:
     db_path, error = _ensure_local_sqlite()
     if error:
         return error
 
     data = json_body()
-    arquivo_base64 = data.get("arquivo_base64", "")
-    nome_arquivo = (data.get("nome_arquivo") or "backup.sqlite3").strip()
+    arquivo_base64: str = data.get("arquivo_base64", "")
+    nome_arquivo: str = (data.get("nome_arquivo") or "backup.sqlite3").strip()
 
     if not isinstance(arquivo_base64, str) or not arquivo_base64:
         return jsonify({"erro": "Nenhum arquivo de backup enviado."}), 400
