@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 
-export function isOfflineNow(): boolean {
+export function isOfflineNow() {
   return typeof navigator !== "undefined" && navigator.onLine === false;
 }
 
-export function isNetworkError(error: any): boolean {
+export function isNetworkError(error) {
   if (isOfflineNow()) return true;
   if (!error) return false;
   if (!error.response) return true;
@@ -15,7 +15,7 @@ export function isNetworkError(error: any): boolean {
  * Register a callback that fires once when the browser transitions
  * from offline to online. Returns an unsubscribe function.
  */
-export function onOnline(cb: () => void): () => void {
+export function onOnline(cb) {
   let called = false;
   const handler = () => {
     if (!called) {
@@ -31,7 +31,7 @@ export function onOnline(cb: () => void): () => void {
   };
 }
 
-export function useNetworkStatus(): { online: boolean; offline: boolean } {
+export function useNetworkStatus() {
   const [online, setOnline] = useState(() => !isOfflineNow());
 
   useEffect(() => {

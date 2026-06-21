@@ -11,7 +11,7 @@ import {
   updateSyncItem,
 } from "./syncQueue";
 
-const TABLE_BY_ENTITY: Record<string, string> = {
+const TABLE_BY_ENTITY = {
   clientes: "clientes",
   ordensServico: "ordensServico",
 };
@@ -20,15 +20,13 @@ let processing = false;
 let onlineListenerAttached = false;
 
 /** Callbacks registered by the UI to show sync status toasts. */
-const listeners: Array<(event: SyncEvent) => void> = [];
+const listeners = [];
 
-export type SyncEvent =
-  | { type: "sync_started"; count: number }
-  | { type: "sync_completed"; processed: number }
-  | { type: "sync_failed"; item_id: string; error: string }
-  | { type: "retry_scheduled"; item_id: string; nextAttemptAt: string };
+/**
+ * @typedef {{ type: string, count?: number, processed?: number, item_id?: string, error?: string, nextAttemptAt?: string }} SyncEvent
+ */
 
-export function onSyncEvent(cb: (event: SyncEvent) => void): () => void {
+export function onSyncEvent(cb) {
   listeners.push(cb);
   return () => {
     const idx = listeners.indexOf(cb);
@@ -36,7 +34,7 @@ export function onSyncEvent(cb: (event: SyncEvent) => void): () => void {
   };
 }
 
-function emit(event: SyncEvent) {
+function emit(event) {
   for (const cb of listeners) {
     try {
       cb(event);
@@ -46,33 +44,32 @@ function emit(event: SyncEvent) {
   }
 }
 
-function isTransientError(error: any): boolean {
+function isTransientError(error) {
   const status = error?.response?.status;
   return isNetworkError(error) || [408, 429, 500, 502, 503, 504].includes(status);
 }
 
 /** Exponential backoff with jitter: 5s, 15s, 45s, 2min, 5min, 15min */
-function retryDelay(retries: number): number {
+function retryDelay(retries) {
   const schedule = [5000, 15000, 45000, 120000, 300000, 900000];
   const base = schedule[Math.min(retries, schedule.length - 1)];
-  // Add 20% jitter to prevent thundering herd
   const jitter = base * 0.2 * Math.random();
   return Math.round(base + jitter);
 }
 
-function isLocalId(id: string | number): boolean {
+function isLocalId(id) {
   return String(id || "").startsWith("local_");
 }
 
-async function callApi(item: any): Promise<any> {
+async function callApi(item) {
   if (item.method === "POST") return api.post(item.endpoint, item.payload);
   if (item.method === "PUT") return api.put(item.endpoint, item.payload);
   if (item.method === "PATCH") return api.patch(item.endpoint, item.payload);
   if (item.method === "DELETE") return api.delete(item.endpoint);
-  throw new Error(`Método não suportado: ${item.method}`);
+  throw new Error(`Metodo nao suportado: ${item.method}`);
 }
 
-async function applySuccess(item: any, response: any, user: any): Promise<void> {
+async function applySuccess(item, response, user) {
   const tableName = TABLE_BY_ENTITY[item.entityType];
   if (!tableName) return;
 
@@ -94,8 +91,7 @@ async function applySuccess(item: any, response: any, user: any): Promise<void> 
   await deleteSyncItem(item.id);
 }
 
-function serverMessage(error: any): string {
-  // Handle both old {"erro": "..."} and new {"error": {"message": "..."}} formats
+function serverMessage(error) {
   const errData = error?.response?.data;
   if (errData?.error?.message) return errData.error.message;
   if (errData?.erro) return errData.erro;
@@ -103,7 +99,7 @@ function serverMessage(error: any): string {
   return error?.message || "Erro ao sincronizar.";
 }
 
-async function applyFailure(item: any, error: any): Promise<void> {
+async function applyFailure(item, error) {
   const status = error?.response?.status;
   if ([400, 409].includes(status)) {
     const tableName = TABLE_BY_ENTITY[item.entityType];
@@ -164,10 +160,9 @@ async function applyFailure(item: any, error: any): Promise<void> {
   emit({ type: "sync_failed", item_id: item.id, error: serverMessage(error) });
 }
 
-export async function processSyncQueue(
-  user: any = getStoredUser(),
-  options: { force?: boolean } = {},
-): Promise<{ processed: number }> {
+export async function processSyncQueue(user, options) {
+  user = user || getStoredUser();
+  options = options || {};
   if (processing || !user?.id) return { processed: 0 };
   processing = true;
   let processed = 0;
@@ -192,7 +187,7 @@ export async function processSyncQueue(
         const response = await callApi(item);
         await applySuccess(item, response, user);
         processed += 1;
-      } catch (error: any) {
+      } catch (error) {
         await applyFailure(item, error);
         if ([401, 403].includes(error?.response?.status)) break;
       }
@@ -211,7 +206,7 @@ export async function processSyncQueue(
  * Auto-trigger sync when the browser comes back online.
  * Attaches a one-time listener on the window 'online' event.
  */
-export function enableAutoSyncOnReconnect(): void {
+export function enableAutoSyncOnReconnect() {
   if (onlineListenerAttached) return;
   onlineListenerAttached = true;
   onOnline(() => {
