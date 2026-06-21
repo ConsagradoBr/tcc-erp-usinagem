@@ -129,7 +129,9 @@ class Lancamento(db.Model):
     created_at = db.Column(db.DateTime, server_default=db.func.now())
 
     cliente = db.relationship("Cliente", backref="lancamentos", lazy=True)
-    orcamento = db.relationship("Orcamento", backref="lancamentos_vinculados", lazy=True)
+    orcamento = db.relationship(
+        "Orcamento", backref="lancamentos_vinculados", lazy=True
+    )
 
     def calcular_status(self):
         if self.data_pagamento:
@@ -190,7 +192,9 @@ class OrdemServico(db.Model):
     orcamento_id = db.Column(db.Integer, db.ForeignKey("orcamentos.id"), nullable=True)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
 
-    orcamento = db.relationship("Orcamento", backref="ordens_servico_vinculadas", lazy=True)
+    orcamento = db.relationship(
+        "Orcamento", backref="ordens_servico_vinculadas", lazy=True
+    )
 
     def to_dict(self):
         return {

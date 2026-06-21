@@ -91,23 +91,31 @@ def _garantir_fk_orcamento():
     orcamento_ids = {}
     try:
         from backend.models import Orcamento
+
         for orc in Orcamento.query.all():
             orcamento_ids[orc.numero] = orc.id
     except Exception:
         return
 
     if "ordens_servico" in inspector.get_table_names():
-        colunas_os = {coluna["name"] for coluna in inspector.get_columns("ordens_servico")}
+        colunas_os = {
+            coluna["name"] for coluna in inspector.get_columns("ordens_servico")
+        }
         if "orcamento_id" not in colunas_os:
-            db.session.execute(text("ALTER TABLE ordens_servico ADD COLUMN orcamento_id INTEGER"))
+            db.session.execute(
+                text("ALTER TABLE ordens_servico ADD COLUMN orcamento_id INTEGER")
+            )
             db.session.commit()
             logging.info("Coluna orcamento_id adicionada em ordens_servico.")
 
         if orcamento_ids:
             try:
                 from backend.models import OrdemServico
+
                 atualizados = 0
-                for os_item in OrdemServico.query.filter(OrdemServico.orcamento_id.is_(None)).all():
+                for os_item in OrdemServico.query.filter(
+                    OrdemServico.orcamento_id.is_(None)
+                ).all():
                     match = ORC_MARKER_RE.search(os_item.descricao or "")
                     if match:
                         numero = match.group(1)
@@ -116,23 +124,32 @@ def _garantir_fk_orcamento():
                             atualizados += 1
                 if atualizados:
                     db.session.commit()
-                    logging.info("Migrados %d orcamento_id em ordens_servico.", atualizados)
+                    logging.info(
+                        "Migrados %d orcamento_id em ordens_servico.", atualizados
+                    )
             except Exception:
                 db.session.rollback()
                 logging.exception("Erro ao migrar orcamento_id em ordens_servico.")
 
     if "lancamentos" in inspector.get_table_names():
-        colunas_lanc = {coluna["name"] for coluna in inspector.get_columns("lancamentos")}
+        colunas_lanc = {
+            coluna["name"] for coluna in inspector.get_columns("lancamentos")
+        }
         if "orcamento_id" not in colunas_lanc:
-            db.session.execute(text("ALTER TABLE lancamentos ADD COLUMN orcamento_id INTEGER"))
+            db.session.execute(
+                text("ALTER TABLE lancamentos ADD COLUMN orcamento_id INTEGER")
+            )
             db.session.commit()
             logging.info("Coluna orcamento_id adicionada em lancamentos.")
 
         if orcamento_ids:
             try:
                 from backend.models import Lancamento
+
                 atualizados = 0
-                for lanc in Lancamento.query.filter(Lancamento.orcamento_id.is_(None)).all():
+                for lanc in Lancamento.query.filter(
+                    Lancamento.orcamento_id.is_(None)
+                ).all():
                     match = ORC_MARKER_RE.search(lanc.descricao or "")
                     if match:
                         numero = match.group(1)
@@ -141,7 +158,9 @@ def _garantir_fk_orcamento():
                             atualizados += 1
                 if atualizados:
                     db.session.commit()
-                    logging.info("Migrados %d orcamento_id em lancamentos.", atualizados)
+                    logging.info(
+                        "Migrados %d orcamento_id em lancamentos.", atualizados
+                    )
             except Exception:
                 db.session.rollback()
                 logging.exception("Erro ao migrar orcamento_id em lancamentos.")

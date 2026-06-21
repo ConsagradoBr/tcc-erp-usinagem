@@ -7,13 +7,11 @@ from flask import Blueprint, jsonify, request
 from flask_jwt_extended import (
     create_access_token,
     create_refresh_token,
-    get_jwt_identity,
     verify_jwt_in_request,
 )
 from flask_jwt_extended.exceptions import JWTExtendedException
-from werkzeug.exceptions import HTTPException
 
-from backend.api_utils import http_error_response, internal_error, json_body
+from backend.api_utils import handle_errors, json_body
 from backend.extensions import db
 from backend.config import is_development_env
 from backend.models import LoginAttempt, TermoAceite, Usuario
@@ -295,9 +293,9 @@ def criar_usuario():
             ),
             201,
         )
-    except HTTPException as exc:
-        return http_error_response(exc)
     except Exception as exc:
+        from backend.api_utils import internal_error
+
         return internal_error(exc)
 
 
@@ -310,117 +308,111 @@ def listar_usuarios():
 
 @auth_bp.route("/usuarios/<int:usuario_id>", methods=["PUT"])
 @require_permissions("usuarios")
+@handle_errors
 def editar_usuario(usuario_id):
-    try:
-        usuario = db.session.get(Usuario, usuario_id)
-        if not usuario:
-            return jsonify({"erro": "Usuario nao encontrado."}), 404
+    usuario = db.session.get(Usuario, usuario_id)
+    if not usuario:
+        from backend.api_utils import error_response
 
-        data = _payload_json()
-        if "nome" in data:
-            nome = _normalizar_texto(data.get("nome"))
-            erro_nome = _validar_nome(nome)
-            if erro_nome:
-                return jsonify({"erro": erro_nome}), 400
-            usuario.nome = nome
+        return error_response("Usuario nao encontrado.", 404)
 
-        if "email" in data:
-            email = _normalizar_email(data.get("email"))
-            erro_email = _validar_email(email)
-            if erro_email:
-                return jsonify({"erro": erro_email}), 400
-            outro = Usuario.query.filter(
-                Usuario.email == email, Usuario.id != usuario.id
-            ).first()
-            if outro:
-                return (
-                    jsonify({"erro": "Ja existe outro usuario com este e-mail."}),
-                    400,
-                )
-            usuario.email = email
+    data = _payload_json()
+    if "nome" in data:
+        nome = _normalizar_texto(data.get("nome"))
+        erro_nome = _validar_nome(nome)
+        if erro_nome:
+            return jsonify({"erro": erro_nome}), 400
+        usuario.nome = nome
 
-        novo_perfil = usuario.perfil
-        if "perfil" in data:
-            perfil = normalizar_perfil(data.get("perfil"))
-            if not perfil:
-                return jsonify({"erro": "Perfil invalido."}), 400
-            novo_perfil = perfil
+    if "email" in data:
+        email = _normalizar_email(data.get("email"))
+        erro_email = _validar_email(email)
+        if erro_email:
+            return jsonify({"erro": erro_email}), 400
+        outro = Usuario.query.filter(
+            Usuario.email == email, Usuario.id != usuario.id
+        ).first()
+        if outro:
+            return (
+                jsonify({"erro": "Ja existe outro usuario com este e-mail."}),
+                400,
+            )
+        usuario.email = email
 
-        novo_ativo = usuario.ativo
-        if "ativo" in data:
-            novo_ativo = _coerce_bool(data.get("ativo"), default=usuario.ativo)
+    novo_perfil = usuario.perfil
+    if "perfil" in data:
+        perfil = normalizar_perfil(data.get("perfil"))
+        if not perfil:
+            return jsonify({"erro": "Perfil invalido."}), 400
+        novo_perfil = perfil
 
-        if (
-            (novo_perfil != "administrador" or not novo_ativo)
-            and usuario.perfil == "administrador"
-            and usuario.ativo
-            and _contar_administradores_ativos(excluir_id=usuario.id) == 0
-        ):
-            msg = "O sistema precisa manter pelo menos um administrador " "ativo."
-            return jsonify({"erro": msg}), 400
+    novo_ativo = usuario.ativo
+    if "ativo" in data:
+        novo_ativo = _coerce_bool(data.get("ativo"), default=usuario.ativo)
 
-        usuario.perfil = novo_perfil
-        usuario.ativo = novo_ativo
+    if (
+        (novo_perfil != "administrador" or not novo_ativo)
+        and usuario.perfil == "administrador"
+        and usuario.ativo
+        and _contar_administradores_ativos(excluir_id=usuario.id) == 0
+    ):
+        msg = "O sistema precisa manter pelo menos um administrador ativo."
+        return jsonify({"erro": msg}), 400
 
-        senha = _normalizar_texto(data.get("senha"))
-        if senha:
-            erro_senha = _validar_senha(senha)
-            if erro_senha:
-                return jsonify({"erro": erro_senha}), 400
-            usuario.set_password(senha)
+    usuario.perfil = novo_perfil
+    usuario.ativo = novo_ativo
 
-        db.session.commit()
-        return (
-            jsonify(
-                {
-                    "mensagem": "Usuario atualizado com sucesso!",
-                    "user": serializar_usuario(usuario),
-                }
-            ),
-            200,
-        )
-    except HTTPException as exc:
-        return http_error_response(exc)
-    except Exception as exc:
-        return internal_error(exc)
+    senha = _normalizar_texto(data.get("senha"))
+    if senha:
+        erro_senha = _validar_senha(senha)
+        if erro_senha:
+            return jsonify({"erro": erro_senha}), 400
+        usuario.set_password(senha)
+
+    db.session.commit()
+    return (
+        jsonify(
+            {
+                "mensagem": "Usuario atualizado com sucesso!",
+                "user": serializar_usuario(usuario),
+            }
+        ),
+        200,
+    )
 
 
 @auth_bp.route("/usuarios/<int:usuario_id>", methods=["DELETE"])
 @require_permissions("usuarios")
+@handle_errors
 def excluir_usuario(usuario_id):
-    try:
-        usuario = db.session.get(Usuario, usuario_id)
-        if not usuario:
-            return jsonify({"erro": "Usuario nao encontrado."}), 404
+    usuario = db.session.get(Usuario, usuario_id)
+    if not usuario:
+        from backend.api_utils import error_response
 
-        usuario_atual = get_current_usuario()
-        if usuario_atual and usuario.id == usuario_atual.id:
-            return (
-                jsonify({"erro": "Nao e possivel excluir o proprio usuario logado."}),
-                400,
-            )
+        return error_response("Usuario nao encontrado.", 404)
 
-        if (
-            usuario.perfil == "administrador"
-            and usuario.ativo
-            and _contar_administradores_ativos(excluir_id=usuario.id) == 0
-        ):
-            return (
-                jsonify(
-                    {
-                        "erro": "O sistema precisa manter pelo menos um administrador ativo."
-                    }
-                ),
-                400,
-            )
+    usuario_atual = get_current_usuario()
+    if usuario_atual and usuario.id == usuario_atual.id:
+        return (
+            jsonify({"erro": "Nao e possivel excluir o proprio usuario logado."}),
+            400,
+        )
 
-        db.session.delete(usuario)
-        db.session.commit()
-        return jsonify({"mensagem": "Usuario excluido com sucesso."}), 200
-    except HTTPException as exc:
-        return http_error_response(exc)
-    except Exception as exc:
-        return internal_error(exc)
+    if (
+        usuario.perfil == "administrador"
+        and usuario.ativo
+        and _contar_administradores_ativos(excluir_id=usuario.id) == 0
+    ):
+        return (
+            jsonify(
+                {"erro": "O sistema precisa manter pelo menos um administrador ativo."}
+            ),
+            400,
+        )
+
+    db.session.delete(usuario)
+    db.session.commit()
+    return jsonify({"mensagem": "Usuario excluido com sucesso."}), 200
 
 
 @auth_bp.route("/perfis", methods=["GET"])
@@ -442,75 +434,69 @@ def listar_perfis():
 
 
 @auth_bp.route("/login", methods=["POST"])
+@handle_errors
 def login():
-    try:
-        data = _payload_json()
-        email, senha, erro = _validar_credenciais_login(data)
-        if erro:
-            return erro
-        if _login_bloqueado(email):
+    data = _payload_json()
+    email, senha, erro = _validar_credenciais_login(data)
+    if erro:
+        return erro
+    if _login_bloqueado(email):
+        return (
+            jsonify(
+                {"erro": "Muitas tentativas. Aguarde alguns minutos e tente novamente."}
+            ),
+            429,
+        )
+    usuario = Usuario.query.filter_by(email=email).first()
+    if not usuario or not usuario.check_password(senha):
+        _registrar_falha_login(email)
+        return jsonify({"erro": "Credenciais invalidas."}), 401
+    if not usuario.ativo:
+        return (
+            jsonify(
+                {"erro": "Usuario desativado. Procure um administrador do sistema."}
+            ),
+            403,
+        )
+    if not _usuario_aceitou_termos_vigentes(usuario):
+        if not _coerce_bool(data.get("aceite_termos"), default=False):
             return (
                 jsonify(
                     {
-                        "erro": "Muitas tentativas. Aguarde alguns minutos e tente novamente."
+                        "erro": "E necessario aceitar os termos para acessar o sistema.",
+                        "codigo": "TERMS_REQUIRED",
+                        "versao_termo": TERMS_VERSION,
                     }
-                ),
-                429,
-            )
-        usuario = Usuario.query.filter_by(email=email).first()
-        if not usuario or not usuario.check_password(senha):
-            _registrar_falha_login(email)
-            return jsonify({"erro": "Credenciais invalidas."}), 401
-        if not usuario.ativo:
-            return (
-                jsonify(
-                    {"erro": "Usuario desativado. Procure um administrador do sistema."}
                 ),
                 403,
             )
-        if not _usuario_aceitou_termos_vigentes(usuario):
-            if not _coerce_bool(data.get("aceite_termos"), default=False):
-                return (
-                    jsonify(
-                        {
-                            "erro": "E necessario aceitar os termos para acessar o sistema.",
-                            "codigo": "TERMS_REQUIRED",
-                            "versao_termo": TERMS_VERSION,
-                        }
-                    ),
-                    403,
-                )
-            _registrar_aceite_termos(usuario)
+        _registrar_aceite_termos(usuario)
 
-        user_payload = serializar_usuario(usuario)
-        _limpar_falhas_login(email)
-        access_token = create_access_token(
-            identity=str(usuario.id),
-            additional_claims={
-                "nome": usuario.nome,
-                "email": usuario.email,
-                "perfil": usuario.perfil,
-                "permissoes": user_payload["permissoes"],
-            },
-        )
-        refresh_token = create_refresh_token(
-            identity=str(usuario.id),
-        )
-        return (
-            jsonify(
-                {
-                    "mensagem": "Login bem-sucedido!",
-                    "token": access_token,
-                    "refresh_token": refresh_token,
-                    "user": user_payload,
-                }
-            ),
-            200,
-        )
-    except HTTPException as exc:
-        return http_error_response(exc)
-    except Exception as exc:
-        return internal_error(exc)
+    user_payload = serializar_usuario(usuario)
+    _limpar_falhas_login(email)
+    access_token = create_access_token(
+        identity=str(usuario.id),
+        additional_claims={
+            "nome": usuario.nome,
+            "email": usuario.email,
+            "perfil": usuario.perfil,
+            "permissoes": user_payload["permissoes"],
+        },
+    )
+    refresh_token = create_refresh_token(
+        identity=str(usuario.id),
+    )
+    return (
+        jsonify(
+            {
+                "mensagem": "Login bem-sucedido!",
+                "token": access_token,
+                "refresh_token": refresh_token,
+                "user": user_payload,
+            }
+        ),
+        200,
+    )
 
 
 @auth_bp.route("/perfil", methods=["GET"])
@@ -525,41 +511,39 @@ def perfil():
 
 @auth_bp.route("/refresh", methods=["POST"])
 @require_permissions()
+@handle_errors
 def refresh():
-    try:
-        usuario = get_current_usuario()
-        if not usuario:
-            return jsonify({"erro": "Usuario nao encontrado."}), 401
-        if not usuario.ativo:
-            return (
-                jsonify({"erro": "Usuario desativado."}),
-                403,
-            )
-        user_payload = serializar_usuario(usuario)
-        access_token = create_access_token(
-            identity=str(usuario.id),
-            additional_claims={
-                "nome": usuario.nome,
-                "email": usuario.email,
-                "perfil": usuario.perfil,
-                "permissoes": user_payload["permissoes"],
-            },
-        )
-        refresh_token = create_refresh_token(
-            identity=str(usuario.id),
-        )
+    usuario = get_current_usuario()
+    if not usuario:
+        from backend.api_utils import error_response
+
+        return error_response("Usuario nao encontrado.", 401)
+    if not usuario.ativo:
         return (
-            jsonify(
-                {
-                    "mensagem": "Token renovado!",
-                    "token": access_token,
-                    "refresh_token": refresh_token,
-                    "user": user_payload,
-                }
-            ),
-            200,
+            jsonify({"erro": "Usuario desativado."}),
+            403,
         )
-    except HTTPException as exc:
-        return http_error_response(exc)
-    except Exception as exc:
-        return internal_error(exc)
+    user_payload = serializar_usuario(usuario)
+    access_token = create_access_token(
+        identity=str(usuario.id),
+        additional_claims={
+            "nome": usuario.nome,
+            "email": usuario.email,
+            "perfil": usuario.perfil,
+            "permissoes": user_payload["permissoes"],
+        },
+    )
+    refresh_token = create_refresh_token(
+        identity=str(usuario.id),
+    )
+    return (
+        jsonify(
+            {
+                "mensagem": "Token renovado!",
+                "token": access_token,
+                "refresh_token": refresh_token,
+                "user": user_payload,
+            }
+        ),
+        200,
+    )

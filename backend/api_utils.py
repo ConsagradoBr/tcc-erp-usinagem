@@ -1,11 +1,16 @@
 import logging
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
+from functools import wraps
 
 from flask import jsonify, request
 from werkzeug.exceptions import BadRequest, HTTPException
 
 from backend.extensions import db
+
+# ---------------------------------------------------------------------------
+# Core helpers
+# ---------------------------------------------------------------------------
 
 
 def json_body():
@@ -44,6 +49,29 @@ def get_or_404(model, entity_id, message):
     return entity, None
 
 
+# ---------------------------------------------------------------------------
+# Decorator: error handling (eliminates try/except duplicado em todo blueprint)
+# ---------------------------------------------------------------------------
+
+
+def handle_errors(fn):
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        try:
+            return fn(*args, **kwargs)
+        except HTTPException as exc:
+            return http_error_response(exc)
+        except Exception as exc:
+            return internal_error(exc)
+
+    return wrapper
+
+
+# ---------------------------------------------------------------------------
+# Pagination
+# ---------------------------------------------------------------------------
+
+
 def parse_pagination(args):
     try:
         page = max(int(args.get("page", 1)), 1)
@@ -55,9 +83,43 @@ def parse_pagination(args):
 
 def pagination_response(query, page, per_page, serialize_fn):
     total = query.count()
-    items = [serialize_fn(item) for item in query.offset((page - 1) * per_page).limit(per_page).all()]
+    items = [
+        serialize_fn(item)
+        for item in query.offset((page - 1) * per_page).limit(per_page).all()
+    ]
     pages = (total + per_page - 1) // per_page
-    return jsonify({"items": items, "total": total, "page": page, "per_page": per_page, "pages": pages}), 200
+    return (
+        jsonify(
+            {
+                "items": items,
+                "total": total,
+                "page": page,
+                "per_page": per_page,
+                "pages": pages,
+            }
+        ),
+        200,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Date helpers
+# ---------------------------------------------------------------------------
+
+
+def month_boundaries(ref_date=None):
+    hoje = ref_date or date.today()
+    primeiro_dia = hoje.replace(day=1)
+    if hoje.month == 12:
+        ultimo_dia = date(hoje.year + 1, 1, 1) - timedelta(days=1)
+    else:
+        ultimo_dia = date(hoje.year, hoje.month + 1, 1) - timedelta(days=1)
+    return hoje, primeiro_dia, ultimo_dia
+
+
+# ---------------------------------------------------------------------------
+# Validation helpers
+# ---------------------------------------------------------------------------
 
 
 def texto_obrigatorio(value, campo):
@@ -122,6 +184,7 @@ def parse_cliente_id(value):
     if cliente_id <= 0:
         return None, error_response("Cliente invalido.")
     from backend.models import Cliente
+
     if not db.session.get(Cliente, cliente_id):
         return None, error_response("Cliente nao encontrado.", 404)
     return cliente_id, None

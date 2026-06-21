@@ -1,25 +1,24 @@
 import base64
 import binascii
 import io
-import logging
 import re
 from datetime import date, timedelta
-from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
+from decimal import Decimal, ROUND_HALF_UP
 
 from flask import Blueprint, jsonify, request
-from werkzeug.exceptions import HTTPException
 
 from backend.api_utils import (
     error_response,
     get_or_404,
-    http_error_response,
-    internal_error,
+    handle_errors,
     json_body,
+    month_boundaries,
     parse_cliente_id,
     parse_data,
     parse_int,
-    parse_valor_positivo,
     parse_pagination,
+    parse_valor_positivo,
+    pagination_response,
     texto_obrigatorio,
     texto_opcional,
 )
@@ -30,6 +29,11 @@ from backend.security import require_permissions
 
 financeiro_bp = Blueprint("financeiro", __name__, url_prefix="/financeiro")
 MAX_BOLETO_PDF_BYTES = 5 * 1024 * 1024
+
+
+# ---------------------------------------------------------------------------
+# Domain helpers
+# ---------------------------------------------------------------------------
 
 
 def descricao_base(texto):
@@ -62,514 +66,457 @@ def distribuir_valor_total(valor_total, parcelas):
     return [float(Decimal(valor) / Decimal("100")) for valor in valores]
 
 
+def _aplicar_filtros_query(query, hoje, tipo, status, q, filtro_rapido):
+    if tipo:
+        query = query.filter(Lancamento.tipo == tipo)
+    if q:
+        query = query.join(Cliente, isouter=True).filter(
+            db.or_(
+                Lancamento.descricao.ilike(f"%{q}%"),
+                Lancamento.nfe.ilike(f"%{q}%"),
+                Cliente.nome.ilike(f"%{q}%"),
+            )
+        )
+    _aplicar_filtro_rapido(query, filtro_rapido, hoje)
+    _aplicar_filtro_status(query, status, hoje)
+    return query
+
+
+def _aplicar_filtro_rapido(query, filtro_rapido, hoje):
+    filtros = {
+        "receber": Lancamento.tipo == "receber",
+        "pagar": Lancamento.tipo == "pagar",
+        "atrasado": db.and_(
+            Lancamento.data_pagamento.is_(None), Lancamento.vencimento < hoje
+        ),
+        "parcelado": Lancamento.parcelas > 1,
+        "sem_vinculo": Lancamento.cliente_id.is_(None),
+    }
+    if filtro_rapido in filtros:
+        query = query.filter(filtros[filtro_rapido])
+
+
+def _aplicar_filtro_status(query, status, hoje):
+    if status == "pago":
+        query = query.filter(Lancamento.data_pagamento.isnot(None))
+    elif status == "pendente":
+        query = query.filter(
+            Lancamento.data_pagamento.is_(None), Lancamento.vencimento >= hoje
+        )
+    elif status == "atrasado":
+        query = query.filter(
+            Lancamento.data_pagamento.is_(None), Lancamento.vencimento < hoje
+        )
+
+
+def _validar_campos_lancamento(data, parcelas_atuais=1):
+    tipo = (
+        (data.get("tipo", "") or "").strip()
+        if isinstance(data.get("tipo"), str)
+        else ""
+    )
+    descricao, error = texto_obrigatorio(data.get("descricao", ""), "Descricao")
+    if error:
+        return None, error
+    base_vencimento, error = parse_data(
+        data.get("vencimento"), "Vencimento", obrigatorio=True
+    )
+    if error:
+        return None, error
+    if tipo not in ("receber", "pagar"):
+        return None, error_response("Tipo invalido.")
+    n_parcelas, error = parse_int(
+        data.get("parcelas", parcelas_atuais),
+        "Parcelas",
+        minimo=1,
+        padrao=parcelas_atuais,
+    )
+    if error:
+        return None, error
+    valor_total, error = parse_valor_positivo(data.get("valor", 0))
+    if error:
+        return None, error
+    cliente_id, error = parse_cliente_id(data.get("cliente_id"))
+    if error:
+        return None, error
+    prazo_dias, error = parse_int(
+        data.get("prazo_dias", 30), "Prazo em dias", minimo=0, padrao=30
+    )
+    if error:
+        return None, error
+    nfe, error = texto_opcional(data.get("nfe"), "NFe")
+    if error:
+        return None, error
+    forma_pagamento, error = texto_opcional(
+        data.get("forma_pagamento"), "Forma de pagamento"
+    )
+    if error:
+        return None, error
+    observacao, error = texto_opcional(data.get("observacao"), "Observacao")
+    if error:
+        return None, error
+
+    return {
+        "tipo": tipo,
+        "descricao": descricao,
+        "base_vencimento": base_vencimento,
+        "n_parcelas": n_parcelas,
+        "valor_total": valor_total,
+        "cliente_id": cliente_id,
+        "prazo_dias": prazo_dias,
+        "nfe": nfe,
+        "forma_pagamento": forma_pagamento,
+        "observacao": observacao,
+    }, None
+
+
+def _criar_parcelas(campos, data, data_pagamento=None):
+    valores = distribuir_valor_total(campos["valor_total"], campos["n_parcelas"])
+    criados = []
+    for indice, valor_parcela in enumerate(valores):
+        vencimento = campos["base_vencimento"] + timedelta(
+            days=campos["prazo_dias"] * indice
+        )
+        lancamento = Lancamento(
+            tipo=campos["tipo"],
+            cliente_id=campos["cliente_id"],
+            descricao=(
+                campos["descricao"]
+                if campos["n_parcelas"] == 1
+                else f"{campos['descricao']} ({indice + 1}/{campos['n_parcelas']})"
+            ),
+            nfe=campos["nfe"],
+            prazo_dias=(
+                campos["prazo_dias"]
+                if campos["n_parcelas"] > 1 or "prazo_dias" in data
+                else None
+            ),
+            vencimento=vencimento,
+            valor=valor_parcela,
+            forma_pagamento=campos["forma_pagamento"],
+            observacao=campos["observacao"],
+            parcelas=campos["n_parcelas"],
+            parcela_num=indice + 1,
+            data_pagamento=data_pagamento,
+        )
+        db.session.add(lancamento)
+        criados.append(lancamento)
+    return criados
+
+
+def _reparcelar_grupo(grupo_atual, campos, data):
+    if any(item.data_pagamento for item in grupo_atual):
+        return None, error_response(
+            "Nao e possivel reparcelar um grupo com parcelas pagas."
+        )
+
+    valores = distribuir_valor_total(campos["valor_total"], campos["n_parcelas"])
+    base = descricao_base(campos["descricao"])
+
+    for item in grupo_atual:
+        db.session.delete(item)
+    db.session.flush()
+
+    criados = []
+    for indice, valor_parcela in enumerate(valores):
+        item = Lancamento(
+            tipo=campos["tipo"],
+            cliente_id=campos["cliente_id"],
+            descricao=(
+                base
+                if campos["n_parcelas"] == 1
+                else f"{base} ({indice + 1}/{campos['n_parcelas']})"
+            ),
+            nfe=campos["nfe"] or None,
+            prazo_dias=(
+                campos["prazo_dias"]
+                if campos["n_parcelas"] > 1
+                else (campos["prazo_dias"] if "prazo_dias" in data else None)
+            ),
+            vencimento=campos["base_vencimento"]
+            + timedelta(days=campos["prazo_dias"] * indice),
+            valor=valor_parcela,
+            forma_pagamento=campos["forma_pagamento"],
+            observacao=campos["observacao"] or None,
+            parcelas=campos["n_parcelas"],
+            parcela_num=indice + 1,
+            data_pagamento=None,
+        )
+        db.session.add(item)
+        criados.append(item)
+    return criados, None
+
+
+# ---------------------------------------------------------------------------
+# Routes
+# ---------------------------------------------------------------------------
+
+
 @financeiro_bp.route("", methods=["GET"])
 @require_permissions("financeiro")
+@handle_errors
 def listar_lancamentos():
-    try:
-        tipo = request.args.get("tipo", "").strip()
-        status = request.args.get("status", "").strip()
-        q = request.args.get("q", "").strip()
-        filtro_rapido = request.args.get("filtro_rapido", "").strip()
-        page, per_page = parse_pagination(request.args)
+    tipo = request.args.get("tipo", "").strip()
+    status = request.args.get("status", "").strip()
+    q = request.args.get("q", "").strip()
+    filtro_rapido = request.args.get("filtro_rapido", "").strip()
+    page, per_page = parse_pagination(request.args)
 
-        hoje = date.today()
-        query = Lancamento.query
-
-        if tipo:
-            query = query.filter(Lancamento.tipo == tipo)
-        if q:
-            query = query.join(Cliente, isouter=True).filter(
-                db.or_(
-                    Lancamento.descricao.ilike(f"%{q}%"),
-                    Lancamento.nfe.ilike(f"%{q}%"),
-                    Cliente.nome.ilike(f"%{q}%"),
-                )
-            )
-
-        # quick filters — aplicados no SQL
-        if filtro_rapido == "receber":
-            query = query.filter(Lancamento.tipo == "receber")
-        elif filtro_rapido == "pagar":
-            query = query.filter(Lancamento.tipo == "pagar")
-        elif filtro_rapido == "atrasado":
-            query = query.filter(
-                Lancamento.data_pagamento.is_(None),
-                Lancamento.vencimento < hoje,
-            )
-        elif filtro_rapido == "parcelado":
-            query = query.filter(Lancamento.parcelas > 1)
-        elif filtro_rapido == "sem_vinculo":
-            query = query.filter(Lancamento.cliente_id.is_(None))
-
-        # status filter (pago/pendente/atrasado) — aplicado no SQL
-        if status:
-            if status == "pago":
-                query = query.filter(Lancamento.data_pagamento.isnot(None))
-            elif status == "pendente":
-                query = query.filter(
-                    Lancamento.data_pagamento.is_(None),
-                    Lancamento.vencimento >= hoje,
-                )
-            elif status == "atrasado":
-                query = query.filter(
-                    Lancamento.data_pagamento.is_(None),
-                    Lancamento.vencimento < hoje,
-                )
-
-        total = query.count()
-        items = [
-            lancamento.to_dict()
-            for lancamento in query.order_by(Lancamento.vencimento.asc())
-            .offset((page - 1) * per_page)
-            .limit(per_page)
-            .all()
-        ]
-        pages = (total + per_page - 1) // per_page
-        return (
-            jsonify(
-                {
-                    "items": items,
-                    "total": total,
-                    "page": page,
-                    "per_page": per_page,
-                    "pages": pages,
-                }
-            ),
-            200,
-        )
-    except HTTPException as exc:
-        return http_error_response(exc)
-    except Exception as exc:
-        return internal_error(exc)
+    hoje = date.today()
+    query = Lancamento.query
+    _aplicar_filtros_query(query, hoje, tipo, status, q, filtro_rapido)
+    return pagination_response(
+        query.order_by(Lancamento.vencimento.asc()),
+        page,
+        per_page,
+        lambda item: item.to_dict(),
+    )
 
 
 @financeiro_bp.route("/<int:id>", methods=["GET"])
 @require_permissions("financeiro")
+@handle_errors
 def obter_lancamento(id):
-    try:
-        lancamento, error = get_or_404(Lancamento, id, "Lancamento nao encontrado.")
-        if error:
-            return error
-        return jsonify(lancamento.to_dict()), 200
-    except HTTPException as exc:
-        return http_error_response(exc)
-    except Exception as exc:
-        return internal_error(exc)
+    lancamento, error = get_or_404(Lancamento, id, "Lancamento nao encontrado.")
+    if error:
+        return error
+    return jsonify(lancamento.to_dict()), 200
 
 
 @financeiro_bp.route("/resumo", methods=["GET"])
 @require_permissions("financeiro")
+@handle_errors
 def resumo():
-    try:
-        hoje = date.today()
-        primeiro_dia = hoje.replace(day=1)
-        if hoje.month == 12:
-            ultimo_dia = date(hoje.year + 1, 1, 1) - timedelta(days=1)
-        else:
-            ultimo_dia = date(hoje.year, hoje.month + 1, 1) - timedelta(days=1)
+    hoje, primeiro_dia, ultimo_dia = month_boundaries()
 
-        a_receber = round(
-            float(
-                db.session.query(db.func.coalesce(db.func.sum(Lancamento.valor), 0))
-                .filter(
-                    Lancamento.tipo == "receber", Lancamento.data_pagamento.is_(None)
-                )
-                .scalar()
-                or 0
-            ),
-            2,
-        )
+    def _sum(tipo, data_inicio=None, data_fim=None):
+        query = db.session.query(
+            db.func.coalesce(db.func.sum(Lancamento.valor), 0)
+        ).filter(Lancamento.tipo == tipo, Lancamento.data_pagamento.is_(None))
+        if data_inicio:
+            query = query.filter(Lancamento.data_pagamento >= data_inicio)
+        if data_fim:
+            query = query.filter(Lancamento.data_pagamento <= data_fim)
+        return round(float(query.scalar() or 0), 2)
 
-        a_pagar = round(
-            float(
-                db.session.query(db.func.coalesce(db.func.sum(Lancamento.valor), 0))
-                .filter(Lancamento.tipo == "pagar", Lancamento.data_pagamento.is_(None))
-                .scalar()
-                or 0
-            ),
-            2,
-        )
-
-        atrasados = Lancamento.query.filter(
-            Lancamento.data_pagamento.is_(None), Lancamento.vencimento < hoje
-        ).count()
-
-        recebido_mes = round(
-            float(
-                db.session.query(db.func.coalesce(db.func.sum(Lancamento.valor), 0))
-                .filter(
-                    Lancamento.tipo == "receber",
-                    Lancamento.data_pagamento >= primeiro_dia,
-                    Lancamento.data_pagamento <= ultimo_dia,
-                )
-                .scalar()
-                or 0
-            ),
-            2,
-        )
-
-        return (
-            jsonify(
-                {
-                    "a_receber": a_receber,
-                    "a_pagar": a_pagar,
-                    "atrasados": atrasados,
-                    "recebido_mes": recebido_mes,
-                }
-            ),
-            200,
-        )
-    except HTTPException as exc:
-        return http_error_response(exc)
-    except Exception as exc:
-        return internal_error(exc)
+    return (
+        jsonify(
+            {
+                "a_receber": _sum("receber"),
+                "a_pagar": _sum("pagar"),
+                "atrasados": Lancamento.query.filter(
+                    Lancamento.data_pagamento.is_(None),
+                    Lancamento.vencimento < hoje,
+                ).count(),
+                "recebido_mes": _sum("receber", primeiro_dia, ultimo_dia),
+            }
+        ),
+        200,
+    )
 
 
 @financeiro_bp.route("", methods=["POST"])
 @require_permissions("financeiro")
+@handle_errors
 def criar_lancamento():
-    try:
-        data = json_body()
-        tipo = data.get("tipo", "")
-        tipo = tipo.strip() if isinstance(tipo, str) else ""
-        descricao, error = texto_obrigatorio(data.get("descricao", ""), "Descrição")
-        if error:
-            return error
-        base_vencimento, error = parse_data(
-            data.get("vencimento"), "Vencimento", obrigatorio=True
-        )
-        if error:
-            return error
-        if tipo not in ("receber", "pagar"):
-            return error_response("Tipo inválido.")
-        n_parcelas, error = parse_int(
-            data.get("parcelas", 1), "Parcelas", minimo=1, padrao=1
-        )
-        if error:
-            return error
-        valor_total, error = parse_valor_positivo(data.get("valor", 0))
-        if error:
-            return error
-        cliente_id, error = parse_cliente_id(data.get("cliente_id"))
-        if error:
-            return error
-        prazo_dias, error = parse_int(
-            data.get("prazo_dias", 30), "Prazo em dias", minimo=0, padrao=30
-        )
-        if error:
-            return error
-        nfe, error = texto_opcional(data.get("nfe"), "NFe")
-        if error:
-            return error
-        forma_pagamento, error = texto_opcional(
-            data.get("forma_pagamento"), "Forma de pagamento"
-        )
-        if error:
-            return error
-        observacao, error = texto_opcional(data.get("observacao"), "Observacao")
-        if error:
-            return error
-        valores = distribuir_valor_total(valor_total, n_parcelas)
-        criados = []
-        for indice, valor_parcela in enumerate(valores):
-            vencimento = base_vencimento + timedelta(days=prazo_dias * indice)
-            lancamento = Lancamento(
-                tipo=tipo,
-                cliente_id=cliente_id,
-                descricao=(
-                    descricao
-                    if n_parcelas == 1
-                    else f"{descricao} ({indice + 1}/{n_parcelas})"
-                ),
-                nfe=nfe,
-                prazo_dias=(
-                    prazo_dias if n_parcelas > 1 or "prazo_dias" in data else None
-                ),
-                vencimento=vencimento,
-                valor=valor_parcela,
-                forma_pagamento=forma_pagamento,
-                observacao=observacao,
-                parcelas=n_parcelas,
-                parcela_num=indice + 1,
-            )
-            db.session.add(lancamento)
-            criados.append(lancamento)
-        db.session.commit()
-        return (
-            jsonify(
-                [item.to_dict() for item in criados]
-                if n_parcelas > 1
-                else criados[0].to_dict()
-            ),
-            201,
-        )
-    except HTTPException as exc:
-        return http_error_response(exc)
-    except Exception as exc:
-        return internal_error(exc)
+    campos, error = _validar_campos_lancamento(json_body())
+    if error:
+        return error
+    criados = _criar_parcelas(campos, json_body())
+    db.session.commit()
+    return (
+        jsonify(
+            [item.to_dict() for item in criados]
+            if campos["n_parcelas"] > 1
+            else criados[0].to_dict()
+        ),
+        201,
+    )
 
 
 @financeiro_bp.route("/<int:id>", methods=["PUT"])
 @require_permissions("financeiro")
+@handle_errors
 def editar_lancamento(id):
-    try:
-        lancamento, error = get_or_404(Lancamento, id, "Lancamento nao encontrado.")
+    lancamento, error = get_or_404(Lancamento, id, "Lancamento nao encontrado.")
+    if error:
+        return error
+    data = json_body()
+    grupo_atual = consultar_grupo(lancamento)
+    parcelas_atuais = max(int(lancamento.parcelas or 1), 1)
+
+    if "tipo" not in data:
+        data["tipo"] = lancamento.tipo
+    campos, error = _validar_campos_lancamento(data, parcelas_atuais)
+    if error:
+        return error
+
+    if "valor" in data:
+        pass  # ja validado em _validar_campos_lancamento
+    elif parcelas_atuais > 1:
+        campos["valor_total"] = sum(float(item.valor) for item in grupo_atual)
+    else:
+        campos["valor_total"] = float(lancamento.valor)
+
+    vencimento, error = parse_data(data.get("vencimento"), "Vencimento")
+    if error:
+        return error
+    campos["base_vencimento"] = vencimento or lancamento.vencimento
+
+    data_pagamento, error = parse_data(data.get("data_pagamento"), "Pagamento")
+    if error:
+        return error
+    if "data_pagamento" not in data:
+        data_pagamento = lancamento.data_pagamento
+
+    usa_grupo = campos["n_parcelas"] > 1 or parcelas_atuais > 1
+    if usa_grupo:
+        criados, error = _reparcelar_grupo(grupo_atual, campos, data)
         if error:
             return error
-        data = json_body()
-        grupo_atual = consultar_grupo(lancamento)
-        parcelas_atuais = max(int(lancamento.parcelas or 1), 1)
-
-        tipo = data.get("tipo", lancamento.tipo)
-        tipo = tipo.strip() if isinstance(tipo, str) else ""
-        if tipo not in ("receber", "pagar"):
-            return error_response("Tipo inválido.")
-
-        descricao = data.get("descricao", lancamento.descricao)
-        descricao, error = texto_obrigatorio(descricao, "Descrição")
-        if error:
-            return error
-        cliente_id = data.get("cliente_id", lancamento.cliente_id)
-        cliente_id, error = parse_cliente_id(cliente_id)
-        if error:
-            return error
-        nfe = data.get("nfe", lancamento.nfe)
-        nfe, error = texto_opcional(nfe, "NFe")
-        if error:
-            return error
-        prazo_dias = data.get("prazo_dias", lancamento.prazo_dias)
-        prazo_dias, error = parse_int(prazo_dias, "Prazo em dias", minimo=0, padrao=30)
-        if error:
-            return error
-        vencimento, error = parse_data(data.get("vencimento"), "Vencimento")
-        if error:
-            return error
-        vencimento = vencimento or lancamento.vencimento
-        forma_pagamento = data.get("forma_pagamento", lancamento.forma_pagamento)
-        forma_pagamento, error = texto_opcional(forma_pagamento, "Forma de pagamento")
-        if error:
-            return error
-        observacao = data.get("observacao", lancamento.observacao)
-        observacao, error = texto_opcional(observacao, "Observacao")
-        if error:
-            return error
-        data_pagamento, error = parse_data(data.get("data_pagamento"), "Pagamento")
-        if error:
-            return error
-        if "data_pagamento" not in data:
-            data_pagamento = lancamento.data_pagamento
-        parcelas_desejadas, error = parse_int(
-            data.get("parcelas", parcelas_atuais),
-            "Parcelas",
-            minimo=1,
-            padrao=parcelas_atuais,
-        )
-        if error:
-            return error
-
-        if "valor" in data:
-            valor_total, error = parse_valor_positivo(data["valor"])
-            if error:
-                return error
-        elif parcelas_atuais > 1:
-            valor_total = sum(float(item.valor) for item in grupo_atual)
-        else:
-            valor_total = float(lancamento.valor)
-        if valor_total <= 0:
-            return error_response("Valor deve ser maior que zero.")
-
-        usa_grupo = parcelas_desejadas > 1 or parcelas_atuais > 1
-        if usa_grupo:
-            if any(item.data_pagamento for item in grupo_atual):
-                return (
-                    jsonify(
-                        {
-                            "erro": "Nao e possivel reparcelar um grupo com parcelas pagas."
-                        }
-                    ),
-                    400,
-                )
-
-            valores = distribuir_valor_total(valor_total, parcelas_desejadas)
-            base = descricao_base(descricao)
-
-            for item in grupo_atual:
-                db.session.delete(item)
-            db.session.flush()
-
-            criados = []
-            for indice, valor_parcela in enumerate(valores):
-                item = Lancamento(
-                    tipo=tipo,
-                    cliente_id=cliente_id,
-                    descricao=(
-                        base
-                        if parcelas_desejadas == 1
-                        else f"{base} ({indice + 1}/{parcelas_desejadas})"
-                    ),
-                    nfe=nfe or None,
-                    prazo_dias=(
-                        prazo_dias
-                        if parcelas_desejadas > 1
-                        else (prazo_dias if "prazo_dias" in data else None)
-                    ),
-                    vencimento=vencimento + timedelta(days=prazo_dias * indice),
-                    valor=valor_parcela,
-                    forma_pagamento=forma_pagamento,
-                    observacao=observacao or None,
-                    parcelas=parcelas_desejadas,
-                    parcela_num=indice + 1,
-                    data_pagamento=None,
-                )
-                db.session.add(item)
-                criados.append(item)
-
-            db.session.commit()
-            return jsonify(criados[0].to_dict()), 200
-
-        lancamento.tipo = tipo
-        lancamento.descricao = descricao
-        lancamento.cliente_id = cliente_id
-        lancamento.nfe = nfe or None
-        lancamento.prazo_dias = prazo_dias if "prazo_dias" in data else None
-        lancamento.vencimento = vencimento
-        lancamento.valor = valor_total
-        lancamento.forma_pagamento = forma_pagamento
-        lancamento.observacao = observacao or None
-        lancamento.data_pagamento = data_pagamento
-
         db.session.commit()
-        return jsonify(lancamento.to_dict()), 200
-    except HTTPException as exc:
-        return http_error_response(exc)
-    except Exception as exc:
-        return internal_error(exc)
+        return jsonify(criados[0].to_dict()), 200
+
+    lancamento.tipo = campos["tipo"]
+    lancamento.descricao = campos["descricao"]
+    lancamento.cliente_id = campos["cliente_id"]
+    lancamento.nfe = campos["nfe"] or None
+    lancamento.prazo_dias = campos["prazo_dias"] if "prazo_dias" in data else None
+    lancamento.vencimento = campos["base_vencimento"]
+    lancamento.valor = campos["valor_total"]
+    lancamento.forma_pagamento = campos["forma_pagamento"]
+    lancamento.observacao = campos["observacao"] or None
+    lancamento.data_pagamento = data_pagamento
+
+    db.session.commit()
+    return jsonify(lancamento.to_dict()), 200
 
 
 @financeiro_bp.route("/<int:id>/pagar", methods=["PATCH"])
 @require_permissions("financeiro")
+@handle_errors
 def marcar_pago(id):
-    try:
-        lancamento, error = get_or_404(Lancamento, id, "Lancamento nao encontrado.")
-        if error:
-            return error
-        data = json_body()
-        data_pagamento, error = parse_data(
-            data.get("data_pagamento", date.today().isoformat()), "Pagamento"
-        )
-        if error:
-            return error
-        forma_pagamento = data.get("forma_pagamento", lancamento.forma_pagamento)
-        forma_pagamento, error = texto_opcional(forma_pagamento, "Forma de pagamento")
-        if error:
-            return error
-        lancamento.data_pagamento = data_pagamento
-        lancamento.forma_pagamento = forma_pagamento
-        db.session.commit()
-        return jsonify(lancamento.to_dict()), 200
-    except HTTPException as exc:
-        return http_error_response(exc)
-    except Exception as exc:
-        return internal_error(exc)
+    lancamento, error = get_or_404(Lancamento, id, "Lancamento nao encontrado.")
+    if error:
+        return error
+    data = json_body()
+    data_pagamento, error = parse_data(
+        data.get("data_pagamento", date.today().isoformat()), "Pagamento"
+    )
+    if error:
+        return error
+    forma_pagamento, error = texto_opcional(
+        data.get("forma_pagamento", lancamento.forma_pagamento), "Forma de pagamento"
+    )
+    if error:
+        return error
+    lancamento.data_pagamento = data_pagamento
+    lancamento.forma_pagamento = forma_pagamento
+    db.session.commit()
+    return jsonify(lancamento.to_dict()), 200
 
 
 @financeiro_bp.route("/<int:id>", methods=["DELETE"])
 @require_permissions("financeiro")
+@handle_errors
 def excluir_lancamento(id):
-    try:
-        lancamento, error = get_or_404(Lancamento, id, "Lancamento nao encontrado.")
-        if error:
-            return error
-        modo = request.args.get("modo", "unico")
-        if modo == "grupo" and lancamento.parcelas and lancamento.parcelas > 1:
-            desc_base = re.sub(r"\s*\(\d+/\d+\)$", "", lancamento.descricao).strip()
-            irmas = Lancamento.query.filter(
-                Lancamento.tipo == lancamento.tipo,
-                Lancamento.cliente_id == lancamento.cliente_id,
-                Lancamento.parcelas == lancamento.parcelas,
-                Lancamento.descricao.like(f"{desc_base}%"),
-            ).all()
-            count = len(irmas)
-            for irma in irmas:
-                db.session.delete(irma)
-            db.session.commit()
-            return jsonify({"mensagem": f"{count} parcela(s) excluída(s)."}), 200
-        db.session.delete(lancamento)
+    lancamento, error = get_or_404(Lancamento, id, "Lancamento nao encontrado.")
+    if error:
+        return error
+    modo = request.args.get("modo", "unico")
+    if modo == "grupo" and lancamento.parcelas and lancamento.parcelas > 1:
+        desc_base = descricao_base(lancamento.descricao)
+        irmas = Lancamento.query.filter(
+            Lancamento.tipo == lancamento.tipo,
+            Lancamento.cliente_id == lancamento.cliente_id,
+            Lancamento.parcelas == lancamento.parcelas,
+            Lancamento.descricao.like(f"{desc_base}%"),
+        ).all()
+        for irma in irmas:
+            db.session.delete(irma)
         db.session.commit()
-        return jsonify({"mensagem": "Lançamento excluído."}), 200
-    except HTTPException as exc:
-        return http_error_response(exc)
-    except Exception as exc:
-        return internal_error(exc)
+        return jsonify({"mensagem": f"{len(irmas)} parcela(s) excluida(s)."}), 200
+    db.session.delete(lancamento)
+    db.session.commit()
+    return jsonify({"mensagem": "Lancamento excluido."}), 200
+
+
+# ---------------------------------------------------------------------------
+# Boleto PDF parsing
+# ---------------------------------------------------------------------------
+
+
+def _decodificar_pdf(pdf_b64):
+    if not isinstance(pdf_b64, str) or not pdf_b64:
+        return None, error_response("PDF nao enviado.")
+    if len(pdf_b64) > (MAX_BOLETO_PDF_BYTES * 4 // 3) + 8:
+        return None, error_response("PDF excede o tamanho maximo permitido.")
+    try:
+        pdf_bytes = base64.b64decode(pdf_b64, validate=True)
+    except (binascii.Error, ValueError):
+        return None, error_response("PDF invalido.")
+    if len(pdf_bytes) > MAX_BOLETO_PDF_BYTES:
+        return None, error_response("PDF excede o tamanho maximo permitido.")
+    if not pdf_bytes.startswith(b"%PDF"):
+        return None, error_response("Arquivo enviado nao parece ser um PDF valido.")
+    return pdf_bytes, None
+
+
+def _extrair_texto_pdf(pdf_bytes):
+    texto_total = ""
+    try:
+        import pdfplumber
+
+        with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
+            for page in pdf.pages:
+                texto = page.extract_text()
+                if texto:
+                    texto_total += texto + "\n"
+    except Exception:
+        pass
+    if not texto_total.strip():
+        try:
+            import PyPDF2
+
+            for page in PyPDF2.PdfReader(io.BytesIO(pdf_bytes)).pages:
+                texto = page.extract_text()
+                if texto:
+                    texto_total += texto + "\n"
+        except Exception:
+            pass
+    return texto_total
 
 
 @financeiro_bp.route("/boleto", methods=["POST"])
 @require_permissions("financeiro")
-def parsear_boleto():
-    try:
-        body = json_body()
-        pdf_b64 = body.get("pdf_base64", "")
-        tipo_hint = body.get("tipo", "pagar")
-        if not isinstance(pdf_b64, str) or not pdf_b64:
-            return jsonify({"erro": "PDF não enviado."}), 400
-        if len(pdf_b64) > (MAX_BOLETO_PDF_BYTES * 4 // 3) + 8:
-            return jsonify({"erro": "PDF excede o tamanho maximo permitido."}), 413
-        try:
-            pdf_bytes = base64.b64decode(pdf_b64, validate=True)
-        except (binascii.Error, ValueError):
-            return jsonify({"erro": "PDF invalido."}), 400
-        if len(pdf_bytes) > MAX_BOLETO_PDF_BYTES:
-            return jsonify({"erro": "PDF excede o tamanho maximo permitido."}), 413
-        if not pdf_bytes.startswith(b"%PDF"):
-            return (
-                jsonify({"erro": "Arquivo enviado nao parece ser um PDF valido."}),
-                400,
-            )
-        texto_total = ""
-        try:
-            import pdfplumber
+@handle_errors
+def analisar_boleto():
+    body = json_body()
+    pdf_bytes, error = _decodificar_pdf(body.get("pdf_base64", ""))
+    if error:
+        return error
 
-            with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
-                for page in pdf.pages:
-                    texto = page.extract_text()
-                    if texto:
-                        texto_total += texto + "\n"
-        except Exception:
-            pass
-        if not texto_total.strip():
-            try:
-                import PyPDF2
-
-                for page in PyPDF2.PdfReader(io.BytesIO(pdf_bytes)).pages:
-                    texto = page.extract_text()
-                    if texto:
-                        texto_total += texto + "\n"
-            except Exception:
-                pass
-        if not texto_total.strip():
-            return (
-                jsonify(
-                    {"erro": "PDF sem texto extraível. Preencha os dados manualmente."}
-                ),
-                422,
-            )
-        dados = extrair_dados_boleto(texto_total)
+    texto_total = _extrair_texto_pdf(pdf_bytes)
+    if not texto_total.strip():
         return (
             jsonify(
-                {
-                    "tipo": tipo_hint,
-                    "descricao": dados["descricao"] or "Boleto bancário",
-                    "valor": dados["valor"],
-                    "vencimento": dados["vencimento"],
-                    "nfe": dados["nfe"],
-                    "beneficiario": dados["beneficiario"],
-                    "pagador": dados["pagador"],
-                }
+                {"erro": "PDF sem texto extraivel. Preencha os dados manualmente."}
             ),
-            200,
+            422,
         )
-    except HTTPException as exc:
-        return http_error_response(exc)
-    except Exception as exc:
-        logging.exception("Erro ao processar boleto.")
-        return jsonify({"erro": f"Erro ao processar PDF: {str(exc)}"}), 500
+
+    dados = extrair_dados_boleto(texto_total)
+    return (
+        jsonify(
+            {
+                "tipo": body.get("tipo", "pagar"),
+                "descricao": dados["descricao"] or "Boleto bancario",
+                "valor": dados["valor"],
+                "vencimento": dados["vencimento"],
+                "nfe": dados["nfe"],
+                "beneficiario": dados["beneficiario"],
+                "pagador": dados["pagador"],
+            }
+        ),
+        200,
+    )

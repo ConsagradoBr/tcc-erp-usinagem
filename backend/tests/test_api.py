@@ -717,7 +717,9 @@ def test_backup_e_restauracao_do_sqlite_local(client):
 
     listar_depois = client.get("/clientes", headers=headers)
     depois_data = listar_depois.get_json()
-    depois_items = depois_data["items"] if isinstance(depois_data, dict) else depois_data
+    depois_items = (
+        depois_data["items"] if isinstance(depois_data, dict) else depois_data
+    )
     assert len(depois_items) == 1
     assert depois_items[0]["id"] == cliente_original_id
 

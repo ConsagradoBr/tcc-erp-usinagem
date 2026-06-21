@@ -9,7 +9,7 @@ from pathlib import Path
 from flask import Blueprint, current_app, jsonify, send_file
 from sqlalchemy.engine.url import make_url
 
-from backend.api_utils import json_body
+from backend.api_utils import handle_errors, json_body
 from backend.config import get_runtime_data_dir
 from backend.extensions import db
 from backend.security import require_permissions
@@ -73,13 +73,14 @@ def _validate_backup_schema(conn):
 def _ensure_local_sqlite():
     db_path = _sqlite_db_path()
     if not db_path or not db_path.exists():
-        msg = "Backup local disponivel apenas para o banco SQLite " "do app desktop."
+        msg = "Backup local disponivel apenas para o banco SQLite do app desktop."
         return None, (jsonify({"erro": msg}), 400)
     return db_path, None
 
 
 @sistema_bp.route("/backup-info", methods=["GET"])
 @require_permissions("backup")
+@handle_errors
 def backup_info():
     db_path = _sqlite_db_path()
     if not db_path or not db_path.exists():
@@ -114,6 +115,7 @@ def backup_info():
 
 @sistema_bp.route("/backup", methods=["POST"])
 @require_permissions("backup")
+@handle_errors
 def criar_backup():
     db_path, error = _ensure_local_sqlite()
     if error:
@@ -142,6 +144,7 @@ def criar_backup():
 
 @sistema_bp.route("/restaurar", methods=["POST"])
 @require_permissions("backup")
+@handle_errors
 def restaurar_backup():
     db_path, error = _ensure_local_sqlite()
     if error:

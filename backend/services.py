@@ -32,6 +32,7 @@ def marcador_orcamento(numero):
 
 def buscar_os_por_orcamento(numero_orcamento):
     from backend.models import OrdemServico
+
     return OrdemServico.query.filter(
         OrdemServico.descricao.ilike(f"%{marcador_orcamento(numero_orcamento)}%")
     ).first()
@@ -39,6 +40,7 @@ def buscar_os_por_orcamento(numero_orcamento):
 
 def buscar_lancamento_por_orcamento(numero_orcamento):
     from backend.models import Lancamento
+
     marcador = marcador_orcamento(numero_orcamento)
     return Lancamento.query.filter(
         Lancamento.tipo == "receber", Lancamento.descricao.ilike(f"%{marcador}%")
