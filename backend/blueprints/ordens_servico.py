@@ -7,6 +7,9 @@ from backend.api_utils import (
     http_error_response,
     internal_error,
     json_body,
+    parse_pagination,
+    texto_obrigatorio,
+    texto_opcional,
 )
 from backend.extensions import db
 from backend.models import STATUS_OS_VALIDOS, OrdemServico
@@ -16,26 +19,13 @@ from backend.services import proximo_numero_os
 os_bp = Blueprint("ordens_servico", __name__, url_prefix="/ordens-servico")
 
 
-def _texto_obrigatorio(value):
-    if not isinstance(value, str):
-        return None
-    return value.strip()
-
-
-def _texto_opcional(value):
-    if value is None:
-        return None
-    if not isinstance(value, str):
-        raise ValueError
-    return value.strip() or None
-
-
 @os_bp.route("", methods=["GET"])
 @require_permissions("ordens_servico")
 def listar_os():
     try:
         status = request.args.get("status", "").strip()
         q = request.args.get("q", "").strip()
+        page, per_page = parse_pagination(request.args)
         query = OrdemServico.query
         if status and status in STATUS_OS_VALIDOS:
             query = query.filter(OrdemServico.status == status)
@@ -47,15 +37,41 @@ def listar_os():
                     OrdemServico.servico.ilike(f"%{q}%"),
                 )
             )
+        total = query.count()
+        items = [
+            ordem.to_dict()
+            for ordem in query.order_by(OrdemServico.created_at.asc())
+            .offset((page - 1) * per_page)
+            .limit(per_page)
+            .all()
+        ]
+        pages = (total + per_page - 1) // per_page
         return (
             jsonify(
-                [
-                    ordem.to_dict()
-                    for ordem in query.order_by(OrdemServico.created_at.asc()).all()
-                ]
+                {
+                    "items": items,
+                    "total": total,
+                    "page": page,
+                    "per_page": per_page,
+                    "pages": pages,
+                }
             ),
             200,
         )
+    except HTTPException as exc:
+        return http_error_response(exc)
+    except Exception as exc:
+        return internal_error(exc)
+
+
+@os_bp.route("/<int:id>", methods=["GET"])
+@require_permissions("ordens_servico")
+def obter_os(id):
+    try:
+        ordem, error = get_or_404(OrdemServico, id, "OS nao encontrada.")
+        if error:
+            return error
+        return jsonify(ordem.to_dict()), 200
     except HTTPException as exc:
         return http_error_response(exc)
     except Exception as exc:
@@ -83,10 +99,21 @@ def resumo_os():
 def criar_os():
     try:
         data = json_body()
-        cliente = _texto_obrigatorio(data.get("cliente") or "")
-        servico = _texto_obrigatorio(data.get("servico") or "")
-        if not cliente or not servico:
-            return error_response("Cliente e serviço são obrigatórios.")
+        cliente, error = texto_obrigatorio(data.get("cliente") or "", "Cliente")
+        if error:
+            return error
+        servico, error = texto_obrigatorio(data.get("servico") or "", "Servico")
+        if error:
+            return error
+        prazo, error = texto_opcional(data.get("prazo"), "Prazo")
+        if error:
+            return error
+        responsavel, error = texto_opcional(data.get("responsavel"), "Responsavel")
+        if error:
+            return error
+        descricao, error = texto_opcional(data.get("descricao"), "Descricao")
+        if error:
+            return error
         status = data.get("status", "solicitado")
         if status not in STATUS_OS_VALIDOS:
             status = "solicitado"
@@ -95,9 +122,9 @@ def criar_os():
             cliente=cliente,
             servico=servico,
             prioridade=data.get("prioridade", "media"),
-            prazo=_texto_opcional(data.get("prazo")),
-            responsavel=_texto_opcional(data.get("responsavel")),
-            descricao=_texto_opcional(data.get("descricao")),
+            prazo=prazo,
+            responsavel=responsavel,
+            descricao=descricao,
             status=status,
         )
         db.session.add(ordem)
@@ -120,23 +147,32 @@ def editar_os(id):
             return error
         data = json_body()
         if "cliente" in data:
-            cliente = _texto_obrigatorio(data["cliente"])
-            if not cliente:
-                return error_response("Cliente e obrigatorio.")
+            cliente, error = texto_obrigatorio(data["cliente"], "Cliente")
+            if error:
+                return error
             ordem.cliente = cliente
         if "servico" in data:
-            servico = _texto_obrigatorio(data["servico"])
-            if not servico:
-                return error_response("Servico e obrigatorio.")
+            servico, error = texto_obrigatorio(data["servico"], "Servico")
+            if error:
+                return error
             ordem.servico = servico
         if "prioridade" in data:
             ordem.prioridade = data["prioridade"]
         if "prazo" in data:
-            ordem.prazo = _texto_opcional(data["prazo"])
+            prazo, error = texto_opcional(data["prazo"], "Prazo")
+            if error:
+                return error
+            ordem.prazo = prazo
         if "responsavel" in data:
-            ordem.responsavel = _texto_opcional(data["responsavel"])
+            responsavel, error = texto_opcional(data["responsavel"], "Responsavel")
+            if error:
+                return error
+            ordem.responsavel = responsavel
         if "descricao" in data:
-            ordem.descricao = _texto_opcional(data["descricao"])
+            descricao, error = texto_opcional(data["descricao"], "Descricao")
+            if error:
+                return error
+            ordem.descricao = descricao
         if "status" in data and data["status"] in STATUS_OS_VALIDOS:
             ordem.status = data["status"]
         db.session.commit()

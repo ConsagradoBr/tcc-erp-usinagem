@@ -31,12 +31,14 @@ def marcador_orcamento(numero):
 
 
 def buscar_os_por_orcamento(numero_orcamento):
+    from backend.models import OrdemServico
     return OrdemServico.query.filter(
         OrdemServico.descricao.ilike(f"%{marcador_orcamento(numero_orcamento)}%")
     ).first()
 
 
 def buscar_lancamento_por_orcamento(numero_orcamento):
+    from backend.models import Lancamento
     marcador = marcador_orcamento(numero_orcamento)
     return Lancamento.query.filter(
         Lancamento.tipo == "receber", Lancamento.descricao.ilike(f"%{marcador}%")
@@ -74,6 +76,7 @@ def garantir_os_para_orcamento(orcamento):
             orcamento.validade.strftime("%d/%m/%Y") if orcamento.validade else None
         )
         existente.descricao = _descricao_orcamento(orcamento)
+        existente.orcamento_id = orcamento.id
         return existente, False
 
     nova_os = OrdemServico(
@@ -85,6 +88,7 @@ def garantir_os_para_orcamento(orcamento):
         responsavel="Comercial",
         descricao=_descricao_orcamento(orcamento),
         status="solicitado",
+        orcamento_id=orcamento.id,
     )
     db.session.add(nova_os)
     db.session.flush()
@@ -105,6 +109,7 @@ def garantir_lancamento_para_orcamento(orcamento):
         existente.vencimento = orcamento.validade or date.today()
         existente.valor = float(orcamento.valor)
         existente.observacao = _observacao_lancamento(orcamento)
+        existente.orcamento_id = orcamento.id
         return existente, False
 
     lancamento = Lancamento(
@@ -119,6 +124,7 @@ def garantir_lancamento_para_orcamento(orcamento):
         observacao=_observacao_lancamento(orcamento),
         parcelas=1,
         parcela_num=1,
+        orcamento_id=orcamento.id,
     )
     db.session.add(lancamento)
     db.session.flush()

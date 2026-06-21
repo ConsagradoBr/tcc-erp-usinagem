@@ -196,7 +196,9 @@ def test_cliente_persiste_campos_fiscais_nfe(client):
 
     busca = client.get("/clientes", headers=headers, query_string={"q": "13803705"})
     assert busca.status_code == 200
-    assert busca.get_json()[0]["documento"] == "07.702.969/0001-53"
+    busca_data = busca.get_json()
+    itens = busca_data["items"] if isinstance(busca_data, dict) else busca_data
+    assert itens[0]["documento"] == "07.702.969/0001-53"
 
     editado = client.put(
         f"/clientes/{data['id']}",
@@ -405,8 +407,10 @@ def test_clientes_e_orcamentos_flow(client):
 
     os_list = client.get("/ordens-servico", headers=headers)
     assert os_list.status_code == 200
-    assert len(os_list.get_json()) == 1
-    assert "[ORC:" in (os_list.get_json()[0]["descricao"] or "")
+    os_data = os_list.get_json()
+    os_items = os_data["items"] if isinstance(os_data, dict) else os_data
+    assert len(os_items) == 1
+    assert "[ORC:" in (os_items[0]["descricao"] or "")
 
     financeiro = client.get("/financeiro", headers=headers)
     assert financeiro.status_code == 200
@@ -449,7 +453,9 @@ def test_reaprovar_orcamento_nao_duplica_os_ou_financeiro(client):
 
     os_list = client.get("/ordens-servico", headers=headers)
     financeiro = client.get("/financeiro", headers=headers)
-    assert len(os_list.get_json()) == 1
+    os_data = os_list.get_json()
+    os_items = os_data["items"] if isinstance(os_data, dict) else os_data
+    assert len(os_items) == 1
     assert len(financeiro.get_json()["items"]) == 1
 
 
@@ -694,7 +700,9 @@ def test_backup_e_restauracao_do_sqlite_local(client):
 
     criar_cliente(client, headers, nome="Cliente Temporario")
     listar_antes = client.get("/clientes", headers=headers)
-    assert len(listar_antes.get_json()) == 2
+    antes_data = listar_antes.get_json()
+    antes_items = antes_data["items"] if isinstance(antes_data, dict) else antes_data
+    assert len(antes_items) == 2
 
     restore = client.post(
         "/sistema/restaurar",
@@ -708,9 +716,10 @@ def test_backup_e_restauracao_do_sqlite_local(client):
     assert "/" not in restore.get_json()["backup_seguranca"]
 
     listar_depois = client.get("/clientes", headers=headers)
-    payload = listar_depois.get_json()
-    assert len(payload) == 1
-    assert payload[0]["id"] == cliente_original_id
+    depois_data = listar_depois.get_json()
+    depois_items = depois_data["items"] if isinstance(depois_data, dict) else depois_data
+    assert len(depois_items) == 1
+    assert depois_items[0]["id"] == cliente_original_id
 
 
 def test_restore_rejeita_sqlite_sem_schema_minimo(client, tmp_path):

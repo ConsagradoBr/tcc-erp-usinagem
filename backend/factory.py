@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 
 from flask import Flask
 from sqlalchemy import inspect, text
@@ -16,6 +17,8 @@ from backend.blueprints.sistema import sistema_bp
 from backend.config import configure_app
 from backend.config import is_development_env
 from backend.extensions import db, jwt
+
+ORC_MARKER_RE = re.compile(r"\[ORC:([A-Z]+-\d+)\]")
 
 
 def _garantir_colunas_usuarios():
@@ -73,12 +76,75 @@ def _garantir_colunas_clientes():
         if campo not in colunas
     ]
 
-    for sql in alteracoes:
-        db.session.execute(text(sql))
-
     if alteracoes:
+        db.session.execute(text(" ; ".join(alteracoes)))
         db.session.commit()
         logging.info("Estrutura de clientes atualizada para dados fiscais NF-e.")
+
+
+def _garantir_fk_orcamento():
+    """Adiciona orcamento_id em ordens_servico e lancamentos, e migra dados existentes."""
+    inspector = inspect(db.engine)
+    if "orcamentos" not in inspector.get_table_names():
+        return
+
+    orcamento_ids = {}
+    try:
+        from backend.models import Orcamento
+        for orc in Orcamento.query.all():
+            orcamento_ids[orc.numero] = orc.id
+    except Exception:
+        return
+
+    if "ordens_servico" in inspector.get_table_names():
+        colunas_os = {coluna["name"] for coluna in inspector.get_columns("ordens_servico")}
+        if "orcamento_id" not in colunas_os:
+            db.session.execute(text("ALTER TABLE ordens_servico ADD COLUMN orcamento_id INTEGER"))
+            db.session.commit()
+            logging.info("Coluna orcamento_id adicionada em ordens_servico.")
+
+        if orcamento_ids:
+            try:
+                from backend.models import OrdemServico
+                atualizados = 0
+                for os_item in OrdemServico.query.filter(OrdemServico.orcamento_id.is_(None)).all():
+                    match = ORC_MARKER_RE.search(os_item.descricao or "")
+                    if match:
+                        numero = match.group(1)
+                        if numero in orcamento_ids:
+                            os_item.orcamento_id = orcamento_ids[numero]
+                            atualizados += 1
+                if atualizados:
+                    db.session.commit()
+                    logging.info("Migrados %d orcamento_id em ordens_servico.", atualizados)
+            except Exception:
+                db.session.rollback()
+                logging.exception("Erro ao migrar orcamento_id em ordens_servico.")
+
+    if "lancamentos" in inspector.get_table_names():
+        colunas_lanc = {coluna["name"] for coluna in inspector.get_columns("lancamentos")}
+        if "orcamento_id" not in colunas_lanc:
+            db.session.execute(text("ALTER TABLE lancamentos ADD COLUMN orcamento_id INTEGER"))
+            db.session.commit()
+            logging.info("Coluna orcamento_id adicionada em lancamentos.")
+
+        if orcamento_ids:
+            try:
+                from backend.models import Lancamento
+                atualizados = 0
+                for lanc in Lancamento.query.filter(Lancamento.orcamento_id.is_(None)).all():
+                    match = ORC_MARKER_RE.search(lanc.descricao or "")
+                    if match:
+                        numero = match.group(1)
+                        if numero in orcamento_ids:
+                            lanc.orcamento_id = orcamento_ids[numero]
+                            atualizados += 1
+                if atualizados:
+                    db.session.commit()
+                    logging.info("Migrados %d orcamento_id em lancamentos.", atualizados)
+            except Exception:
+                db.session.rollback()
+                logging.exception("Erro ao migrar orcamento_id em lancamentos.")
 
 
 def create_app():
@@ -98,6 +164,7 @@ def create_app():
             db.create_all()
             _garantir_colunas_usuarios()
             _garantir_colunas_clientes()
+            _garantir_fk_orcamento()
             logging.info("Tabelas verificadas/criadas.")
         except Exception:
             logging.exception("Erro ao criar/verificar tabelas.")

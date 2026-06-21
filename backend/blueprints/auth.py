@@ -1,17 +1,22 @@
 import logging
 import os
 import re
-import time
 
+from datetime import datetime, timedelta, timezone
 from flask import Blueprint, jsonify, request
-from flask_jwt_extended import create_access_token, verify_jwt_in_request
+from flask_jwt_extended import (
+    create_access_token,
+    create_refresh_token,
+    get_jwt_identity,
+    verify_jwt_in_request,
+)
 from flask_jwt_extended.exceptions import JWTExtendedException
 from werkzeug.exceptions import HTTPException
 
 from backend.api_utils import http_error_response, internal_error, json_body
 from backend.extensions import db
 from backend.config import is_development_env
-from backend.models import TermoAceite, Usuario
+from backend.models import LoginAttempt, TermoAceite, Usuario
 from backend.security import (
     PERFIS_SISTEMA,
     get_current_usuario,
@@ -31,7 +36,6 @@ PASSWORD_MIN_LENGTH = 8
 LOGIN_RATE_WINDOW_SECONDS = 15 * 60
 LOGIN_RATE_MAX_ATTEMPTS = 5
 TERMS_VERSION = "2026.06.02"
-_LOGIN_ATTEMPTS = {}
 
 
 def _payload_json():
@@ -170,40 +174,47 @@ def _registrar_aceite_termos(usuario):
     db.session.commit()
 
 
-def _login_rate_key(email):
-    return f"{_client_ip()}:{email}"
-
-
-def _limpar_tentativas_login(agora=None):
-    agora = agora or time.time()
-    expirados = [
-        key
-        for key, item in _LOGIN_ATTEMPTS.items()
-        if agora - item["first_seen"] > LOGIN_RATE_WINDOW_SECONDS
-    ]
-    for key in expirados:
-        _LOGIN_ATTEMPTS.pop(key, None)
-
-
 def _login_bloqueado(email):
-    _limpar_tentativas_login()
-    item = _LOGIN_ATTEMPTS.get(_login_rate_key(email))
-    return bool(item and item["count"] >= LOGIN_RATE_MAX_ATTEMPTS)
+    ip = _client_ip()
+    now = datetime.now(timezone.utc)
+    window_start = now - timedelta(seconds=LOGIN_RATE_WINDOW_SECONDS)
+    attempt = LoginAttempt.query.filter(
+        LoginAttempt.ip_address == ip,
+        LoginAttempt.email == email,
+        LoginAttempt.window_start >= window_start,
+    ).first()
+    return bool(attempt and attempt.tentativas >= LOGIN_RATE_MAX_ATTEMPTS)
 
 
 def _registrar_falha_login(email):
-    agora = time.time()
-    _limpar_tentativas_login(agora)
-    key = _login_rate_key(email)
-    item = _LOGIN_ATTEMPTS.get(key)
-    if not item:
-        _LOGIN_ATTEMPTS[key] = {"count": 1, "first_seen": agora}
-        return
-    item["count"] += 1
+    ip = _client_ip()
+    now = datetime.now(timezone.utc)
+    window_start = now - timedelta(seconds=LOGIN_RATE_WINDOW_SECONDS)
+    attempt = LoginAttempt.query.filter(
+        LoginAttempt.ip_address == ip,
+        LoginAttempt.email == email,
+        LoginAttempt.window_start >= window_start,
+    ).first()
+    if attempt:
+        attempt.tentativas += 1
+    else:
+        attempt = LoginAttempt(
+            ip_address=ip,
+            email=email,
+            tentativas=1,
+            window_start=now,
+        )
+        db.session.add(attempt)
+    db.session.commit()
 
 
 def _limpar_falhas_login(email):
-    _LOGIN_ATTEMPTS.pop(_login_rate_key(email), None)
+    ip = _client_ip()
+    LoginAttempt.query.filter(
+        LoginAttempt.ip_address == ip,
+        LoginAttempt.email == email,
+    ).delete()
+    db.session.commit()
 
 
 def _bootstrap_autorizado(data):
@@ -473,7 +484,7 @@ def login():
 
         user_payload = serializar_usuario(usuario)
         _limpar_falhas_login(email)
-        token = create_access_token(
+        access_token = create_access_token(
             identity=str(usuario.id),
             additional_claims={
                 "nome": usuario.nome,
@@ -482,11 +493,15 @@ def login():
                 "permissoes": user_payload["permissoes"],
             },
         )
+        refresh_token = create_refresh_token(
+            identity=str(usuario.id),
+        )
         return (
             jsonify(
                 {
                     "mensagem": "Login bem-sucedido!",
-                    "token": token,
+                    "token": access_token,
+                    "refresh_token": refresh_token,
                     "user": user_payload,
                 }
             ),
@@ -506,3 +521,45 @@ def perfil():
         jsonify({"mensagem": "Bem-vindo(a)!", "user": serializar_usuario(usuario)}),
         200,
     )
+
+
+@auth_bp.route("/refresh", methods=["POST"])
+@require_permissions()
+def refresh():
+    try:
+        usuario = get_current_usuario()
+        if not usuario:
+            return jsonify({"erro": "Usuario nao encontrado."}), 401
+        if not usuario.ativo:
+            return (
+                jsonify({"erro": "Usuario desativado."}),
+                403,
+            )
+        user_payload = serializar_usuario(usuario)
+        access_token = create_access_token(
+            identity=str(usuario.id),
+            additional_claims={
+                "nome": usuario.nome,
+                "email": usuario.email,
+                "perfil": usuario.perfil,
+                "permissoes": user_payload["permissoes"],
+            },
+        )
+        refresh_token = create_refresh_token(
+            identity=str(usuario.id),
+        )
+        return (
+            jsonify(
+                {
+                    "mensagem": "Token renovado!",
+                    "token": access_token,
+                    "refresh_token": refresh_token,
+                    "user": user_payload,
+                }
+            ),
+            200,
+        )
+    except HTTPException as exc:
+        return http_error_response(exc)
+    except Exception as exc:
+        return internal_error(exc)

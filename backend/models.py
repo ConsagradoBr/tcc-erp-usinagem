@@ -115,6 +115,7 @@ class Lancamento(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     tipo = db.Column(db.String(10), nullable=False)
     cliente_id = db.Column(db.Integer, db.ForeignKey("clientes.id"), nullable=True)
+    orcamento_id = db.Column(db.Integer, db.ForeignKey("orcamentos.id"), nullable=True)
     descricao = db.Column(db.String(255), nullable=False)
     nfe = db.Column(db.String(50), nullable=True)
     prazo_dias = db.Column(db.Integer, nullable=True)
@@ -128,6 +129,7 @@ class Lancamento(db.Model):
     created_at = db.Column(db.DateTime, server_default=db.func.now())
 
     cliente = db.relationship("Cliente", backref="lancamentos", lazy=True)
+    orcamento = db.relationship("Orcamento", backref="lancamentos_vinculados", lazy=True)
 
     def calcular_status(self):
         if self.data_pagamento:
@@ -150,6 +152,7 @@ class Lancamento(db.Model):
             "tipo": self.tipo,
             "cliente_id": self.cliente_id,
             "cliente_nome": self.cliente.nome if self.cliente else None,
+            "orcamento_id": self.orcamento_id,
             "descricao": self.descricao,
             "nfe": self.nfe,
             "prazo_dias": self.prazo_dias,
@@ -184,7 +187,10 @@ class OrdemServico(db.Model):
     responsavel = db.Column(db.String(100), nullable=True)
     descricao = db.Column(db.Text, nullable=True)
     status = db.Column(db.String(20), nullable=False, default="solicitado")
+    orcamento_id = db.Column(db.Integer, db.ForeignKey("orcamentos.id"), nullable=True)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
+
+    orcamento = db.relationship("Orcamento", backref="ordens_servico_vinculadas", lazy=True)
 
     def to_dict(self):
         return {
@@ -198,8 +204,22 @@ class OrdemServico(db.Model):
             "responsavel": self.responsavel,
             "descricao": self.descricao,
             "status": self.status,
+            "orcamento_id": self.orcamento_id,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }
+
+
+class LoginAttempt(db.Model):
+    __tablename__ = "login_attempts"
+    __table_args__ = (
+        db.Index("ix_login_attempts_ip_email", "ip_address", "email"),
+        db.Index("ix_login_attempts_window", "window_start"),
+    )
+    id = db.Column(db.Integer, primary_key=True)
+    ip_address = db.Column(db.String(45), nullable=False)
+    email = db.Column(db.String(120), nullable=False)
+    tentativas = db.Column(db.Integer, nullable=False, default=1)
+    window_start = db.Column(db.DateTime, nullable=False, server_default=db.func.now())
 
 
 class Orcamento(db.Model):

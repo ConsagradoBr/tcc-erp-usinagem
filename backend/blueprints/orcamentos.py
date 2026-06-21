@@ -9,6 +9,11 @@ from backend.api_utils import (
     http_error_response,
     internal_error,
     json_body,
+    parse_cliente_id,
+    parse_pagination,
+    parse_valor_positivo,
+    texto_obrigatorio,
+    texto_opcional,
 )
 from backend.extensions import db
 from backend.models import (
@@ -29,38 +34,6 @@ from backend.services import (
 orc_bp = Blueprint("orcamentos", __name__, url_prefix="/orcamentos")
 
 
-def _parse_cliente_id(value):
-    try:
-        cliente_id = int(value)
-    except (TypeError, ValueError):
-        return None
-    return cliente_id if cliente_id > 0 else None
-
-
-def _texto_obrigatorio(value):
-    if not isinstance(value, str):
-        return None
-    return value.strip()
-
-
-def _texto_opcional(value):
-    if value is None:
-        return None
-    if not isinstance(value, str):
-        raise ValueError
-    return value.strip() or None
-
-
-def _parse_valor_positivo(value):
-    try:
-        valor = float(value or 0)
-    except (TypeError, ValueError):
-        return None, error_response("Valor deve ser numerico.")
-    if valor <= 0:
-        return None, error_response("Valor deve ser maior que zero.")
-    return valor, None
-
-
 def _parse_validade(value):
     if not value:
         return None, None
@@ -79,11 +52,7 @@ def listar_orcamentos():
         status = request.args.get("status", "").strip()
         q = request.args.get("q", "").strip()
         filtro_rapido = request.args.get("filtro_rapido", "").strip()
-        try:
-            page = max(int(request.args.get("page", 1)), 1)
-            per_page = max(min(int(request.args.get("per_page", 50)), 200), 1)
-        except (TypeError, ValueError):
-            page, per_page = 1, 50
+        page, per_page = parse_pagination(request.args)
 
         hoje = date.today()
         query = Orcamento.query.join(Cliente)
@@ -222,20 +191,28 @@ def resumo_orcamentos():
 def criar_orcamento():
     try:
         data = json_body()
-        titulo = _texto_obrigatorio(data.get("titulo") or "")
-        cliente_id = _parse_cliente_id(data.get("cliente_id"))
-        valor, error = _parse_valor_positivo(data.get("valor"))
+        titulo, error = texto_obrigatorio(data.get("titulo") or "", "Titulo")
+        if error:
+            return error
+        cliente_id, error = parse_cliente_id(data.get("cliente_id"))
+        if error:
+            return error
+        valor, error = parse_valor_positivo(data.get("valor"))
         if error:
             return error
         validade, error = _parse_validade(data.get("validade"))
         if error:
             return error
+        descricao, error = texto_opcional(data.get("descricao"), "Descricao")
+        if error:
+            return error
+        observacao, error = texto_opcional(data.get("observacao"), "Observacao")
+        if error:
+            return error
         if not cliente_id:
-            return error_response("Cliente é obrigatório.")
-        if not db.session.get(Cliente, cliente_id):
-            return error_response("Cliente não encontrado.", 404)
+            return error_response("Cliente e obrigatorio.")
         if not titulo:
-            return error_response("Título é obrigatório.")
+            return error_response("Titulo e obrigatorio.")
         status = data.get("status", "rascunho")
         if status not in STATUS_ORCAMENTO_VALIDOS:
             status = "rascunho"
@@ -243,11 +220,11 @@ def criar_orcamento():
             numero=data.get("numero") or proximo_numero_orcamento(),
             cliente_id=cliente_id,
             titulo=titulo,
-            descricao=_texto_opcional(data.get("descricao")),
+            descricao=descricao,
             valor=valor,
             validade=validade,
             status=status,
-            observacao=_texto_opcional(data.get("observacao")),
+            observacao=observacao,
         )
         db.session.add(orcamento)
         ordem_servico, ordem_servico_criada = garantir_os_para_orcamento(orcamento)
@@ -277,26 +254,31 @@ def criar_orcamento():
 @require_permissions("orcamentos")
 def editar_orcamento(id):
     try:
-        orcamento, error = get_or_404(Orcamento, id, "Orçamento não encontrado.")
+        orcamento, error = get_or_404(Orcamento, id, "Orcamento nao encontrado.")
         if error:
             return error
         data = json_body()
         if "cliente_id" in data:
-            cliente_id = _parse_cliente_id(data["cliente_id"])
+            cliente_id, error = parse_cliente_id(data["cliente_id"])
+            if error:
+                return error
             if not cliente_id:
-                return error_response("Cliente é obrigatório.")
-            if not db.session.get(Cliente, cliente_id):
-                return error_response("Cliente não encontrado.", 404)
+                return error_response("Cliente e obrigatorio.")
             orcamento.cliente_id = cliente_id
         if "titulo" in data:
-            titulo = _texto_obrigatorio(data["titulo"])
+            titulo, error = texto_obrigatorio(data["titulo"], "Titulo")
+            if error:
+                return error
             if not titulo:
-                return error_response("Título é obrigatório.")
+                return error_response("Titulo e obrigatorio.")
             orcamento.titulo = titulo
         if "descricao" in data:
-            orcamento.descricao = _texto_opcional(data["descricao"])
+            descricao, error = texto_opcional(data["descricao"], "Descricao")
+            if error:
+                return error
+            orcamento.descricao = descricao
         if "valor" in data:
-            valor, error = _parse_valor_positivo(data["valor"])
+            valor, error = parse_valor_positivo(data["valor"])
             if error:
                 return error
             orcamento.valor = valor
@@ -308,7 +290,10 @@ def editar_orcamento(id):
         if "status" in data and data["status"] in STATUS_ORCAMENTO_VALIDOS:
             orcamento.status = data["status"]
         if "observacao" in data:
-            orcamento.observacao = _texto_opcional(data["observacao"])
+            observacao, error = texto_opcional(data["observacao"], "Observacao")
+            if error:
+                return error
+            orcamento.observacao = observacao
         ordem_servico, ordem_servico_criada = garantir_os_para_orcamento(orcamento)
         lancamento, lancamento_criado = garantir_lancamento_para_orcamento(orcamento)
         db.session.commit()

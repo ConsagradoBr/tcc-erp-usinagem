@@ -7,6 +7,7 @@ from backend.api_utils import (
     http_error_response,
     internal_error,
     json_body,
+    parse_pagination,
 )
 from backend.extensions import db
 from backend.models import Cliente, Orcamento
@@ -57,6 +58,7 @@ def aplicar_campos_cliente(cliente, data):
 def listar_clientes():
     try:
         q = request.args.get("q", "").strip()
+        page, per_page = parse_pagination(request.args)
         query = Cliente.query
         if q:
             query = query.filter(
@@ -71,12 +73,41 @@ def listar_clientes():
                     Cliente.cep.ilike(f"%{q}%"),
                 )
             )
+        total = query.count()
+        items = [
+            cliente.to_dict()
+            for cliente in query.order_by(Cliente.nome)
+            .offset((page - 1) * per_page)
+            .limit(per_page)
+            .all()
+        ]
+        pages = (total + per_page - 1) // per_page
         return (
             jsonify(
-                [cliente.to_dict() for cliente in query.order_by(Cliente.nome).all()]
+                {
+                    "items": items,
+                    "total": total,
+                    "page": page,
+                    "per_page": per_page,
+                    "pages": pages,
+                }
             ),
             200,
         )
+    except HTTPException as exc:
+        return http_error_response(exc)
+    except Exception as exc:
+        return internal_error(exc)
+
+
+@clientes_bp.route("/<int:id>", methods=["GET"])
+@require_permissions("clientes")
+def obter_cliente(id):
+    try:
+        cliente, error = get_or_404(Cliente, id, "Cliente nao encontrado.")
+        if error:
+            return error
+        return jsonify(cliente.to_dict()), 200
     except HTTPException as exc:
         return http_error_response(exc)
     except Exception as exc:
