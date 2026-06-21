@@ -59,6 +59,8 @@ https://afterlife-cubbyhole-statue.ngrok-free.dev
 
 Essa URL funciona enquanto o túnel local estiver ativo.
 
+O frontend adiciona automaticamente o header `ngrok-skip-browser-warning: true` quando `VITE_API_BASE_URL` usa ngrok. O backend libera esse header no CORS para permitir chamadas reais do navegador.
+
 ### Mensagem para a banca
 
 > A mesma base do sistema pode ser publicada em ambiente web. O frontend fica hospedado na Vercel, a API pode ficar em Render, Railway, VPS ou outro provedor, e o cliente pode usar domínio próprio quando quiser.

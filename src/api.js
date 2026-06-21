@@ -8,9 +8,12 @@ const api = axios.create({
   baseURL: API_BASE_URL,
 });
 
+const isNgrokApi = API_BASE_URL.includes("ngrok-free.dev") || API_BASE_URL.includes("ngrok.app");
+
 api.interceptors.request.use((config) => {
   const token = getStoredToken();
   if (token) config.headers.Authorization = `Bearer ${token}`;
+  if (isNgrokApi) config.headers["ngrok-skip-browser-warning"] = "true";
   return config;
 });
 
