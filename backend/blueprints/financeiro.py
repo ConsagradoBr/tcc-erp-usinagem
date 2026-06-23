@@ -298,26 +298,34 @@ def obter_lancamento(id):
 def resumo():
     hoje, primeiro_dia, ultimo_dia = month_boundaries()
 
-    def _sum(tipo, data_inicio=None, data_fim=None):
+    def _sum_pendente(tipo):
         query = db.session.query(
             db.func.coalesce(db.func.sum(Lancamento.valor), 0)
         ).filter(Lancamento.tipo == tipo, Lancamento.data_pagamento.is_(None))
-        if data_inicio:
-            query = query.filter(Lancamento.data_pagamento >= data_inicio)
-        if data_fim:
-            query = query.filter(Lancamento.data_pagamento <= data_fim)
+        return round(float(query.scalar() or 0), 2)
+
+    def _sum_pago_no_periodo(tipo, data_inicio, data_fim):
+        query = db.session.query(
+            db.func.coalesce(db.func.sum(Lancamento.valor), 0)
+        ).filter(
+            Lancamento.tipo == tipo,
+            Lancamento.data_pagamento >= data_inicio,
+            Lancamento.data_pagamento <= data_fim,
+        )
         return round(float(query.scalar() or 0), 2)
 
     return (
         jsonify(
             {
-                "a_receber": _sum("receber"),
-                "a_pagar": _sum("pagar"),
+                "a_receber": _sum_pendente("receber"),
+                "a_pagar": _sum_pendente("pagar"),
                 "atrasados": Lancamento.query.filter(
                     Lancamento.data_pagamento.is_(None),
                     Lancamento.vencimento < hoje,
                 ).count(),
-                "recebido_mes": _sum("receber", primeiro_dia, ultimo_dia),
+                "recebido_mes": _sum_pago_no_periodo(
+                    "receber", primeiro_dia, ultimo_dia
+                ),
             }
         ),
         200,

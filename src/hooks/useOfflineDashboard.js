@@ -12,7 +12,7 @@ export function useOfflineDashboard(user) {
       loadListResource({
         tableName: "clientes",
         endpoint: "/clientes",
-        request: () => api.get("/clientes"),
+        request: () => api.get("/clientes", { params: { per_page: 500 } }),
         user,
       }),
     [user]
@@ -23,7 +23,7 @@ export function useOfflineDashboard(user) {
       loadListResource({
         tableName: "financeiro",
         endpoint: "/financeiro",
-        request: () => api.get("/financeiro"),
+        request: () => api.get("/financeiro", { params: { per_page: 1000 } }),
         user,
       }),
     [user]
@@ -56,7 +56,7 @@ export function useOfflineDashboard(user) {
       loadListResource({
         tableName: "ordensServico",
         endpoint: "/ordens-servico",
-        request: () => api.get("/ordens-servico"),
+        request: () => api.get("/ordens-servico", { params: { per_page: 500 } }),
         user,
       }),
     [user]

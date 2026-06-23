@@ -1,8 +1,8 @@
 # AMP ERP para Usinagem Industrial
 
-Sistema ERP web/Desktop desenvolvido como TCC para empresas de usinagem de pequeno e médio porte.
+Sistema ERP web e desktop desenvolvido como TCC para empresas de usinagem de pequeno e médio porte.
 
-Stack principal: React 18 + Vite, Flask, SQLAlchemy, JWT e PostgreSQL/Supabase.
+Stack principal: React 18 + Vite, Flask, SQLAlchemy, JWT, SQLite local e PostgreSQL/Supabase em produção.
 
 ## Figma / Protótipo visual
 
@@ -12,7 +12,7 @@ https://www.figma.com/design/rWaKAvacY9oAWU1w8aM1HI
 
 ## Situação atual
 
-O projeto está em fase de polimento de MVP e hoje já possui fluxo funcional para:
+O projeto está em fase funcional de MVP validável e possui fluxo completo para demonstração local, desktop e web:
 
 - autenticação com JWT
 - clientes
@@ -21,6 +21,8 @@ O projeto está em fase de polimento de MVP e hoje já possui fluxo funcional pa
 - orçamentos
 - dashboard com dados reais
 - empacotamento desktop com Flask + Waitress + build do Vite
+
+Para apresentação, o caminho mais seguro é executar a versão local/desktop com banco SQLite populado. A versão web publicada pode ser usada como fallback quando o backend hospedado estiver ativo.
 
 A antiga página de Notas Fiscais foi descontinuada e substituída pelo módulo de Orçamentos. A importação de NF-e continua existindo dentro do módulo de Clientes, e o campo NF-e continua sendo usado no Financeiro.
 
@@ -32,7 +34,7 @@ backend/
   create_tables.py      criação manual de tabelas
   migrate.py            migração manual antiga para parcelas
   requirements.txt      dependências do backend e testes
-  tests/test_api.py     testes automatizados básicos
+  tests/test_api.py     testes automatizados dos fluxos principais
 src/
   components/           sidebar, header e componentes reutilizáveis
   layouts/              layout público e protegido
@@ -55,6 +57,14 @@ backend/.env.example    exemplo do backend
 - `/app/backup` - backup desktop
 
 Não há rota oficial de cadastro público, Notas Fiscais ou preview de login na navegação da apresentação. A rota antiga `/app/ordemservico` existe apenas como compatibilidade e redireciona para `/app/ordens-servico`.
+
+## Ambientes de demonstração
+
+- **Local web:** Vite em `http://127.0.0.1:5173` consumindo a API Flask local em `http://127.0.0.1:5000`.
+- **Desktop:** executável empacotado com frontend buildado e API Flask no mesmo processo.
+- **Web publicada:** frontend em Vercel consumindo backend Flask em Render/Supabase, quando os serviços estiverem ativos.
+
+Para banca, recomenda-se usar local/desktop como ambiente principal e a web publicada como plano B.
 
 ## Módulos implementados
 
@@ -162,7 +172,7 @@ O frontend chama a API por `VITE_API_BASE_URL` ou, na ausência da variável, po
 
 ## Testes
 
-Foi adicionada uma suíte inicial de testes para os fluxos principais do backend.
+O backend possui suíte automatizada cobrindo os fluxos principais da API.
 
 ```bash
 python -m pytest backend/tests -q
@@ -171,10 +181,12 @@ python -m pytest backend/tests -q
 Cobertura atual da suíte:
 - autenticação e perfil
 - criação de cliente
+- listagem paginada e busca individual
 - aprovação e reaprovação de orçamento
 - sincronização de orçamento aprovado com OS e financeiro
 - financeiro parcelado
 - criação manual de ordem de serviço
+- health check e tratamento padronizado de erros
 
 ## Deploy
 
@@ -224,37 +236,34 @@ Esse script gera:
 
 ## Releases Desktop
 
-Os binarios de distribuicao nao devem mais ser versionados no Git. O codigo-fonte permanece no repositório, e o `.exe`/`.zip` devem ser publicados em **GitHub Releases**.
+Os binários de distribuição não devem ser versionados no Git. O código-fonte permanece no repositório, e o `.exe`/`.zip` devem ser publicados em **GitHub Releases**.
 
-Fluxo recomendado para novas versoes:
+Fluxo recomendado para novas versões:
 
-1. garantir que a branch esteja com CI verde
-2. criar uma tag no formato `vYYYY.MM.DD.HHMMSS`
-3. enviar a tag para o GitHub
-4. o workflow `Desktop Release` gera o `.exe` em Windows e publica o release automaticamente
+1. Garantir que a branch esteja com CI verde.
+2. Criar uma tag no formato `vYYYY.MM.DD.HHMMSS`.
+3. Enviar a tag para o GitHub.
+4. O workflow `Desktop Release` gera o `.exe` em Windows e publica o release automaticamente.
 
-Esse criterio deixa o historico do Git leve e concentra os artefatos de distribuicao no lugar certo.
+Esse critério deixa o histórico do Git leve e concentra os artefatos de distribuição no lugar certo.
 
 ## Limpeza para apresentação
 
 Diretórios gerados localmente não devem entrar no zip ou na revisão de apresentação: `node_modules/`, `dist/`, `build/`, `release/`, `__pycache__/`, `.pytest_cache/` e caches equivalentes. Eles podem existir no ambiente de desenvolvimento, mas devem ser regenerados pelos comandos documentados.
 
-## Próximas prioridades sugeridas
+## Checklist antes de apresentar
 
-- quebrar `backend/app.py` em módulos menores por domínio
-- adicionar paginação e validações mais rígidas no backend
-- reduzir o tamanho do bundle frontend com code splitting
-- ampliar testes para financeiro parcelado e ordens de serviço
-- adicionar observabilidade e logs estruturados para deploy
+- Subir backend local com `APP_ENV=development` e banco SQLite preparado.
+- Subir frontend local com `VITE_API_BASE_URL=http://127.0.0.1:5000`.
+- Validar login, dashboard, clientes, orçamentos, ordens de serviço e financeiro.
+- Manter o desktop/local como plano principal e a versão web publicada como fallback.
+- Ter prints ou roteiro de demonstração caso a internet falhe.
 
 **Quesede Constantino**  
 Desenvolvedor Fullstack — TCC: ERP para Usinagem Industrial
 
 **Lucas Vital Davoli**  
 Desenvolvedor — TCC: ERP para Usinagem Industrial
-
-**A definir**  
-— TCC: ERP para Usinagem Industrial
 
 ---
 

@@ -176,7 +176,7 @@ export default function Dashboard() {
     const financeiroResumo = dados.financeiroResumo || {};
     const orcamentosResumo = dados.orcamentosResumo || {};
 
-    const meses = ultimosMeses();
+    const meses = ultimosMeses(8);
     const faturamento = meses.map(({ mes, chave }) => ({
       mes,
       valor: Math.round(
@@ -318,7 +318,11 @@ export default function Dashboard() {
 
 
   const throughput = osTotais > 0 ? Math.round((osConcluidas / osTotais) * 100) : 0;
-  const fmt  = (v) => `R$ ${Number(v).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
+  const fmt = (v) =>
+    `R$ ${Number(v).toLocaleString("pt-BR", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
   const dateStr = now.toLocaleDateString("pt-BR", { day:"2-digit", month:"short", year:"numeric" }).toUpperCase();
   const timeStr = now.toLocaleTimeString("pt-BR");
 
