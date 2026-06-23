@@ -148,6 +148,9 @@ Sem `APP_ENV`, o backend assume comportamento de produção. Fora de desenvolvim
 
 Se nenhuma configuração de banco for informada, o backend só cai para SQLite local quando `APP_ENV=development` ou `APP_ENV=testing` estiver explícito.
 
+________________________________________________________________________________________________________
+
+
 ## Como rodar
 
 ### Backend
@@ -170,6 +173,9 @@ Backend padrão: `http://127.0.0.1:5000`
 
 O frontend chama a API por `VITE_API_BASE_URL` ou, na ausência da variável, por `http://127.0.0.1:5000`. O Vite não usa proxy local para `/api`.
 
+________________________________________________________________________________________________________
+
+
 ## Testes
 
 O backend possui suíte automatizada cobrindo os fluxos principais da API.
@@ -188,6 +194,8 @@ Cobertura atual da suíte:
 - criação manual de ordem de serviço
 - health check e tratamento padronizado de erros
 
+________________________________________________________________________________________________________
+
 ## Deploy
 
 ### Frontend
@@ -196,6 +204,7 @@ Use `VITE_API_BASE_URL` apontando para a URL pública do backend e rode:
 ```bash
 npm run build
 ```
+________________________________________________________________________________________________________
 
 ### Backend
 Defina `APP_ENV=production`, `DATABASE_URL`, `JWT_SECRET_KEY`, `SECRET_KEY`, `BOOTSTRAP_ADMIN_TOKEN`, `CORS_ORIGINS` e `PORT` no provedor de deploy.
@@ -204,6 +213,8 @@ O backend agora aceita:
 - `DATABASE_URL` para ambientes como Railway, Render e containers
 - `PORT` e `FLASK_HOST` para execução configurável
 - fallback local em SQLite apenas com `APP_ENV=development` ou `APP_ENV=testing`
+
+________________________________________________________________________________________________________
 
 ## Desktop
 
@@ -234,37 +245,16 @@ Esse script gera:
 - a pasta versionada com `LEIA-ME.txt`
 - o `.zip` pronto para publicar no GitHub Releases
 
-## Releases Desktop
-
-Os binários de distribuição não devem ser versionados no Git. O código-fonte permanece no repositório, e o `.exe`/`.zip` devem ser publicados em **GitHub Releases**.
-
-Fluxo recomendado para novas versões:
-
-1. Garantir que a branch esteja com CI verde.
-2. Criar uma tag no formato `vYYYY.MM.DD.HHMMSS`.
-3. Enviar a tag para o GitHub.
-4. O workflow `Desktop Release` gera o `.exe` em Windows e publica o release automaticamente.
-
-Esse critério deixa o histórico do Git leve e concentra os artefatos de distribuição no lugar certo.
-
-## Limpeza para apresentação
-
-Diretórios gerados localmente não devem entrar no zip ou na revisão de apresentação: `node_modules/`, `dist/`, `build/`, `release/`, `__pycache__/`, `.pytest_cache/` e caches equivalentes. Eles podem existir no ambiente de desenvolvimento, mas devem ser regenerados pelos comandos documentados.
-
-## Checklist antes de apresentar
-
-- Subir backend local com `APP_ENV=development` e banco SQLite preparado.
-- Subir frontend local com `VITE_API_BASE_URL=http://127.0.0.1:5000`.
-- Validar login, dashboard, clientes, orçamentos, ordens de serviço e financeiro.
-- Manter o desktop/local como plano principal e a versão web publicada como fallback.
-- Ter prints ou roteiro de demonstração caso a internet falhe.
+________________________________________________________________________________________________________
 
 **Quesede Constantino**  
 Desenvolvedor Fullstack — TCC: ERP para Usinagem Industrial
 
 **Lucas Vital Davoli**  
-Desenvolvedor — TCC: ERP para Usinagem Industrial
+Desenvolvedor Fullstack — TCC: ERP para Usinagem Industrial
 
+**Lucas dos Santos Palandi**  
+Desenvolvedor Fullstack — TCC: ERP para Usinagem Industrial
 ---
 
 ## 📄 Licença
